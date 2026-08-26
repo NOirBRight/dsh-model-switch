@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.2 - 2026-08-27
+
+- Match Model Switch route cards to the shared LLM Providers chrome: radius, fill, border, spacing, icon treatment, title weight, summary size, chevron, and expanded body.
+
 ## 0.3.1 - 2026-08-27
 
 - Keep the Model Switch settings nav glyph after the official Settings shell redraws its SVG.

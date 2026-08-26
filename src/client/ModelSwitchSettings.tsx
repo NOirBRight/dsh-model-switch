@@ -26,10 +26,10 @@ function cx(...values: Array<string | undefined | false>): string { return value
 function compact(...values: Array<string | undefined>): string { return values.filter((value): value is string => value !== undefined && value !== '').join(' · ') }
 
 function RouteIcon({ kind }: { kind: RouteIconKind }): ReactNode {
-  if (kind === 'main') return <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 4.5h12v8H8l-3.5 2v-2H3v-8Z" stroke="currentColor" strokeLinejoin="round" /></svg>
-  if (kind === 'subagent') return <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="2.5" stroke="currentColor" /><circle cx="12.5" cy="11.5" r="2" stroke="currentColor" /><path d="M3 14c.4-2.5 1.6-4 3-4s2.6 1.5 3 4M10 7.5c.5-.8 1.3-1.2 2.2-1.2 1.5 0 2.6 1 2.8 2.7" stroke="currentColor" strokeLinecap="round" /></svg>
-  if (kind === 'search') return <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="4.5" stroke="currentColor" /><path d="m11.5 11.5 3.5 3.5" stroke="currentColor" strokeLinecap="round" /></svg>
-  if (kind === 'image') return <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="2.5" y="3" width="13" height="12" rx="2" stroke="currentColor" /><circle cx="6.5" cy="7" r="1.3" stroke="currentColor" /><path d="m4 13 3.5-3 2.2 2 1.8-1.6 2.5 2.6" stroke="currentColor" strokeLinejoin="round" /></svg>
+  if (kind === 'main') return <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 4.5h12v8H8l-3.5 2v-2H3v-8Z" stroke="currentColor" strokeLinejoin="round" /></svg>
+  if (kind === 'subagent') return <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="2.5" stroke="currentColor" /><circle cx="12.5" cy="11.5" r="2" stroke="currentColor" /><path d="M3 14c.4-2.5 1.6-4 3-4s2.6 1.5 3 4M10 7.5c.5-.8 1.3-1.2 2.2-1.2 1.5 0 2.6 1 2.8 2.7" stroke="currentColor" strokeLinecap="round" /></svg>
+  if (kind === 'search') return <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="4.5" stroke="currentColor" /><path d="m11.5 11.5 3.5 3.5" stroke="currentColor" strokeLinecap="round" /></svg>
+  if (kind === 'image') return <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="2.5" y="3" width="13" height="12" rx="2" stroke="currentColor" /><circle cx="6.5" cy="7" r="1.3" stroke="currentColor" /><path d="m4 13 3.5-3 2.2 2 1.8-1.6 2.5 2.6" stroke="currentColor" strokeLinejoin="round" /></svg>
   return null
 }
 

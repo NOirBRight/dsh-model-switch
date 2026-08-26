@@ -1,6 +1,6 @@
 {
   "name": "dsh-model-switch",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Explicit model routing plus composer/Plan picker for DeepSeek Harness",
   "repository": {
     "type": "git",
