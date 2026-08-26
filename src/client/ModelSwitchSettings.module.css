@@ -58,7 +58,7 @@
   list-style: none;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 12px;
-  background: var(--dsw-alias-bg-module-platform);
+  background: var(--dsw-specific-sidebar-nav-item-active);
   transition: border-color 160ms, background 160ms;
 }
 

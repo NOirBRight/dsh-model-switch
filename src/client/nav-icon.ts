@@ -3,10 +3,12 @@
 const LABELS = new Set(['Model Switch', '模型切换'])
 const MARK = 'data-dsh-ms-icon'
 const GLYPH = [
+  '<g data-dsh-ms-glyph="switch">',
   '<path d="M3 5.5h7.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
   '<path d="M10.2 5.5 8.4 3.7M10.2 5.5 8.4 7.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>',
   '<path d="M13 10.5H5.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
   '<path d="M5.8 10.5 7.6 8.7M5.8 10.5 7.6 12.3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>',
+  '</g>',
 ].join('')
 
 function patch(): void {
@@ -14,7 +16,8 @@ function patch(): void {
     const label = Array.from(button.querySelectorAll('span')).find(span => LABELS.has(span.textContent?.trim() ?? ''))
     if (label === undefined) continue
     const svg = button.querySelector('svg')
-    if (svg === null || svg.getAttribute(MARK) === 'switch') continue
+    if (svg === null) continue
+    if (svg.getAttribute(MARK) === 'switch' && svg.innerHTML.includes('data-dsh-ms-glyph="switch"')) continue
     svg.setAttribute(MARK, 'switch')
     svg.setAttribute('viewBox', '0 0 16 16')
     svg.setAttribute('fill', 'none')

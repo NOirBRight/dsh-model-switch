@@ -18,6 +18,7 @@ describe('Model Switch Settings UI contract', () => {
       '--dsw-alias-brand-primary',
       '--dsw-alias-button-primary-fill',
     ]) expect(source).toContain(`var(${token})`)
+    expect(source).toContain('background: var(--dsw-specific-sidebar-nav-item-active)')
     expect(source.replace(/url\([^)]*\)/g, '')).not.toMatch(/#[0-9a-f]{3,8}|rgba?\(|hsla?\(/i)
   })
 

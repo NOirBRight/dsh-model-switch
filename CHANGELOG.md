@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1 - 2026-08-27
+
+- Keep the Model Switch settings nav glyph after the official Settings shell redraws its SVG.
+- Restore a visible platform-gray fill for collapsed route cards; every route remains collapsed on mount.
+
 ## 0.3.0 - 2026-08-27
 
 - Absorb the composer model picker and Plan Review execution picker into this package.
