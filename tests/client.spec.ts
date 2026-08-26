@@ -6,7 +6,7 @@ describe('Client Settings surface', () => {
   it('decodes unavailable stored choices without hiding them', () => {
     expect(decodeMainSettings({ provider: 'missing', model: 'remember', reasoningEffort: 'custom' })).toEqual({ provider: 'missing', model: 'remember', reasoningEffort: 'custom' })
     expect(decodeModelSwitchSettings({ subagentMode: 'fixed', subagentProvider: 'missing', subagentModel: 'remember' })).toMatchObject({ subagentMode: 'fixed', subagentProvider: 'missing' })
-    expect(decodeModelSwitchSettings({ subagentMode: 'follow-main', searchProvider: 'hidden', imageProvider: 'hidden', visionProvider: 'hidden' })).toEqual({ subagentMode: 'follow-main' })
+    expect(decodeModelSwitchSettings({ subagentMode: 'follow-main', searchProvider: 'codex', searchModel: 'gpt-search', imageProvider: 'grok', imageModel: 'grok-imagine-1.0', visionProvider: 'hidden' })).toEqual({ subagentMode: 'follow-main', searchProvider: 'codex', searchModel: 'gpt-search', imageProvider: 'grok', imageModel: 'grok-imagine-1.0' })
     expect(decodeModelSwitchSettings({ subagentMode: 'invalid' })).toBeUndefined()
   })
   it('registers one localized section and atomically saves the Main row', async () => {

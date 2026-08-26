@@ -33,15 +33,15 @@ export declare const RUNTIME_CAPABILITIES: Readonly<{
         reason: "tool-owner-suppression";
     }>;
     searchProviderAdapters: Readonly<{
-        available: false;
-        reason: "tool-owner-suppression";
+        available: true;
+        providers: readonly string[];
     }>;
     visionProviderAdapters: Readonly<{
         available: false;
         reason: "vision-provider-adapters";
     }>;
     imageProviderAdapters: Readonly<{
-        available: false;
-        reason: "image-provider-adapters";
+        available: true;
+        providers: readonly string[];
     }>;
 }>;

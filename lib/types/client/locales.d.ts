@@ -21,9 +21,9 @@ export declare const zh: {
     readonly subagentFollowMain: "跟随主模型";
     readonly subagentFixed: "固定模型";
     readonly search: "Web 搜索";
-    readonly vision: "视觉理解";
-    readonly visionHelp: "read_image 会把本地路径或公网图片交给所选 LLM 独立分析，并只把文本描述返回当前会话。任何已注册、声明接受图片输入的模型都可以选用；主模型可以没有视觉能力；普通聊天附件不会被预处理。不接受图片的模型会在调用时明确失败。";
+    readonly searchHelp: "继续使用官方 web_search；Model Switch 只在官方 Web Provider 层选择 Codex 模型。";
     readonly image: "图像生成";
+    readonly imageHelp: "统一 generate_image 会调用所选 Codex 或 Grok Adapter；Provider 原有图片工具仍保留。";
     readonly unavailable: "未接入";
     readonly loading: "正在加载设置…";
     readonly readonly: "设置为只读";

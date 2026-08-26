@@ -8,6 +8,10 @@ export interface Config {
   subagentProvider?: string
   subagentModel?: string
   subagentReasoningEffort?: string
+  searchProvider?: string
+  searchModel?: string
+  imageProvider?: string
+  imageModel?: string
 }
 
 export const MODEL_SWITCH_SETTINGS_NAMESPACE = settingsNamespace(MODEL_SWITCH_SETTINGS_ID)
@@ -16,6 +20,10 @@ export const Config: z<Config> = z.object({
   subagentProvider: z.string(),
   subagentModel: z.string(),
   subagentReasoningEffort: z.string(),
+  searchProvider: z.string(),
+  searchModel: z.string(),
+  imageProvider: z.string(),
+  imageModel: z.string(),
 })
 
 export const DEFAULT_CONFIG: Config = { subagentMode: 'follow-main' }

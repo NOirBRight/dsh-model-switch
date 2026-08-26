@@ -5,6 +5,10 @@ export interface Config {
     subagentProvider?: string;
     subagentModel?: string;
     subagentReasoningEffort?: string;
+    searchProvider?: string;
+    searchModel?: string;
+    imageProvider?: string;
+    imageModel?: string;
 }
 export declare const MODEL_SWITCH_SETTINGS_NAMESPACE: import("@deepseek-ai/dsh-settings").SettingsNamespace;
 export declare const Config: z<Config>;

@@ -2,6 +2,7 @@ import { Context, Service } from '@deepseek-ai/cordis';
 import type { ModelSelection } from '@deepseek-ai/dsh-agent';
 import type { AgentDefaultModelConfig } from '@deepseek-ai/dsh-agent-default-model';
 import { Config, type Config as ModelSwitchSettings } from './host-settings.js';
+import { ModelSwitchAdapterRegistry } from './adapter-registry.js';
 declare module '@deepseek-ai/cordis' {
     interface Context {
         modelSwitch: ModelSwitchRuntime;
@@ -30,18 +31,19 @@ export declare class ModelSwitchRuntime extends Service {
             reason: "tool-owner-suppression";
         }>;
         searchProviderAdapters: Readonly<{
-            available: false;
-            reason: "tool-owner-suppression";
+            available: true;
+            providers: readonly string[];
         }>;
         visionProviderAdapters: Readonly<{
             available: false;
             reason: "vision-provider-adapters";
         }>;
         imageProviderAdapters: Readonly<{
-            available: false;
-            reason: "image-provider-adapters";
+            available: true;
+            providers: readonly string[];
         }>;
     }>;
+    readonly adapters: ModelSwitchAdapterRegistry;
     private source;
     constructor(ctx: Context, entry: ModelSwitchSettings);
     currentSettings(): ModelSwitchSettings;

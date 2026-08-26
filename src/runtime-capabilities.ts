@@ -9,7 +9,7 @@ export const RUNTIME_CAPABILITIES = Object.freeze({
   centralSubagentRouting: Object.freeze({ available: true }),
   packagedPresetRoots: Object.freeze({ available: false, reason: 'packaged-preset-roots' as const }),
   toolOwnerSuppression: Object.freeze({ available: false, reason: 'tool-owner-suppression' as const }),
-  searchProviderAdapters: Object.freeze({ available: false, reason: 'tool-owner-suppression' as const }),
+  searchProviderAdapters: Object.freeze({ available: true, providers: Object.freeze(['codex']) }),
   visionProviderAdapters: Object.freeze({ available: false, reason: 'vision-provider-adapters' as const }),
-  imageProviderAdapters: Object.freeze({ available: false, reason: 'image-provider-adapters' as const }),
+  imageProviderAdapters: Object.freeze({ available: true, providers: Object.freeze(['codex', 'grok']) }),
 }) satisfies RuntimeCapabilities

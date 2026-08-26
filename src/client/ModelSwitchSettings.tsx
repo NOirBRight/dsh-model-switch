@@ -10,15 +10,16 @@ import css from './ModelSwitchSettings.module.css'
 
 export interface ModelSwitchSettingsFace {
   t: (key: ModelSwitchLocaleKey) => string
-  hooks: { mainSettings: SettingsScope<MainSettingsView>; subagentSettings: SettingsScope<SubagentSettingsView> }
+  hooks: { mainSettings: SettingsScope<MainSettingsView>; subagentSettings: SettingsScope<SubagentSettingsView>; searchSettings: SettingsScope<CapabilityRouteView>; imageSettings: SettingsScope<CapabilityRouteView> }
   capabilities: RuntimeCapabilities
   saveMain: (next: MainSettingsView, expectedRevision: number) => Promise<number>
   setSubagent: (field: 'mode' | 'provider' | 'model', value: string | undefined) => Promise<void>
+  setCapability: (route: 'search' | 'image', field: 'provider' | 'model', value: string | undefined) => Promise<void>
   loadCatalog: () => Promise<readonly ModelProviderGroup[]>
 }
 
 export type ModelSwitchSettingsProps = PropsRuntime<'settings.section'> & InjectFace<ModelSwitchSettingsFace>
-type RouteId = 'main' | 'subagent'
+type RouteId = 'main' | 'subagent' | 'search' | 'image'
 type RouteIconKind = RouteId
 
 function cx(...values: Array<string | undefined | false>): string { return values.filter(Boolean).join(' ') }
@@ -27,6 +28,8 @@ function compact(...values: Array<string | undefined>): string { return values.f
 function RouteIcon({ kind }: { kind: RouteIconKind }): ReactNode {
   if (kind === 'main') return <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 4.5h12v8H8l-3.5 2v-2H3v-8Z" stroke="currentColor" strokeLinejoin="round" /></svg>
   if (kind === 'subagent') return <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="6" cy="6" r="2.5" stroke="currentColor" /><circle cx="12.5" cy="11.5" r="2" stroke="currentColor" /><path d="M3 14c.4-2.5 1.6-4 3-4s2.6 1.5 3 4M10 7.5c.5-.8 1.3-1.2 2.2-1.2 1.5 0 2.6 1 2.8 2.7" stroke="currentColor" strokeLinecap="round" /></svg>
+  if (kind === 'search') return <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="4.5" stroke="currentColor" /><path d="m11.5 11.5 3.5 3.5" stroke="currentColor" strokeLinecap="round" /></svg>
+  if (kind === 'image') return <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden="true"><rect x="2.5" y="3" width="13" height="12" rx="2" stroke="currentColor" /><circle cx="6.5" cy="7" r="1.3" stroke="currentColor" /><path d="m4 13 3.5-3 2.2 2 1.8-1.6 2.5 2.6" stroke="currentColor" strokeLinejoin="round" /></svg>
   return null
 }
 
@@ -72,11 +75,25 @@ function routeDefaultEffort(groups: readonly ModelProviderGroup[], route: Capabi
   return groups.find(group => group.id === route.provider)?.models.find(model => model.id === route.model)?.reasoning?.defaultEffort
 }
 
+function capabilityChoices(groups: readonly ModelProviderGroup[], route: CapabilityRouteView | undefined, providers: readonly string[], kind: 'search' | 'image'): { providers: Choice[]; models: Choice[] } {
+  const choices = deriveRouteChoices(groups, route, providers)
+  if (kind === 'image' && route?.provider === 'grok') {
+    const models: Choice[] = [{ id: 'grok-imagine-image-quality', name: 'Grok Imagine 1.0' }]
+    if (route.model !== undefined && !models.some(model => model.id === route.model)) models.push({ id: route.model, name: route.model, unavailable: true })
+    return { providers: choices.providers, models }
+  }
+  return choices
+}
+
 export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode {
   const controller = useModelSwitchSettingsController(props)
   const { main, subagent, draft, groups } = controller
+  const search = props.useSearchSettings(value => value)
+  const image = props.useImageSettings(value => value)
   const [open, setOpen] = useState<RouteId | undefined>('main')
   const [subagentDraft, setSubagentDraft, resetSubagent] = useDraft(subagent)
+  const [searchDraft, setSearchDraft, resetSearch] = useDraft(search)
+  const [imageDraft, setImageDraft, resetImage] = useDraft(image)
   const [busy, setBusy] = useState<RouteId | undefined>()
   const [message, setMessage] = useState<{ route: RouteId; text: string } | undefined>()
   const unavailable = (key: keyof RuntimeCapabilities): string => { const reason = props.capabilities[key].reason; return reason === undefined ? props.t('unavailable') : props.t(('reason.' + reason) as ModelSwitchLocaleKey) }
@@ -85,7 +102,9 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
   const subagentChoices = deriveRouteChoices(groups, subagentRoute)
   const defaultEffort = routeDefaultEffort(groups, subagentRoute)
   const mainEffectiveEffort = draft?.reasoningEffort ?? routeDefaultEffort(groups, draft)
-  const synced = [main, subagent].every(snapshot => snapshot.status === 'ready')
+  const searchChoices = capabilityChoices(groups, searchDraft, props.capabilities.searchProviderAdapters.providers ?? [], 'search')
+  const imageChoices = capabilityChoices(groups, imageDraft, props.capabilities.imageProviderAdapters.providers ?? [], 'image')
+  const synced = [main, subagent, search, image].every(snapshot => snapshot.status === 'ready')
   const run = async (route: RouteId, operation: () => Promise<void>): Promise<void> => {
     if (busy !== undefined) return
     setBusy(route); setMessage(undefined)
@@ -100,9 +119,14 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
       if (subagent.value?.model !== subagentDraft.model) await props.setSubagent('model', subagentDraft.model)
     }
   }) }
+  const saveCapability = (route: 'search' | 'image', current: SettingsScopeSnapshot<CapabilityRouteView>, next: CapabilityRouteView | undefined): void => { if (next === undefined) return; void run(route, async () => {
+    if (current.value?.provider !== next.provider) await props.setCapability(route, 'provider', next.provider)
+    if (current.value?.model !== next.model) await props.setCapability(route, 'model', next.model)
+  }) }
   const mainSummary = draft === undefined ? props.t('loading') : compact(routeName(groups, draft), mainEffectiveEffort)
   const subagentSummary = subagentDraft?.mode === 'follow-main' ? props.t('subagentFollowMain') : compact(props.t('subagentFixed'), routeName(groups, subagentRoute), defaultEffort === undefined ? props.t('providerDefaultShort') : compact(props.t('providerDefaultShort'), defaultEffort))
   const subagentDisabled = subagent.status !== 'ready' || !subagent.writable || subagentDraft === undefined || busy === 'subagent' || (subagentDraft.mode === 'fixed' && ((subagentDraft.provider ?? '').trim() === '' || (subagentDraft.model ?? '').trim() === ''))
+  const capabilityDisabled = (route: 'search' | 'image', snapshot: SettingsScopeSnapshot<CapabilityRouteView>, next: CapabilityRouteView | undefined): boolean => snapshot.status !== 'ready' || !snapshot.writable || next === undefined || busy === route || (next.provider ?? '').trim() === '' || (next.model ?? '').trim() === ''
 
   return <main className={css.section}>
     <h1 className={css.title}>{props.t('title')}</h1>
@@ -124,6 +148,22 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
           {subagentDraft.mode === 'fixed' ? <><Field label={props.t('provider')} value={subagentDraft.provider ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.providers} onChange={provider => { const first = groups.find(group => group.id === provider)?.models[0]; setSubagentDraft({ ...subagentDraft, provider, ...(first === undefined ? {} : { model: first.id }) }) }} /><Field label={props.t('model')} value={subagentDraft.model ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.models} onChange={model => { setSubagentDraft({ ...subagentDraft, model }) }} /></> : null}
         </div><Actions t={props.t} busy={busy === 'subagent'} disabled={subagentDisabled} {...(message?.route === 'subagent' ? { message: message.text } : {})} onCancel={() => { resetSubagent(); setMessage(undefined) }} onSave={saveSubagent} /></>}
       </RouteCard> : <RouteCard title={props.t('subagent')} summary={unavailable('centralSubagentRouting')} icon="subagent" open={false} onToggle={() => {}} disabled badge={props.t('unavailable')} badgeWarn />}
+    </section>
+
+    <section className={css.group}><h2 className={css.groupLabel}>{props.t('capabilityRoutes')}</h2>
+      {props.capabilities.searchProviderAdapters.available ? <RouteCard title={props.t('search')} summary={searchDraft === undefined ? props.t('loading') : routeName(groups, searchDraft)} icon="search" open={open === 'search'} onToggle={() => { toggle('search') }}>
+        {searchDraft === undefined ? <p className={css.hint}>{props.t('loading')}</p> : <><p className={css.hint}>{props.t('searchHelp')}</p><div className={css.formGrid}>
+          <Field label={props.t('provider')} value={searchDraft.provider} disabled={busy === 'search' || !search.writable} choices={searchChoices.providers} onChange={provider => { const first = groups.find(group => group.id === provider)?.models[0]; setSearchDraft({ provider, ...(first === undefined ? {} : { model: first.id }) }) }} />
+          <Field label={props.t('model')} value={searchDraft.model} disabled={busy === 'search' || !search.writable} choices={searchChoices.models} onChange={model => { setSearchDraft({ ...searchDraft, model }) }} />
+        </div><Actions t={props.t} busy={busy === 'search'} disabled={capabilityDisabled('search', search, searchDraft)} {...(message?.route === 'search' ? { message: message.text } : {})} onCancel={() => { resetSearch(); setMessage(undefined) }} onSave={() => { saveCapability('search', search, searchDraft) }} /></>}
+      </RouteCard> : <RouteCard title={props.t('search')} summary={unavailable('searchProviderAdapters')} icon="search" open={false} onToggle={() => {}} disabled badge={props.t('unavailable')} badgeWarn />}
+
+      {props.capabilities.imageProviderAdapters.available ? <RouteCard title={props.t('image')} summary={imageDraft === undefined ? props.t('loading') : routeName(groups, imageDraft)} icon="image" open={open === 'image'} onToggle={() => { toggle('image') }}>
+        {imageDraft === undefined ? <p className={css.hint}>{props.t('loading')}</p> : <><p className={css.hint}>{props.t('imageHelp')}</p><div className={css.formGrid}>
+          <Field label={props.t('provider')} value={imageDraft.provider} disabled={busy === 'image' || !image.writable} choices={imageChoices.providers} onChange={provider => { const model = provider === 'grok' ? 'grok-imagine-image-quality' : groups.find(group => group.id === provider)?.models[0]?.id; setImageDraft({ provider, ...(model === undefined ? {} : { model }) }) }} />
+          <Field label={props.t('model')} value={imageDraft.model} disabled={busy === 'image' || !image.writable} choices={imageChoices.models} onChange={model => { setImageDraft({ ...imageDraft, model }) }} />
+        </div><Actions t={props.t} busy={busy === 'image'} disabled={capabilityDisabled('image', image, imageDraft)} {...(message?.route === 'image' ? { message: message.text } : {})} onCancel={() => { resetImage(); setMessage(undefined) }} onSave={() => { saveCapability('image', image, imageDraft) }} /></>}
+      </RouteCard> : <RouteCard title={props.t('image')} summary={unavailable('imageProviderAdapters')} icon="image" open={false} onToggle={() => {}} disabled badge={props.t('unavailable')} badgeWarn />}
     </section>
 
   </main>

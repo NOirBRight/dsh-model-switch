@@ -27,20 +27,25 @@ function snapshot<T>(value: T) {
 }
 
 describe('Model Switch settings menu', () => {
-  it('shows only released Main and Subagent routes', () => {
+  it('shows Main, Subagent, Search, and Image without Vision', () => {
     const markup = renderToStaticMarkup(<ModelSwitchSettings {...({
       t: (key: string) => key,
       capabilities: {
         centralSubagentRouting: { available: true },
+        searchProviderAdapters: { available: true, providers: ['codex'] },
+        imageProviderAdapters: { available: true, providers: ['codex', 'grok'] },
       },
+      useSearchSettings: () => snapshot({ provider: 'codex', model: 'gpt-search' }),
+      useImageSettings: () => snapshot({ provider: 'grok', model: 'grok-imagine-image-quality' }),
       setSubagent: vi.fn(),
+      setCapability: vi.fn(),
       saveMain: vi.fn(),
     } as never)} />)
 
     expect(markup).toContain('>main<')
     expect(markup).toContain('>subagent<')
-    expect(markup).not.toContain('>search<')
+    expect(markup).toContain('>search<')
     expect(markup).not.toContain('>vision<')
-    expect(markup).not.toContain('>image<')
+    expect(markup).toContain('>image<')
   })
 })

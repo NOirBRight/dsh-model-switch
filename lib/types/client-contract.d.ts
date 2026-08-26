@@ -13,6 +13,10 @@ export interface ModelSwitchSettingsView {
     subagentProvider?: string;
     subagentModel?: string;
     subagentReasoningEffort?: string;
+    searchProvider?: string;
+    searchModel?: string;
+    imageProvider?: string;
+    imageModel?: string;
 }
 export interface SubagentSettingsView {
     mode: 'follow-main' | 'fixed';
@@ -29,6 +33,16 @@ export declare const SUBAGENT_SETTINGS_FIELDS: Readonly<{
     readonly provider: "subagentProvider";
     readonly model: "subagentModel";
 }>;
+export declare const SEARCH_SETTINGS_FIELDS: Readonly<{
+    readonly provider: "searchProvider";
+    readonly model: "searchModel";
+}>;
+export declare const IMAGE_SETTINGS_FIELDS: Readonly<{
+    readonly provider: "imageProvider";
+    readonly model: "imageModel";
+}>;
 export declare function decodeMainSettings(value: unknown): MainSettingsView | undefined;
 export declare function decodeModelSwitchSettings(value: unknown): ModelSwitchSettingsView | undefined;
 export declare function deriveSubagentSettings(settings: ModelSwitchSettingsView): SubagentSettingsView;
+export declare function deriveSearchSettings(settings: ModelSwitchSettingsView): CapabilityRouteView;
+export declare function deriveImageSettings(settings: ModelSwitchSettingsView): CapabilityRouteView;

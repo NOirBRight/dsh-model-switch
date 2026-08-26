@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 - 2026-08-26
+
+- Keep official `web_search` ownership and add a thin `model-switch` Web Search provider with Codex model routing.
+- Add stable `generate_image` routing through optional Codex and Grok adapters, with provider-specific schemas regenerated after Image route changes.
+- Add Search and Image settings cards while keeping Vision/read_image excluded.
+- Preserve existing provider-specific image tools and `web_fetch` as rollback paths.
+
+
 ## 0.1.1 - 2026-08-26
 
 - Ship compiled Host/Client `lib/` in the git tag so `github:…#v0.1.1` installs can boot.

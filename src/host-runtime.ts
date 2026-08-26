@@ -4,6 +4,9 @@ import type { AgentDefaultModelConfig } from '@deepseek-ai/dsh-agent-default-mod
 import { installSettingsSection } from '@deepseek-ai/dsh-settings'
 import { Config, MODEL_SWITCH_SETTINGS_NAMESPACE, type Config as ModelSwitchSettings } from './host-settings.js'
 import { RUNTIME_CAPABILITIES } from './runtime-capabilities.js'
+import { ModelSwitchAdapterRegistry } from './adapter-registry.js'
+import { installModelSwitchSearchProvider } from './search-provider.js'
+import { installGenerateImageTool } from './image-tool.js'
 
 declare module '@deepseek-ai/cordis' {
   interface Context { modelSwitch: ModelSwitchRuntime }
@@ -14,14 +17,17 @@ export class ModelSwitchRuntime extends Service {
   static inject = ['agentDefaultModel']
   static Config = Config
   readonly capabilities = RUNTIME_CAPABILITIES
+  readonly adapters = new ModelSwitchAdapterRegistry()
   private source: () => ModelSwitchSettings
 
   constructor(ctx: Context, entry: ModelSwitchSettings) {
     super(ctx, 'modelSwitch')
     this.source = () => entry
+    installModelSwitchSearchProvider(ctx, this)
+    const imageTool = installGenerateImageTool(ctx, this)
     installSettingsSection(ctx, MODEL_SWITCH_SETTINGS_NAMESPACE, Config, entry, {
       setSource: (current) => { this.source = current },
-      onChange: () => {},
+      onChange: () => { void imageTool.reconcile().catch(error => { ctx.logger.error('Model Switch: failed to regenerate generate_image schema'); ctx.logger.error(error) }) },
     })
   }
 
