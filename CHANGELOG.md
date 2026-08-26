@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 - 2026-08-26
+
+- Ship compiled Host/Client `lib/` in the git tag so `github:…#v0.1.1` installs can boot.
+
 ## 0.1.0 - 2026-08-26
 
 - Add Main default and follow-main/fixed Subagent model routing for DSH 0.1.1-rc.2.

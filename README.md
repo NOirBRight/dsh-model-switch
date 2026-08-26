@@ -16,7 +16,7 @@ See [PRODUCT.md](PRODUCT.md) for frozen scope and [IMPLEMENTATION_PLAN.md](IMPLE
 ## Installation
 
 ```sh
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.1.0
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.1.1
 ```
 
 Restart the selected DSH profile after installation. Production profiles should use the released GitHub tag rather than a local workspace dependency.
