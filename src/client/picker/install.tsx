@@ -23,7 +23,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 const NS = 'composer-picker'
-const MODEL_PRIORITY = -1
+const MODEL_PRIORITY = -10
 // Beat dsh-external-agents (-6). Its Plan card is the execute-with router; until a
 // public Plan-resolution seam exists that card cannot hand off, so this takeover owns review.
 const PLAN_REVIEW_PRIORITY = -7
@@ -64,7 +64,7 @@ function ModelSeat(
 export function installComposerPicker(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-model-switch: composer picker dictionaries')
 
-  ctx.inject(['slots', 'modelDirectories', 'sessions'], (scope: ClientContext) => {
+  ctx.inject(['slots', 'modelDirectories'], (scope: ClientContext) => {
     const models = scope.modelDirectories
     const sessions = scope.sessions as { subagentAddress?: (id: unknown) => unknown }
     const resolveInteractionOperations = (): PickerInteractionOperations | undefined => interactionOperationsFrom(scope)

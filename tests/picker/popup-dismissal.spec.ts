@@ -73,4 +73,24 @@ describe('installPickerDismissal', () => {
     expect(documentTarget.removeEventListener).toHaveBeenCalledWith('pointerdown', pointerListener, true)
     expect(unregister).toHaveBeenCalledOnce()
   })
+
+  it('keeps outside-pointer dismissal when an optional mobile surface rejects registration', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const documentTarget = { addEventListener: vi.fn(), removeEventListener: vi.fn() }
+    const interaction: PickerInteractionOperations = {
+      registerSurface: vi.fn(() => { throw new Error('surface unavailable') }),
+    }
+
+    expect(() => installPickerDismissal({
+      documentTarget: documentTarget as unknown as Document,
+      surfaceId: 'composer-model-picker-fallback',
+      interaction,
+      trigger: () => null,
+      popup: () => null,
+      dismiss: vi.fn(),
+    })).not.toThrow()
+    expect(documentTarget.addEventListener).toHaveBeenCalledWith('pointerdown', expect.any(Function), true)
+    expect(warn).toHaveBeenCalledWith('dsh-model-switch: optional interaction surface registration failed', expect.any(Error))
+    warn.mockRestore()
+  })
 })

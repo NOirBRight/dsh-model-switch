@@ -26,11 +26,16 @@ export interface PickerDismissalOptions {
 export function installPickerDismissal({
   documentTarget, surfaceId, interaction, trigger, popup, dismiss,
 }: PickerDismissalOptions): () => void {
-  const unregister = interaction?.registerSurface({
-    id: surfaceId,
-    kind: 'popup',
-    dismiss: () => { dismiss() },
-  }) ?? (() => {})
+  let unregister = (): void => {}
+  try {
+    unregister = interaction?.registerSurface({
+      id: surfaceId,
+      kind: 'popup',
+      dismiss: () => { dismiss() },
+    }) ?? unregister
+  } catch (error) {
+    console.warn('dsh-model-switch: optional interaction surface registration failed', error)
+  }
   const onPointerDown = (event: Event): void => {
     const target = event.target
     if (!(target instanceof Node)) return

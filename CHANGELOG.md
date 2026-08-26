@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3 - 2026-08-27
+
+- Restore merged picker ownership of the composer model seat by matching the official service gate and using an unambiguous winning priority.
+- Treat optional mobile interaction-surface failures as a graceful degradation instead of crashing and abdicating the custom seat to the official picker.
+
 ## 0.3.2 - 2026-08-27
 
 - Match Model Switch route cards to the shared LLM Providers chrome: radius, fill, border, spacing, icon treatment, title weight, summary size, chevron, and expanded body.

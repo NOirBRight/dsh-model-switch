@@ -18,7 +18,7 @@ See [PRODUCT.md](PRODUCT.md) for frozen scope and [IMPLEMENTATION_PLAN.md](IMPLE
 ## Installation
 
 ```sh
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.3.2
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.3.3
 DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.0
 DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.0
 ```
