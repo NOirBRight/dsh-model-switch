@@ -49,7 +49,7 @@ const host: UserConfig = {
 }
 const client: UserConfig = {
   name: `${PACKAGE_ID}/client`, entry: { client: 'src/client/index.tsx' }, outDir: 'lib', format: 'cjs', platform: 'browser', target: 'es2024', dts: false, clean: false, plugins: [cssModules],
-  deps: { neverBundle: ['react','react/jsx-runtime','react-dom','@deepseek-ai/cordis','@deepseek-ai/dsh-api-remotes/client','@deepseek-ai/dsh-client-locale/client','@deepseek-ai/dsh-client-runtime/client','@deepseek-ai/dsh-client-ui-settings/client','@deepseek-ai/dsh-client-ui-slots'] },
+  deps: { neverBundle: ['react','react/jsx-runtime','react-dom','@deepseek-ai/cordis','@deepseek-ai/dsh-api-remotes/client','@deepseek-ai/dsh-client-locale/client','@deepseek-ai/dsh-client-runtime/client','@deepseek-ai/dsh-client-ui-conversation/client','@deepseek-ai/dsh-client-ui-model-selection/client','@deepseek-ai/dsh-client-ui-primitives','@deepseek-ai/dsh-client-ui-settings/client','@deepseek-ai/dsh-client-ui-slots'] },
   define: { 'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production') },
   outputOptions: {
     entryFileNames: 'client.js',

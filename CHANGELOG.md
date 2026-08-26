@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 - 2026-08-27
+
+- Absorb the composer model picker and Plan Review execution picker into this package.
+- Plan Review uses the official warn-strip card, a short capsule trigger, and a two-level Model/Effort/Context/Fast/Thinking menu.
+- One `dsh plugin add dsh-model-switch` now covers routing Settings and composer/Plan selection. Remove a standalone `dsh-composer-picker` install to avoid a second model seat.
+- Picker trigger shows the family name plus distinct effort / Fast / context bits; duplicate context windows collapse to one menu row.
+- Known limitations: Settings nav icon still patches official nav DOM (no public icon field, same pattern as usage-monitor). The `external-agents.plan-review.continue-in-dsh` adapter stays registered for dual-install; Plan Review takeover currently wins at priority -7 because the official Plan handoff seam is unavailable.
+
 ## 0.2.0 - 2026-08-26
 
 - Keep official `web_search` ownership and add a thin `model-switch` Web Search provider with Codex model routing.

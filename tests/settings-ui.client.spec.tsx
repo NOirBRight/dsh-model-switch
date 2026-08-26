@@ -47,5 +47,7 @@ describe('Model Switch settings menu', () => {
     expect(markup).toContain('>search<')
     expect(markup).not.toContain('>vision<')
     expect(markup).toContain('>image<')
+    expect(markup).not.toContain('>save<')
+    expect(markup).not.toContain('aria-expanded="true"')
   })
 })

@@ -58,16 +58,21 @@
   list-style: none;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 12px;
-  background: var(--dsw-alias-bg-layer-3);
+  background: var(--dsw-alias-bg-module-platform);
   transition: border-color 160ms, background 160ms;
 }
 
 .routeCard:hover {
-  border-color: var(--dsw-alias-label-dimmed);
+  border-color: var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-layer-3);
 }
 
 .routeCardOpen {
-  border-color: var(--dsw-alias-label-dimmed);
+  border-color: var(--dsw-alias-border-l2);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.routeCardOpen:hover {
   background: var(--dsw-alias-bg-layer-2);
 }
 

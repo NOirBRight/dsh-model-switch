@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
 import { decodeMainSettings, decodeModelSwitchSettings, MAIN_SETTINGS_ID, MODEL_SWITCH_SETTINGS_ID } from '../src/client-contract.js'
+
+vi.mock('../src/client/picker/install.tsx', () => ({ installComposerPicker: vi.fn() }))
+
 import { apply, inject, name } from '../src/client/index.js'
+import { installComposerPicker } from '../src/client/picker/install.tsx'
 
 describe('Client Settings surface', () => {
   it('decodes unavailable stored choices without hiding them', () => {
@@ -21,6 +25,7 @@ describe('Client Settings surface', () => {
       slots: { inject(_name: string, factory: () => unknown) { factory() }, register(options: Record<string, unknown>) { registration = options; return vi.fn() } },
     }
     apply(ctx as never)
+    expect(installComposerPicker).toHaveBeenCalledWith(ctx)
     expect(name).toBe('dsh-model-switch-client')
     expect(inject).toEqual(['slots', 'locale', 'settingsScope', 'connection'])
     expect(namespaces).toEqual([MAIN_SETTINGS_ID, MODEL_SWITCH_SETTINGS_ID])

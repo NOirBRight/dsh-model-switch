@@ -90,7 +90,7 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
   const { main, subagent, draft, groups } = controller
   const search = props.useSearchSettings(value => value)
   const image = props.useImageSettings(value => value)
-  const [open, setOpen] = useState<RouteId | undefined>('main')
+  const [open, setOpen] = useState<RouteId | undefined>()
   const [subagentDraft, setSubagentDraft, resetSubagent] = useDraft(subagent)
   const [searchDraft, setSearchDraft, resetSearch] = useDraft(search)
   const [imageDraft, setImageDraft, resetImage] = useDraft(image)

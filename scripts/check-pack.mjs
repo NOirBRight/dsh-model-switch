@@ -54,6 +54,20 @@ async function inventory(root) {
   return result
 }
 
+function clientFactoryRequire() {
+  const dummy = new Proxy(function pluginPeer() {}, {
+    get(_target, prop) {
+      if (prop === '__esModule') return true
+      if (prop === 'then') return undefined
+      if (prop === 'default') return dummy
+      return dummy
+    },
+    apply() { return null },
+    construct() { return dummy },
+  })
+  return () => dummy
+}
+
 function collectExportTargets(exportsValue) {
   const targets = []
   function walk(value, subpath, condition) {
@@ -134,7 +148,7 @@ async function verifyArtifact(packageRoot) {
         globalThis.window = { __ModuleLoader__: { load(value) { row = value } } }
         try { await import(pathToFileURL(absolute).href + '?pack-check=' + Date.now()) } finally { globalThis.window = previousWindow }
         if (row?.id !== 'dsh-model-switch' || typeof row.factory !== 'function') throw new Error('packed client entry did not register its public module row')
-        const clientExports = row.factory(createRequire(import.meta.url))
+        const clientExports = row.factory(clientFactoryRequire())
         if (typeof clientExports?.apply !== 'function' || clientExports?.name !== 'dsh-model-switch-client') throw new Error('packed client factory did not load its public plugin exports')
       } else await import(pathToFileURL(absolute).href + '?pack-check=' + Date.now())
     } else if (entry.target.endsWith('.json')) {
@@ -152,7 +166,7 @@ async function verifyArtifact(packageRoot) {
     for (const subpath of publicSubpaths) {
       const specifier = subpath === '.' ? manifest.name : manifest.name + subpath.slice(1)
       const code = subpath === './client'
-        ? 'const{createRequire}=await import("node:module");let row;globalThis.window={__ModuleLoader__:{load(value){row=value}}};await import(' + JSON.stringify(specifier) + ');if(row?.id!=="dsh-model-switch"||typeof row.factory!=="function")throw new Error("invalid client row");const entry=row.factory(createRequire(process.cwd()+"/package.json"));if(typeof entry?.apply!=="function")throw new Error("invalid client exports")'
+        ? 'let row;globalThis.window={__ModuleLoader__:{load(value){row=value}}};await import(' + JSON.stringify(specifier) + ');if(row?.id!=="dsh-model-switch"||typeof row.factory!=="function")throw new Error("invalid client row");const dummy=new Proxy(function(){},{get(_t,p){if(p==="__esModule")return true;if(p==="then")return undefined;if(p==="default")return dummy;return dummy},apply(){return null},construct(){return dummy}});const entry=row.factory(()=>dummy);if(typeof entry?.apply!=="function")throw new Error("invalid client exports")'
         : specifier.endsWith('/package.json') ? 'await import(' + JSON.stringify(specifier) + ', { with: { type: "json" } })' : 'await import(' + JSON.stringify(specifier) + ')'
       await run(process.execPath, ['--input-type=module', '--eval', code], consumer)
     }

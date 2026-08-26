@@ -8,6 +8,8 @@ import { deriveSettingsScope } from './derived-settings-scope.js'
 import { RUNTIME_CAPABILITIES } from '../runtime-capabilities.js'
 import { ModelSwitchSettings, type ModelSwitchSettingsFace } from './ModelSwitchSettings.js'
 import { en, zh, type ModelSwitchLocaleKey } from './locales.js'
+import { installComposerPicker } from './picker/install.tsx'
+import { installModelSwitchNavIcon } from './nav-icon.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap { 'settings.model-switch': ModelSwitchLocaleKey }
@@ -17,6 +19,8 @@ export const name = 'dsh-model-switch-client'
 export const inject = ['slots', 'locale', 'settingsScope', 'connection']
 
 export function apply(ctx: ClientContext): void {
+  installComposerPicker(ctx)
+  ctx.effect(installModelSwitchNavIcon, 'dsh-model-switch: settings nav icon')
   const localeNamespace = 'settings.model-switch'
   ctx.effect(() => ctx.locale.register(localeNamespace, { zh, en }), 'dsh-model-switch: localized Settings section')
   const t = ctx.locale.bind(localeNamespace) as ModelSwitchSettingsFace['t']

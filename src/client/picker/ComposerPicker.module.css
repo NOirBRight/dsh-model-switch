@@ -1,0 +1,326 @@
+.root {
+  position: relative;
+  min-width: 0;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 220px;
+  max-width: min(360px, 45cqw);
+  height: 28px;
+  padding: 0 4px 0 8px;
+  border: none;
+  border-radius: 24px;
+  outline: none;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-strong-13);
+  cursor: pointer;
+}
+
+.trigger:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.trigger:focus-visible {
+  box-shadow: 0 0 0 2px var(--dsw-alias-border-l3);
+}
+
+.trigger:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.triggerLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.triggerEffort {
+  flex: 0 0 auto;
+  color: var(--dsw-alias-label-caption);
+}
+
+.chevron {
+  flex: 0 0 auto;
+  color: var(--dsw-alias-label-caption);
+  transition: transform 120ms var(--ds-ease-in-out);
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.embedded {
+  width: 100%;
+}
+
+.embedded .trigger {
+  width: 100%;
+  max-width: none;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  justify-content: space-between;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.embedded .trigger:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.capsule {
+  width: 100%;
+}
+
+.capsule .trigger {
+  width: 100%;
+  max-width: none;
+  height: 32px;
+  padding: 0 8px 0 10px;
+  border: 1px solid var(--dsw-alias-border-inverted);
+  border-radius: 24px;
+  justify-content: space-between;
+  background: var(--dsw-specific-input-major);
+  color: var(--dsw-alias-label-primary);
+}
+
+.capsule .trigger:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.menu {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: min(320px, max(0px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right))));
+  max-height: min(360px, calc(56dvh - env(safe-area-inset-bottom)));
+  overflow: hidden;
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-inverted);
+  border-radius: 12px;
+  background: var(--dsw-specific-menu);
+  box-shadow: var(--dsw-shadow-lv3);
+  color: var(--dsw-alias-label-primary);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.paneHeader {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 8px;
+  min-height: 40px;
+  padding: 2px 4px;
+}
+
+.paneHeader .headerButton {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.paneHeader .headerButton:last-child {
+  justify-self: end;
+}
+
+.paneTitle {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 8px;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-s-strong-14);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchSlot {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.headerSearch {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.headerSearch input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.list {
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.status,
+.empty {
+  padding: 10px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xs-13);
+}
+
+.error,
+.warning {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+  color: var(--dsw-alias-state-error-primary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.warning {
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-state-warn-label);
+}
+
+.retry {
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: var(--dsw-font-xxs-strong-12);
+  cursor: pointer;
+}
+
+.groups {
+  min-height: 0;
+}
+
+.group + .group {
+  margin-top: 4px;
+}
+
+.groupTitle {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 5px 8px 3px;
+  background: var(--dsw-specific-menu);
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-strong-12);
+}
+
+.option {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  min-width: 100%;
+  min-height: 38px;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 10px;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:hover:not(:disabled),
+.option:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.selected {
+  background: transparent;
+}
+
+.option:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
+.optionCopy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.modelName {
+  overflow: hidden;
+  color: inherit;
+  font: var(--dsw-font-s-strong-14);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.description {
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.check {
+  display: grid;
+  place-items: center;
+  flex: 0 0 18px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.cell {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  min-width: 100%;
+  height: 40px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-s-14);
+  cursor: pointer;
+  text-align: left;
+}
+
+.cell:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.cellLabel {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.cellValue {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.cellChevron {
+  flex: 0 0 auto;
+  color: var(--dsw-alias-label-tertiary);
+}
