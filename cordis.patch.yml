@@ -1,0 +1,15 @@
+# Replace independently packaged host modules only through public profile patches.
+# Existing rows are disabled with their original name; replacements use unique ids.
+# Do not replace agent-presets: a nested AgentPresets instance loads a second
+# @deepseek-ai/dsh-scope identity, and session.create then fails as unscoped.
+- id: subagent
+  name: '@deepseek-ai/dsh-subagent'
+  disabled: true
+
+- insert:
+    # Register Model Switch Host Settings/Main runtime before routed Subagents.
+    - id: model-switch
+      name: 'dsh-model-switch'
+
+    - id: model-switch-subagent-runtime
+      name: 'dsh-model-switch/subagent-runtime'

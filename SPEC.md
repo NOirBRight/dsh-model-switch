@@ -1,3 +1,7 @@
+# SUPERSEDED — historical Model purposes draft
+
+> **Do not use this document as product or implementation authority.** It is retained only as historical context and is superseded by [PRODUCT.md](PRODUCT.md) and [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md). The current product is **Model Switch**, and the frozen scope explicitly excludes several features proposed below.
+
 # Model purposes
 
 Product name: **Model purposes**（模型用途）. Repository: `dsh-model-switch`.
