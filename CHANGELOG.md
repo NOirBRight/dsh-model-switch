@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.11 - 2026-08-27
+
+- Lock the real composer UI path for independent Context 1M and Fast On selection: when the provider catalog publishes a combined `*-1m-fast` row, the picker preserves both dimensions and submits that exact model id.
+- Document through regression evidence that providers must publish the combined row; separate `*-1m` and `*-fast` rows cannot represent both dimensions simultaneously.
+
 ## 0.3.10 - 2026-08-27
 
 - Keep mobile picker triggers, headings, model names, catalog descriptions, and values readable by rendering and wrapping instead of truncating.

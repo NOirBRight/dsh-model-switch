@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { act, create } from 'react-test-renderer'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -35,7 +35,70 @@ function props(locked: boolean, onExternalTargetChange = vi.fn()) {
   }
 }
 
+function CombinedVariantHarness({ selected }: { selected: (model: string) => void }) {
+  const reasoning = { defaultEffort: 'high', efforts: [{ id: 'high', name: 'High' }] }
+  const [draft, setDraft] = useState({ provider: 'codex', model: 'gpt-5.6-sol' })
+  const combinedSnapshot = {
+    current: draft,
+    routable: true,
+    groups: [{
+      id: 'codex',
+      name: 'Codex',
+      models: [
+        { id: 'gpt-5.6-sol', name: 'GPT-5.6 Sol', reasoning },
+        { id: 'gpt-5.6-sol-fast', name: 'GPT-5.6 Sol Fast', reasoning },
+        { id: 'gpt-5.6-sol-1m', name: 'GPT-5.6 Sol 1M', reasoning },
+        { id: 'gpt-5.6-sol-1m-fast', name: 'GPT-5.6 Sol 1M Fast', reasoning },
+      ],
+    }],
+    failures: [],
+    status: 'ready' as const,
+    error: null,
+  }
+  return <ComposerPicker {...{
+    locked: false,
+    available: true,
+    directory: {
+      snapshot: combinedSnapshot,
+      getDirectorySnapshot: () => combinedSnapshot,
+      load: vi.fn(),
+      select: vi.fn(async () => true),
+    },
+    draft,
+    onDraftChange: (next: typeof draft) => { setDraft(next); selected(next.model) },
+    t: (key: string) => key,
+    tone: 'capsule' as const,
+  }} />
+}
+
 describe('ComposerPicker Plan transaction lock', () => {
+  it('selects 1M and Fast together through the real two-pane UI path', async () => {
+    const selected = vi.fn()
+    let picker!: ReturnType<typeof create>
+    await act(async () => { picker = create(<CombinedVariantHarness selected={selected} />) })
+    const clickMenuItem = async (label: string) => {
+      const row = picker.root.findAllByProps({ role: 'menuitem' }).find(item =>
+        item.findAllByType('span').some(span => span.children.includes(label)),
+      )
+      expect(row).toBeDefined()
+      await act(async () => { row!.props.onClick() })
+    }
+    const clickRadio = async (label: string) => {
+      const row = picker.root.findAllByProps({ role: 'menuitemradio' }).find(item =>
+        item.findAllByType('span').some(span => span.children.includes(label)),
+      )
+      expect(row).toBeDefined()
+      await act(async () => { row!.props.onClick() })
+    }
+
+    await act(async () => { picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.onClick() })
+    await clickMenuItem('menu.context')
+    await clickRadio('1M')
+    await clickMenuItem('menu.fast')
+    await clickRadio('fast.on')
+
+    expect(selected).toHaveBeenLastCalledWith('gpt-5.6-sol-1m-fast')
+  })
   it('keeps a routable current model visible when its catalog row is absent', async () => {
     const current = { provider: 'legacy', model: 'retained-route' }
     const retained = { ...snapshot, current, routable: true }
