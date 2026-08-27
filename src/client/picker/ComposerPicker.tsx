@@ -233,9 +233,10 @@ export function ComposerPicker({
     const rect = trigger.getBoundingClientRect()
     const gutter = 8
     const maxWidth = Math.min(420, window.innerWidth - gutter * 2)
+    const preferredWidth = Math.min(320, maxWidth)
     const right = Math.min(
       Math.max(gutter, window.innerWidth - rect.right),
-      window.innerWidth - gutter - Math.min(240, maxWidth),
+      Math.max(gutter, window.innerWidth - gutter - preferredWidth),
     )
     const safeRight = `max(${right}px, calc(env(safe-area-inset-right) + ${gutter}px))`
     setMenuStyle({

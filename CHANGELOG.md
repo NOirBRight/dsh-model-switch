@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.9 - 2026-08-27
+
+- Preserve the 320px preferred picker width whenever the mobile viewport allows it, shifting away from the trigger instead of squeezing to 240px.
+- Hide horizontal list overflow while retaining vertical scrolling, removing the mobile horizontal scrollbar.
+
 ## 0.3.8 - 2026-08-27
 
 - Keep a mobile pointer's open/close intent idempotent through the 750ms tap-fallback window so a detail-zero programmatic click cannot reopen a picker that the user just closed.

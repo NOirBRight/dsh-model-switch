@@ -78,6 +78,19 @@ describe('ComposerPicker Plan transaction lock', () => {
     expect(String(style.maxWidth)).toContain('safe-area-inset-right')
   })
 
+  it('shifts away from its trigger to preserve the 320px preferred mobile width', async () => {
+    let picker!: ReturnType<typeof create>
+    await act(async () => {
+      picker = create(<ComposerPicker {...props(false) as never} />, {
+        createNodeMock: element => element.props['aria-haspopup'] === 'menu'
+          ? { getBoundingClientRect: () => ({ top: 700, right: 250 }) }
+          : {},
+      })
+    })
+    await act(async () => { picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.onClick() })
+    expect(String(picker.root.findByProps({ role: 'menu' }).props.style.right)).toContain('62px')
+  })
+
   it('closes an already-open menu and rejects stale target actions when locked', async () => {
     const onExternalTargetChange = vi.fn()
     let picker!: ReturnType<typeof create>
