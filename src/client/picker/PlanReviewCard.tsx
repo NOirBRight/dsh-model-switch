@@ -1,4 +1,4 @@
-import { Component, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
 import type { PendingWait } from '@deepseek-ai/dsh-client-runtime/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -9,6 +9,7 @@ import {
 import { ComposerPicker } from './ComposerPicker.tsx'
 import { pickerDirectoryView, type PickerDirectoryFace, type PickerDirectoryView } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
+import { RetryBoundary } from './RetryBoundary.tsx'
 import css from './PlanReviewCard.module.css'
 
 type QuestionWait = PendingWait<'question'>
@@ -19,25 +20,20 @@ interface PickerGuardProps {
   retryLabel: string
 }
 
-class PickerGuard extends Component<PickerGuardProps, { message: string | null }> {
-  override state = { message: null }
-  static getDerivedStateFromError(error: unknown): { message: string } {
-    return { message: error instanceof Error ? error.message : String(error) }
-  }
-  override componentDidCatch(error: unknown): void {
-    console.error('dsh-model-switch: Plan Review picker crashed', error)
-  }
-  override render(): ReactNode {
-    if (this.state.message === null) return this.props.children
-    return (
-      <div data-dsh-ms-plan-picker-error role="alert" className={css.pickerError}>
-        <span>{this.props.errorLabel(this.state.message)}</span>
-        <Button type="button" variant="outline" onClick={() => { this.setState({ message: null }) }}>
-          {this.props.retryLabel}
-        </Button>
-      </div>
-    )
-  }
+function PickerGuard({ children, errorLabel, retryLabel }: PickerGuardProps) {
+  return (
+    <RetryBoundary
+      logLabel="dsh-model-switch: Plan Review picker crashed"
+      renderFallback={(message, retry) => (
+        <div data-dsh-ms-plan-picker-error role="alert" className={css.pickerError}>
+          <span>{errorLabel(message)}</span>
+          <Button type="button" variant="outline" onClick={retry}>{retryLabel}</Button>
+        </div>
+      )}
+    >
+      {children}
+    </RetryBoundary>
+  )
 }
 
 export interface PlanReviewFace extends PickerDirectoryFace {

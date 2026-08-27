@@ -16,7 +16,7 @@ describe('composer picker mobile sizing', () => {
     expect(block('.list')).toContain('overflow-y: auto')
   })
 
-  it.each(['.triggerLabel', '.paneTitle', '.modelName', '.description', '.cellValue'])(
+  it.each(['.triggerLabel', '.paneTitle', '.modelName', '.description', '.cellLabel', '.cellValue'])(
     'keeps %s readable without ellipsis or single-line clipping',
     (selector) => {
       expect(block(selector)).not.toContain('text-overflow: ellipsis')

@@ -299,8 +299,9 @@
 }
 
 .cellLabel {
-  flex: 0 0 auto;
-  white-space: nowrap;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .cellValue {
