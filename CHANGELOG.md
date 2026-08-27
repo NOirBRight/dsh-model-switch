@@ -7,6 +7,7 @@
 - Consolidate each picker snapshot and its operations into one render view backed by the official directory status/routability contract, retaining selected routes absent from the advisory catalog.
 - Isolate popup activation, positioning, and dismissal in a deep internal module.
 - Keep composer and Plan Review picker crashes mounted as localized, retryable diagnostics.
+- Preserve Plan Review's one-row mobile footer while shrinking controls and wrapping action labels inside their buttons at narrow widths.
 
 ## 0.3.9 - 2026-08-27
 

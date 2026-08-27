@@ -150,8 +150,30 @@
     padding-left: 12px;
   }
 
+  .bar {
+    gap: 4px;
+  }
+
   .picker {
-    flex-basis: 8.5rem;
-    max-width: 8.5rem;
+    flex: 0 1 6.5rem;
+    max-width: 6.5rem;
+  }
+
+  .actions {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 4px;
+  }
+
+  .discuss,
+  .keep,
+  .approve {
+    flex: 1 1 0;
+    min-width: 0;
+    height: auto;
+    padding: 4px;
+    line-height: 14px;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 }
