@@ -4,10 +4,11 @@ import { describe, expect, it } from 'vitest'
 const source = readFileSync(new URL('../../src/client/picker/ComposerPicker.module.css', import.meta.url), 'utf8')
 
 function block(selector: string): string {
-  const start = source.indexOf(`${selector} {`)
-  if (start < 0) return ''
+  const selectorStart = source.indexOf(selector)
+  if (selectorStart < 0) return ''
+  const start = source.indexOf('{', selectorStart)
   const end = source.indexOf('}', start)
-  return source.slice(start, end + 1)
+  return source.slice(selectorStart, end + 1)
 }
 
 describe('composer picker mobile sizing', () => {
@@ -16,7 +17,10 @@ describe('composer picker mobile sizing', () => {
     expect(block('.list')).toContain('overflow-y: auto')
   })
 
-  it.each(['.triggerLabel', '.paneTitle', '.modelName', '.description', '.cellLabel', '.cellValue'])(
+  it.each([
+    '.triggerLabel', '.paneTitle', '.groupTitle', '.status', '.empty', '.error', '.warning',
+    '.modelName', '.description', '.cellLabel', '.cellValue',
+  ])(
     'keeps %s readable without ellipsis or single-line clipping',
     (selector) => {
       expect(block(selector)).not.toContain('text-overflow: ellipsis')

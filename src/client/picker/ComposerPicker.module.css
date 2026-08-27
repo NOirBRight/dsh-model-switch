@@ -169,6 +169,7 @@
   padding: 10px;
   color: var(--dsw-alias-label-tertiary);
   font: var(--dsw-font-xs-13);
+  overflow-wrap: anywhere;
 }
 
 .error,
@@ -183,6 +184,7 @@
   background: var(--dsw-alias-interactive-bg-hover-danger);
   color: var(--dsw-alias-state-error-primary);
   font: var(--dsw-font-xxs-12);
+  overflow-wrap: anywhere;
 }
 
 .warning {
@@ -216,6 +218,7 @@
   background: var(--dsw-specific-menu);
   color: var(--dsw-alias-label-tertiary);
   font: var(--dsw-font-xxs-strong-12);
+  overflow-wrap: anywhere;
 }
 
 .option {

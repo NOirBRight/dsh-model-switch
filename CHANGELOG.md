@@ -4,7 +4,7 @@
 
 - Keep mobile picker triggers, headings, model names, descriptions, and values readable by wrapping instead of truncating.
 - Resolve optional mobile interaction operations only through Cordis's typed public non-strict service lookup.
-- Consolidate each picker snapshot and its operations into one render view backed by the official directory status contract.
+- Consolidate each picker snapshot and its operations into one render view backed by the official directory status/routability contract, retaining selected routes absent from the advisory catalog.
 - Isolate popup activation, positioning, and dismissal in a deep internal module.
 - Keep composer and Plan Review picker crashes mounted as localized, retryable diagnostics.
 

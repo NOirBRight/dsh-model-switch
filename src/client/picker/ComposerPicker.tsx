@@ -151,6 +151,7 @@ export function ComposerPicker({
 
   const families = useMemo(() => groupFamilies(state.groups), [state.groups])
   const currentSelection = draft ?? state.current
+  const currentCanBeUsed = draft !== undefined || state.routable !== false
   const family = currentSelection === null
     ? undefined
     : findFamily(families, currentSelection.provider, currentSelection.model)
@@ -239,7 +240,7 @@ export function ComposerPicker({
       returnToRoot()
       return
     }
-    if (state.current?.provider === next.provider && state.current.model === next.model
+    if (currentCanBeUsed && state.current?.provider === next.provider && state.current.model === next.model
       && state.current.reasoningEffort === next.reasoningEffort) {
       returnToRoot()
       return
@@ -277,7 +278,7 @@ export function ComposerPicker({
   const triggerLabel = triggerBits.join(' · ')
   const triggerAria = selectedExternal !== undefined
     ? selectedExternal.label
-    : member === undefined
+    : currentSelection === null
     ? t('trigger.selectAria')
     : t('trigger.aria', { model: triggerLabel })
 

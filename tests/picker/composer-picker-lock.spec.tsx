@@ -37,9 +37,25 @@ function props(locked: boolean, onExternalTargetChange = vi.fn()) {
 
 describe('ComposerPicker Plan transaction lock', () => {
   it('keeps a routable current model visible when its catalog row is absent', async () => {
+    const current = { provider: 'legacy', model: 'retained-route' }
+    const retained = { ...snapshot, current, routable: true }
     let picker!: ReturnType<typeof create>
-    await act(async () => { picker = create(<ComposerPicker {...props(false) as never} />) })
-    expect(picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.title).toBe('gpt')
+    await act(async () => {
+      picker = create(<ComposerPicker {...{
+        locked: false,
+        available: true,
+        directory: {
+          snapshot: retained,
+          getDirectorySnapshot: () => retained,
+          load: vi.fn(),
+          select: vi.fn(async () => true),
+        },
+        t: (key: string, params?: Record<string, string>) => params?.model ?? key,
+      } as never} />)
+    })
+    const trigger = picker.root.findByProps({ 'aria-haspopup': 'menu' })
+    expect(trigger.props.title).toBe('retained-route')
+    expect(trigger.props['aria-label']).toBe('retained-route')
   })
 
   it('opens exactly once from a mobile pointerdown plus click activation', async () => {
