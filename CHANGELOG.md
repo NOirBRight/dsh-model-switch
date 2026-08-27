@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.4 - 2026-08-27
+
+- Contain composer-seat render/effect errors inside the merged picker so a crash cannot silently abdicate to the official picker; show a retryable diagnostic instead.
+- Treat the Sessions face as optional while the public model-directory service gate is active.
+
 ## 0.3.3 - 2026-08-27
 
 - Restore merged picker ownership of the composer model seat by matching the official service gate and using an unambiguous winning priority.

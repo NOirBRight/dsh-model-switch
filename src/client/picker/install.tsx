@@ -14,6 +14,7 @@ import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { CONTINUE_IN_DSH_SLOT, ContinueInDshAdapter, type ContinueInDshFace } from './ContinueInDshAdapter.tsx'
 export type { ContinueInDshOwner, PlanExternalAgentTarget } from './ContinueInDshAdapter.tsx'
 import { PlanReviewCard } from './PlanReviewCard.tsx'
+import { PickerSeatBoundary } from './PickerSeatBoundary.tsx'
 import { en, zh, type PickerKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -60,17 +61,21 @@ function ModelSeat(
   )
 }
 
+function ModelSeatEntry(props: Parameters<typeof ModelSeat>[0]) {
+  return <PickerSeatBoundary><ModelSeat {...props} /></PickerSeatBoundary>
+}
+
 /** Register composer model picker and Plan Review execution picker. */
 export function installComposerPicker(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-model-switch: composer picker dictionaries')
 
   ctx.inject(['slots', 'modelDirectories'], (scope: ClientContext) => {
     const models = scope.modelDirectories
-    const sessions = scope.sessions as { subagentAddress?: (id: unknown) => unknown }
+    const sessions = scope.sessions as { subagentAddress?: (id: unknown) => unknown } | undefined
     const resolveInteractionOperations = (): PickerInteractionOperations | undefined => interactionOperationsFrom(scope)
     const directoryFace = (sessionId: Parameters<typeof models.directoryFor>[0]): DirectoryFace => {
       const directory = models.directoryFor(sessionId)
-      const available = sessions.subagentAddress?.(sessionId) === undefined
+      const available = sessions?.subagentAddress?.(sessionId) === undefined
       return {
         available,
         hooks: { directory: directory.store },
@@ -90,7 +95,7 @@ export function installComposerPicker(ctx: ClientContext): void {
       locale: NS,
       priority: MODEL_PRIORITY,
       inject: directoryFace,
-    }, ModelSeat))
+    }, ModelSeatEntry))
 
     scope.slots.inject(CONTINUE_IN_DSH_SLOT, () => scope.slots.register({
       name: CONTINUE_IN_DSH_SLOT,
