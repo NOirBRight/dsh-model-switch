@@ -167,6 +167,7 @@ export function ComposerPicker({
   const lastActionRef = useRef<'load' | 'select'>('load')
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const pointerOpenIntent = useRef<{ open: boolean, until: number } | null>(null)
   const lockedRef = useRef(locked)
   lockedRef.current = locked
   const id = useId()
@@ -618,10 +619,18 @@ export function ComposerPicker({
         aria-controls={open ? `${id}-menu` : undefined}
         title={triggerLabel}
         disabled={locked}
-        onPointerDown={event => { event.stopPropagation() }}
+        onPointerDown={event => {
+          event.stopPropagation()
+          // Mobile's popup fallback may emit a detail-zero click for 750ms after touch.
+          // Keep every activation in that window idempotent to this pointer's intent.
+          pointerOpenIntent.current = { open: !open, until: Date.now() + 750 }
+        }}
         onClick={event => {
           event?.stopPropagation()
-          if (open) close(); else show()
+          const intent = pointerOpenIntent.current
+          const desiredOpen = intent !== null && Date.now() <= intent.until ? intent.open : !open
+          if (intent !== null && Date.now() > intent.until) pointerOpenIntent.current = null
+          if (desiredOpen) show(); else close()
         }}
       >
         <span className={css.triggerLabel}>{triggerLabel}</span>

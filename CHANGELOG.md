@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.8 - 2026-08-27
+
+- Keep a mobile pointer's open/close intent idempotent through the 750ms tap-fallback window so a detail-zero programmatic click cannot reopen a picker that the user just closed.
+
 ## 0.3.7 - 2026-08-27
 
 - Make click the sole owner of picker toggle state so one mobile touch cannot open on pointerdown and immediately close on its synthetic click.

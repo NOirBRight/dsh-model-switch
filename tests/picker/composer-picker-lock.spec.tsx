@@ -46,6 +46,21 @@ describe('ComposerPicker Plan transaction lock', () => {
     expect(picker.root.findAllByProps({ role: 'menu' })).toHaveLength(1)
   })
 
+  it('ignores a detail-zero mobile fallback reopen after one close gesture', async () => {
+    let picker!: ReturnType<typeof create>
+    await act(async () => { picker = create(<ComposerPicker {...props(false) as never} />) })
+    const event = () => ({ detail: 1, stopPropagation: vi.fn() })
+    let trigger = picker.root.findByProps({ 'aria-haspopup': 'menu' })
+    await act(async () => { trigger.props.onPointerDown(event()); trigger.props.onClick(event()) })
+    expect(picker.root.findAllByProps({ role: 'menu' })).toHaveLength(1)
+
+    trigger = picker.root.findByProps({ 'aria-haspopup': 'menu' })
+    await act(async () => { trigger.props.onPointerDown(event()); trigger.props.onClick(event()) })
+    trigger = picker.root.findByProps({ 'aria-haspopup': 'menu' })
+    await act(async () => { trigger.props.onClick({ detail: 0, stopPropagation: vi.fn() }) })
+    expect(picker.root.findAllByProps({ role: 'menu' })).toHaveLength(0)
+  })
+
   it('positions its portaled menu inside mobile right and bottom safe areas', async () => {
     let picker!: ReturnType<typeof create>
     await act(async () => {
