@@ -30,7 +30,16 @@ const MODEL_PRIORITY = -10
 const PLAN_REVIEW_PRIORITY = -7
 
 function interactionOperationsFrom(ctx: ClientContext): PickerInteractionOperations | undefined {
-  const value = (ctx as { interactionOperations?: unknown }).interactionOperations
+  const holder = ctx as ClientContext & {
+    get?(name: string, strict?: boolean): unknown
+    interactionOperations?: unknown
+  }
+  let value: unknown
+  try {
+    value = holder.get?.('interactionOperations', false) ?? holder.interactionOperations
+  } catch {
+    return undefined
+  }
   if (value === null || typeof value !== 'object') return undefined
   const candidate = value as Partial<PickerInteractionOperations>
   return typeof candidate.registerSurface === 'function' ? candidate as PickerInteractionOperations : undefined

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.6 - 2026-08-27
+
+- Restore non-strict lookup for the optional mobile interaction service; Cordis may reject direct undeclared-property access, which previously crashed the custom seat on render.
+
 ## 0.3.5 - 2026-08-27
 
 - Declare the merged picker's Sessions and model-directory services in the client plugin's top-level injection contract so production completes the custom seat registration.
