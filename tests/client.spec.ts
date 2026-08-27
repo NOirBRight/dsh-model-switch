@@ -27,7 +27,7 @@ describe('Client Settings surface', () => {
     apply(ctx as never)
     expect(installComposerPicker).toHaveBeenCalledWith(ctx)
     expect(name).toBe('dsh-model-switch-client')
-    expect(inject).toEqual(['slots', 'locale', 'settingsScope', 'connection'])
+    expect(inject).toEqual(['slots', 'locale', 'sessions', 'modelDirectories', 'settingsScope', 'connection'])
     expect(namespaces).toEqual([MAIN_SETTINGS_ID, MODEL_SWITCH_SETTINGS_ID])
     expect(registration).toMatchObject({ name: 'settings.section', id: 'model-switch', order: 9 })
     const face = (registration?.inject as () => { saveMain(next: unknown, expectedRevision: number): Promise<number> })()

@@ -16,7 +16,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 }
 
 export const name = 'dsh-model-switch-client'
-export const inject = ['slots', 'locale', 'settingsScope', 'connection']
+export const inject = ['slots', 'locale', 'sessions', 'modelDirectories', 'settingsScope', 'connection']
 
 export function apply(ctx: ClientContext): void {
   installComposerPicker(ctx)
