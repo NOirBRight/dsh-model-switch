@@ -10,8 +10,8 @@
   min-width: 0;
   max-width: 220px;
   max-width: min(360px, 45cqw);
-  height: 28px;
-  padding: 0 4px 0 8px;
+  min-height: 28px;
+  padding: 4px 4px 4px 8px;
   border: none;
   border-radius: 24px;
   outline: none;
@@ -36,9 +36,7 @@
 
 .triggerLabel {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .triggerEffort {
@@ -63,8 +61,8 @@
 .embedded .trigger {
   width: 100%;
   max-width: none;
-  height: 36px;
-  padding: 0 10px;
+  min-height: 36px;
+  padding: 4px 10px;
   border-radius: 10px;
   justify-content: space-between;
   background: var(--dsw-alias-interactive-bg-hover);
@@ -82,8 +80,8 @@
 .capsule .trigger {
   width: 100%;
   max-width: none;
-  height: 32px;
-  padding: 0 8px 0 10px;
+  min-height: 32px;
+  padding: 4px 8px 4px 10px;
   border: 1px solid var(--dsw-alias-border-inverted);
   border-radius: 24px;
   justify-content: space-between;

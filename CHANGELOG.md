@@ -2,7 +2,7 @@
 
 ## 0.3.10 - 2026-08-27
 
-- Keep mobile picker headings, model names, descriptions, and values readable by wrapping instead of truncating.
+- Keep mobile picker triggers, headings, model names, descriptions, and values readable by wrapping instead of truncating.
 - Resolve optional mobile interaction operations only through Cordis's typed public non-strict service lookup.
 - Consolidate each picker snapshot and its operations into one render view backed by the official directory status contract.
 - Isolate popup activation, positioning, and dismissal in a deep internal module.
