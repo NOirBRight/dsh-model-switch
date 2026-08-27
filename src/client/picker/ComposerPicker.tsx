@@ -426,6 +426,12 @@ export function ComposerPicker({
                   {section.families.map(item => {
                     const selected = currentSelection?.provider === item.provider
                       && item.members.some(entry => entry.model.id === currentSelection.model)
+                    const representative = member !== undefined
+                      && family?.provider === item.provider && family.base === item.base
+                      ? member
+                      : item.members.find(entry => !entry.fast && entry.contextTier === null) ?? item.members[0]
+                    const description = representative?.model.description
+                      ?? item.members.find(entry => entry.model.description !== undefined)?.model.description
                     return (
                       <button
                         type="button"
@@ -435,15 +441,13 @@ export function ComposerPicker({
                         key={`${item.provider}:${item.base}`}
                         disabled={locked || busy}
                         onClick={() => {
-                          const current = member !== undefined && family?.provider === item.provider && family.base === item.base
-                            ? member
-                            : item.members.find(entry => !entry.fast && entry.contextTier === null) ?? item.members[0]
-                          if (current === undefined) return
-                          chooseMember(item, current)
+                          if (representative === undefined) return
+                          chooseMember(item, representative)
                         }}
                       >
                         <span className={css.optionCopy}>
                           <span className={css.modelName}>{item.name}</span>
+                          {description !== undefined && <span className={css.description}>{description}</span>}
                         </span>
                         <span className={css.check}>{selected ? <IconCheckOutline16 /> : null}</span>
                       </button>
