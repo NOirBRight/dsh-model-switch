@@ -167,7 +167,6 @@ export function ComposerPicker({
   const lastActionRef = useRef<'load' | 'select'>('load')
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
-  const openedByPointer = useRef(false)
   const lockedRef = useRef(locked)
   lockedRef.current = locked
   const id = useId()
@@ -619,18 +618,9 @@ export function ComposerPicker({
         aria-controls={open ? `${id}-menu` : undefined}
         title={triggerLabel}
         disabled={locked}
-        onPointerDown={event => {
-          event.preventDefault()
-          event.stopPropagation()
-          openedByPointer.current = true
-          if (open) close(); else show()
-        }}
+        onPointerDown={event => { event.stopPropagation() }}
         onClick={event => {
           event?.stopPropagation()
-          if (openedByPointer.current) {
-            openedByPointer.current = false
-            return
-          }
           if (open) close(); else show()
         }}
       >

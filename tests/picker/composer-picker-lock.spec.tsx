@@ -35,6 +35,17 @@ function props(locked: boolean, onExternalTargetChange = vi.fn()) {
 }
 
 describe('ComposerPicker Plan transaction lock', () => {
+  it('opens exactly once from a mobile pointerdown plus click activation', async () => {
+    let picker!: ReturnType<typeof create>
+    await act(async () => { picker = create(<ComposerPicker {...props(false) as never} />) })
+    const trigger = picker.root.findByProps({ 'aria-haspopup': 'menu' })
+    const pointerEvent = { preventDefault: vi.fn(), stopPropagation: vi.fn() }
+    await act(async () => { trigger.props.onPointerDown(pointerEvent) })
+    expect(picker.root.findAllByProps({ role: 'menu' })).toHaveLength(0)
+    await act(async () => { trigger.props.onClick({ stopPropagation: vi.fn() }) })
+    expect(picker.root.findAllByProps({ role: 'menu' })).toHaveLength(1)
+  })
+
   it('positions its portaled menu inside mobile right and bottom safe areas', async () => {
     let picker!: ReturnType<typeof create>
     await act(async () => {

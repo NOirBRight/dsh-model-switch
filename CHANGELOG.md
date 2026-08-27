@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.7 - 2026-08-27
+
+- Make click the sole owner of picker toggle state so one mobile touch cannot open on pointerdown and immediately close on its synthetic click.
+
 ## 0.3.6 - 2026-08-27
 
 - Restore non-strict lookup for the optional mobile interaction service; Cordis may reject direct undeclared-property access, which previously crashed the custom seat on render.
