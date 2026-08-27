@@ -258,7 +258,7 @@ export function ComposerPicker({
   }
 
   const selectedExternal = externalTargets.find(target => target.id === externalSelection)
-  const modelLabel = family?.name ?? member?.model.name ?? t('trigger.fallback')
+  const modelLabel = family?.name ?? member?.model.name ?? currentSelection?.model ?? t('trigger.fallback')
   const effectiveLabel = selectedExternal?.label ?? modelLabel
   const contextBit = contextLabel === undefined || contextLabel === STANDARD_CONTEXT_LABEL
     ? undefined

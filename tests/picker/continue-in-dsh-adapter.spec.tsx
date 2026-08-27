@@ -14,7 +14,7 @@ vi.mock('../../src/client/picker/ComposerPicker.tsx', () => ({
 import { ContinueInDshAdapter } from '../../src/client/picker/ContinueInDshAdapter.tsx'
 
 const initial = { provider: 'codex', model: 'gpt-5.6-sol' }
-const snapshot = { current: initial, groups: [], failures: [], status: 'ready', error: null }
+const snapshot = { current: initial, routable: true, groups: [], failures: [], status: 'ready', error: null }
 
 function base(overrides: Record<string, unknown> = {}) {
   return {

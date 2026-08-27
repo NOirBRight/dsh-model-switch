@@ -3,7 +3,7 @@ import type { ModelDirectoryState } from '@deepseek-ai/dsh-client-ui-model-selec
 
 export type PickerDirectorySnapshot = Pick<
   ModelDirectoryState,
-  'current' | 'groups' | 'failures' | 'status' | 'error'
+  'current' | 'routable' | 'groups' | 'failures' | 'status' | 'error'
 >
 
 export interface PickerDirectoryStore {

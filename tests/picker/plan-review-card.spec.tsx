@@ -19,7 +19,7 @@ import { PlanReviewCard } from '../../src/client/picker/PlanReviewCard.tsx'
 import { en, zh, type PickerKey } from '../../src/client/picker/locales.ts'
 
 const selection = { provider: 'codex', model: 'gpt-5.6-sol' }
-const baseSnapshot = { current: selection, groups: [], failures: [], status: 'ready', error: null as string | null }
+const baseSnapshot = { current: selection, routable: true, groups: [], failures: [], status: 'ready', error: null as string | null }
 function wait(respond = vi.fn(async () => ({ accepted: true })), key = 'plan-1') {
   return {
     kind: 'question', key, sessionId: 'session-1', respond,

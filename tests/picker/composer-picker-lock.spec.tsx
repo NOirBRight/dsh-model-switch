@@ -22,7 +22,7 @@ Object.assign(globalThis, {
   window: { innerWidth: 390, innerHeight: 844 },
 })
 
-const snapshot = { current: null, groups: [], failures: [], status: 'ready', error: null }
+const snapshot = { current: null, routable: null, groups: [], failures: [], status: 'ready', error: null }
 const target = { id: 'external-agent:codex' as const, label: 'Codex', disabled: false }
 
 function props(locked: boolean, onExternalTargetChange = vi.fn()) {
@@ -36,6 +36,12 @@ function props(locked: boolean, onExternalTargetChange = vi.fn()) {
 }
 
 describe('ComposerPicker Plan transaction lock', () => {
+  it('keeps a routable current model visible when its catalog row is absent', async () => {
+    let picker!: ReturnType<typeof create>
+    await act(async () => { picker = create(<ComposerPicker {...props(false) as never} />) })
+    expect(picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.title).toBe('gpt')
+  })
+
   it('opens exactly once from a mobile pointerdown plus click activation', async () => {
     let picker!: ReturnType<typeof create>
     await act(async () => { picker = create(<ComposerPicker {...props(false) as never} />) })
