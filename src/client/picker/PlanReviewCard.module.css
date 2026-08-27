@@ -92,6 +92,16 @@
   max-width: 11rem;
 }
 
+.pickerError {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 .actions {
   display: flex;
   align-items: center;

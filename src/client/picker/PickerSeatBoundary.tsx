@@ -1,6 +1,11 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 
-export class PickerSeatBoundary extends Component<{ children: ReactNode }, { message: string | null }> {
+interface PickerSeatBoundaryProps {
+  children: ReactNode
+  errorLabel: (message: string) => string
+}
+
+export class PickerSeatBoundary extends Component<PickerSeatBoundaryProps, { message: string | null }> {
   override state = { message: null }
 
   static getDerivedStateFromError(error: unknown): { message: string } {
@@ -21,17 +26,15 @@ export class PickerSeatBoundary extends Component<{ children: ReactNode }, { mes
         onClick={() => { this.setState({ message: null }) }}
         style={{
           maxWidth: 280,
-          overflow: 'hidden',
           border: 0,
           background: 'transparent',
           color: 'var(--dsw-alias-state-error-primary)',
           font: 'var(--dsw-font-xs-13)',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
+          overflowWrap: 'anywhere',
           cursor: 'pointer',
         }}
       >
-        {`Model picker error: ${this.state.message}`}
+        {this.props.errorLabel(this.state.message)}
       </button>
     )
   }

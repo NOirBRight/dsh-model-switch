@@ -3,8 +3,10 @@
 ## 0.3.10 - 2026-08-27
 
 - Keep mobile picker headings, model names, descriptions, and values readable by wrapping instead of truncating.
-- Resolve optional mobile interaction operations only through Cordis non-strict service lookup.
-- Consolidate picker directory operations and isolate popup activation, positioning, and dismissal in deep internal modules.
+- Resolve optional mobile interaction operations only through Cordis's typed public non-strict service lookup.
+- Consolidate each picker snapshot and its operations into one render view backed by the official directory status contract.
+- Isolate popup activation, positioning, and dismissal in a deep internal module.
+- Keep composer and Plan Review picker crashes mounted as localized, retryable diagnostics.
 
 ## 0.3.9 - 2026-08-27
 

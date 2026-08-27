@@ -7,21 +7,36 @@ import {
   PlanApprovalResponseError, approvePlanReview, planActionView, planReviewOf, settlePlanAction,
 } from '../../picker/plan-review.ts'
 import { ComposerPicker } from './ComposerPicker.tsx'
-import type { PickerDirectoryFace, PickerDirectoryOperations } from './PickerDirectory.ts'
+import { pickerDirectoryView, type PickerDirectoryFace, type PickerDirectoryView } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import css from './PlanReviewCard.module.css'
 
 type QuestionWait = PendingWait<'question'>
 
-class PickerGuard extends Component<{ children: ReactNode }, { failed: boolean }> {
-  override state = { failed: false }
-  static getDerivedStateFromError(): { failed: boolean } { return { failed: true } }
+interface PickerGuardProps {
+  children: ReactNode
+  errorLabel: (message: string) => string
+  retryLabel: string
+}
+
+class PickerGuard extends Component<PickerGuardProps, { message: string | null }> {
+  override state = { message: null }
+  static getDerivedStateFromError(error: unknown): { message: string } {
+    return { message: error instanceof Error ? error.message : String(error) }
+  }
   override componentDidCatch(error: unknown): void {
     console.error('dsh-model-switch: Plan Review picker crashed', error)
   }
   override render(): ReactNode {
-    if (this.state.failed) return null
-    return this.props.children
+    if (this.state.message === null) return this.props.children
+    return (
+      <div data-dsh-ms-plan-picker-error role="alert" className={css.pickerError}>
+        <span>{this.props.errorLabel(this.state.message)}</span>
+        <Button type="button" variant="outline" onClick={() => { this.setState({ message: null }) }}>
+          {this.props.retryLabel}
+        </Button>
+      </div>
+    )
   }
 }
 
@@ -64,8 +79,7 @@ interface PlanReviewStateProps {
   matched: QuestionWait
   review: NonNullable<ReturnType<typeof planReviewOf>>
   available: boolean
-  snapshot: ReturnType<PlanReviewFace['getDirectorySnapshot']>
-  directoryFace: PickerDirectoryOperations
+  directory: PickerDirectoryView
   t: PlanReviewCardProps['t']
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
 }
@@ -87,17 +101,16 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
     matched={props.matched}
     review={review}
     available={props.available}
-    snapshot={snapshot}
-    directoryFace={props}
+    directory={pickerDirectoryView(snapshot, props)}
     t={props.t}
     {...props.resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations: props.resolveInteractionOperations }}
   />
 }
 
 function PlanReviewState({
-  matched, review, available, snapshot, directoryFace, t, resolveInteractionOperations,
+  matched, review, available, directory, t, resolveInteractionOperations,
 }: PlanReviewStateProps) {
-  const { getDirectorySnapshot, load, select } = directoryFace
+  const { snapshot, getDirectorySnapshot, load, select } = directory
   const [execution, setExecution] = useState<ModelSelection | undefined>(snapshot.current ?? undefined)
   const [busy, setBusy] = useState(false)
   const [blocked, setBlocked] = useState(false)
@@ -158,12 +171,14 @@ function PlanReviewState({
               aria-label={t('plan.execution')}
               onPointerDown={event => { event.stopPropagation() }}
             >
-              <PickerGuard>
+              <PickerGuard
+                errorLabel={message => t('plan.pickerCrash', { message })}
+                retryLabel={t('retry')}
+              >
               <ComposerPicker
                 locked={busy || blocked}
                 available={available}
-                directory={snapshot}
-                directoryFace={directoryFace}
+                directory={directory}
                 t={t}
                 {...resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations }}
                 {...execution === undefined ? {} : { draft: execution }}

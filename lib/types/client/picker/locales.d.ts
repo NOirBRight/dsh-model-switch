@@ -22,6 +22,7 @@ export declare const zh: {
     'effort.providerDefault': string;
     'status.loading': string;
     'error.action': string;
+    'error.picker': string;
     'action.reload': string;
     retry: string;
     'warning.groupLoad': string;
@@ -34,6 +35,7 @@ export declare const zh: {
     'plan.keep': string;
     'plan.discuss': string;
     'plan.modelFailed': string;
+    'plan.pickerCrash': string;
     'plan.responseRejected': string;
     'plan.cancelMessage': string;
     'plan.cancelRejected': string;
@@ -62,6 +64,7 @@ export declare const en: {
     'effort.providerDefault': string;
     'status.loading': string;
     'error.action': string;
+    'error.picker': string;
     'action.reload': string;
     retry: string;
     'warning.groupLoad': string;
@@ -74,6 +77,7 @@ export declare const en: {
     'plan.keep': string;
     'plan.discuss': string;
     'plan.modelFailed': string;
+    'plan.pickerCrash': string;
     'plan.responseRejected': string;
     'plan.cancelMessage': string;
     'plan.cancelRejected': string;

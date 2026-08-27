@@ -2,14 +2,17 @@ import React from 'react'
 import { act, create } from 'react-test-renderer'
 import { describe, expect, it, vi } from 'vitest'
 
+const composerStub = vi.hoisted(() => ({ crash: false }))
+
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
   Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...props}>{children}</button>,
   MarkdownText: ({ text }: { text: string }) => <span>{text}</span>,
 }))
 vi.mock('../../src/client/picker/ComposerPicker.tsx', () => ({
-  ComposerPicker: (props: { tone?: string; embedded?: boolean }) => (
-    <div data-composer-picker data-tone={props.tone} data-embedded={props.embedded === true ? 'true' : undefined} />
-  ),
+  ComposerPicker: (props: { tone?: string; embedded?: boolean }) => {
+    if (composerStub.crash) throw new Error('directory exploded')
+    return <div data-composer-picker data-tone={props.tone} data-embedded={props.embedded === true ? 'true' : undefined} />
+  },
 }))
 
 import { PlanReviewCard } from '../../src/client/picker/PlanReviewCard.tsx'
@@ -52,6 +55,19 @@ function locale(dictionary: Record<PickerKey, string>) {
 }
 
 describe('PlanReviewCard', () => {
+  it('keeps a localized Plan picker diagnostic mounted and retries the failed subtree', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+    composerStub.crash = true
+    let card!: ReturnType<typeof create>
+    await act(async () => { card = create(<PlanReviewCard {...props({ t: locale(zh) }) as never} />) })
+    const diagnostic = card.root.findByProps({ 'data-dsh-ms-plan-picker-error': true })
+    expect(diagnostic.findByType('span').children.join('')).toBe('执行模型选择器出错：directory exploded')
+    composerStub.crash = false
+    await act(async () => { diagnostic.findByType('button').props.onClick() })
+    expect(card.root.findByProps({ 'data-composer-picker': true })).toBeDefined()
+    error.mockRestore()
+  })
+
   it('puts a capsule execution picker on the left of the action row', async () => {
     const fixture = props({ t: locale(zh) })
     let card!: ReturnType<typeof create>

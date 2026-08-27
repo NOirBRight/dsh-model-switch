@@ -10,7 +10,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-model-selection/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { selectPlanReview } from '../../picker/plan-review.ts'
 import { ComposerPicker } from './ComposerPicker.tsx'
-import type { PickerDirectoryFace } from './PickerDirectory.ts'
+import { pickerDirectoryView, type PickerDirectoryFace } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { CONTINUE_IN_DSH_SLOT, ContinueInDshAdapter, type ContinueInDshFace } from './ContinueInDshAdapter.tsx'
 export type { ContinueInDshOwner, PlanExternalAgentTarget } from './ContinueInDshAdapter.tsx'
@@ -31,12 +31,9 @@ const MODEL_PRIORITY = -10
 const PLAN_REVIEW_PRIORITY = -7
 
 function interactionOperationsFrom(ctx: ClientContext): PickerInteractionOperations | undefined {
-  const holder = ctx as ClientContext & {
-    get?(name: string, strict?: boolean): unknown
-  }
   let value: unknown
   try {
-    value = holder.get?.('interactionOperations', false)
+    value = ctx.get('interactionOperations', false)
   } catch {
     return undefined
   }
@@ -58,8 +55,7 @@ function ModelSeat(
     <ComposerPicker
       locked={props.locked}
       available={props.available}
-      directory={directory}
-      directoryFace={props}
+      directory={pickerDirectoryView(directory, props)}
       t={props.t}
       {...props.resolveInteractionOperations === undefined
         ? {}
@@ -69,7 +65,11 @@ function ModelSeat(
 }
 
 function ModelSeatEntry(props: Parameters<typeof ModelSeat>[0]) {
-  return <PickerSeatBoundary><ModelSeat {...props} /></PickerSeatBoundary>
+  return (
+    <PickerSeatBoundary errorLabel={message => props.t('error.picker', { message })}>
+      <ModelSeat {...props} />
+    </PickerSeatBoundary>
+  )
 }
 
 /** Register composer model picker and Plan Review execution picker. */

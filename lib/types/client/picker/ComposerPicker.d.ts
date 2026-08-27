@@ -3,9 +3,9 @@
  */
 import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client';
 import type { PickerKey } from './locales.ts';
-import type { PickerDirectoryOperations, PickerDirectorySnapshot } from './PickerDirectory.ts';
+import type { PickerDirectoryView } from './PickerDirectory.ts';
 import type { PickerInteractionOperations } from './popup-dismissal.ts';
-export type { PickerDirectoryFace, PickerDirectoryOperations, PickerDirectorySnapshot } from './PickerDirectory.ts';
+export type { PickerDirectoryFace, PickerDirectoryOperations, PickerDirectorySnapshot, PickerDirectoryView } from './PickerDirectory.ts';
 export type ExternalAgentAdapterId = 'codex' | 'claude-code' | 'cursor' | 'antigravity';
 export type ExternalPlanTargetId = `external-agent:${ExternalAgentAdapterId}`;
 export type PlanTargetId = 'dsh' | ExternalPlanTargetId;
@@ -18,8 +18,7 @@ export interface ComposerPickerExternalTarget {
 interface ComposerPickerBaseProps {
     locked: boolean;
     available: boolean;
-    directory: PickerDirectorySnapshot;
-    directoryFace: PickerDirectoryOperations;
+    directory: PickerDirectoryView;
     t: (key: PickerKey, params?: Record<string, string>) => string;
     embedded?: boolean;
     tone?: 'capsule';
@@ -50,4 +49,4 @@ export interface ModelPaneHeaderProps {
     onQueryChange: (query: string) => void;
 }
 export declare function ModelPaneHeader({ title, backLabel, searchLabel, closeSearchLabel, searchable, searching, query, onBack, onStartSearch, onCloseSearch, onQueryChange, }: ModelPaneHeaderProps): import("react").JSX.Element;
-export declare function ComposerPicker({ locked, available, directory: state, directoryFace, t, draft, onDraftChange, embedded, tone, externalTargets, externalTargetsLabel, externalSelection, onExternalTargetChange, resolveInteractionOperations, }: ComposerPickerProps): import("react").JSX.Element | null;
+export declare function ComposerPicker({ locked, available, directory, t, draft, onDraftChange, embedded, tone, externalTargets, externalTargetsLabel, externalSelection, onExternalTargetChange, resolveInteractionOperations, }: ComposerPickerProps): import("react").JSX.Element | null;

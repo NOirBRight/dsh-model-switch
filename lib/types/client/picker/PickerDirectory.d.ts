@@ -1,16 +1,6 @@
 import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client';
-import type { CatalogGroupView } from '../../picker/family.ts';
-export interface PickerDirectorySnapshot {
-    current: ModelSelection | null;
-    groups: readonly CatalogGroupView[];
-    failures: readonly {
-        id: string;
-        name: string;
-        message: string;
-    }[];
-    status: string;
-    error: string | null;
-}
+import type { ModelDirectoryState } from '@deepseek-ai/dsh-client-ui-model-selection/client';
+export type PickerDirectorySnapshot = Pick<ModelDirectoryState, 'current' | 'groups' | 'failures' | 'status' | 'error'>;
 export interface PickerDirectoryStore {
     subscribe: (listener: () => void) => () => void;
     getSnapshot: () => PickerDirectorySnapshot;
@@ -21,8 +11,13 @@ export interface PickerDirectoryOperations {
     load: () => void;
     select: (selection: ModelSelection) => Promise<boolean>;
 }
+/** The exact state and operations one picker render consumes. */
+export interface PickerDirectoryView extends PickerDirectoryOperations {
+    snapshot: PickerDirectorySnapshot;
+}
 export interface PickerDirectoryFace extends PickerDirectoryOperations {
     hooks: {
         directory: PickerDirectoryStore;
     };
 }
+export declare function pickerDirectoryView(snapshot: PickerDirectorySnapshot, operations: PickerDirectoryOperations): PickerDirectoryView;

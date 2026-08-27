@@ -31,12 +31,12 @@ import {
 } from '../../picker/family.ts'
 import { beginSelection } from '../../picker/selection-feedback.ts'
 import type { PickerKey } from './locales.ts'
-import type { PickerDirectoryOperations, PickerDirectorySnapshot } from './PickerDirectory.ts'
+import type { PickerDirectoryView } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { useComposerPickerSurface } from './useComposerPickerSurface.ts'
 import css from './ComposerPicker.module.css'
 
-export type { PickerDirectoryFace, PickerDirectoryOperations, PickerDirectorySnapshot } from './PickerDirectory.ts'
+export type { PickerDirectoryFace, PickerDirectoryOperations, PickerDirectorySnapshot, PickerDirectoryView } from './PickerDirectory.ts'
 
 export type ExternalAgentAdapterId = 'codex' | 'claude-code' | 'cursor' | 'antigravity'
 export type ExternalPlanTargetId = `external-agent:${ExternalAgentAdapterId}`
@@ -52,8 +52,7 @@ export interface ComposerPickerExternalTarget {
 interface ComposerPickerBaseProps {
   locked: boolean
   available: boolean
-  directory: PickerDirectorySnapshot
-  directoryFace: PickerDirectoryOperations
+  directory: PickerDirectoryView
   t: (key: PickerKey, params?: Record<string, string>) => string
   embedded?: boolean
   tone?: 'capsule'
@@ -135,12 +134,12 @@ export function ModelPaneHeader({
 }
 
 export function ComposerPicker({
-  locked, available, directory: state, directoryFace, t, draft, onDraftChange, embedded,
+  locked, available, directory, t, draft, onDraftChange, embedded,
   tone,
   externalTargets = [], externalTargetsLabel, externalSelection, onExternalTargetChange,
   resolveInteractionOperations,
 }: ComposerPickerProps) {
-  const { getDirectorySnapshot, load, select } = directoryFace
+  const { snapshot: state, getDirectorySnapshot, load, select } = directory
   const [pane, setPane] = useState<Pane>('root')
   const [searching, setSearching] = useState(false)
   const [query, setQuery] = useState('')

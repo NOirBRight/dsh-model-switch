@@ -1,7 +1,9 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-export declare class PickerSeatBoundary extends Component<{
+interface PickerSeatBoundaryProps {
     children: ReactNode;
-}, {
+    errorLabel: (message: string) => string;
+}
+export declare class PickerSeatBoundary extends Component<PickerSeatBoundaryProps, {
     message: string | null;
 }> {
     state: {
@@ -13,3 +15,4 @@ export declare class PickerSeatBoundary extends Component<{
     componentDidCatch(error: unknown, info: ErrorInfo): void;
     render(): ReactNode;
 }
+export {};
