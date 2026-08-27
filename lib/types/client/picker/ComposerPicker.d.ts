@@ -2,24 +2,10 @@
  * Composer model seat: suffix-grouped Model / Effort / Context / Fast / Thinking.
  */
 import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client';
-import type { CatalogGroupView } from '../../picker/family.ts';
 import type { PickerKey } from './locales.ts';
-import { type PickerInteractionOperations } from './popup-dismissal.ts';
-export interface PickerDirectorySnapshot {
-    current: ModelSelection | null;
-    groups: readonly CatalogGroupView[];
-    failures: readonly {
-        id: string;
-        name: string;
-        message: string;
-    }[];
-    status: string;
-    error: string | null;
-}
-export interface PickerDirectoryStore {
-    subscribe: (listener: () => void) => () => void;
-    getSnapshot: () => PickerDirectorySnapshot;
-}
+import type { PickerDirectoryOperations, PickerDirectorySnapshot } from './PickerDirectory.ts';
+import type { PickerInteractionOperations } from './popup-dismissal.ts';
+export type { PickerDirectoryFace, PickerDirectoryOperations, PickerDirectorySnapshot } from './PickerDirectory.ts';
 export type ExternalAgentAdapterId = 'codex' | 'claude-code' | 'cursor' | 'antigravity';
 export type ExternalPlanTargetId = `external-agent:${ExternalAgentAdapterId}`;
 export type PlanTargetId = 'dsh' | ExternalPlanTargetId;
@@ -29,20 +15,11 @@ export interface ComposerPickerExternalTarget {
     description?: string;
     disabled?: boolean;
 }
-export interface PickerDirectoryFace {
-    hooks: {
-        directory: PickerDirectoryStore;
-    };
-    getDirectorySnapshot: () => PickerDirectorySnapshot;
-    load: () => void;
-    select: (selection: ModelSelection) => Promise<boolean>;
-}
 interface ComposerPickerBaseProps {
     locked: boolean;
     available: boolean;
     directory: PickerDirectorySnapshot;
-    getDirectorySnapshot: () => PickerDirectorySnapshot;
-    load: () => void;
+    directoryFace: PickerDirectoryOperations;
     t: (key: PickerKey, params?: Record<string, string>) => string;
     embedded?: boolean;
     tone?: 'capsule';
@@ -53,11 +30,9 @@ interface ComposerPickerBaseProps {
     resolveInteractionOperations?: () => PickerInteractionOperations | undefined;
 }
 export type ComposerPickerProps = ComposerPickerBaseProps & ({
-    select: (selection: ModelSelection) => Promise<boolean>;
     draft?: never;
     onDraftChange?: never;
 } | {
-    select?: never;
     draft?: ModelSelection;
     onDraftChange: (selection: ModelSelection) => void;
 });
@@ -75,5 +50,4 @@ export interface ModelPaneHeaderProps {
     onQueryChange: (query: string) => void;
 }
 export declare function ModelPaneHeader({ title, backLabel, searchLabel, closeSearchLabel, searchable, searching, query, onBack, onStartSearch, onCloseSearch, onQueryChange, }: ModelPaneHeaderProps): import("react").JSX.Element;
-export declare function ComposerPicker({ locked, available, directory: state, getDirectorySnapshot, load, select, t, draft, onDraftChange, embedded, tone, externalTargets, externalTargetsLabel, externalSelection, onExternalTargetChange, resolveInteractionOperations, }: ComposerPickerProps): import("react").JSX.Element | null;
-export {};
+export declare function ComposerPicker({ locked, available, directory: state, directoryFace, t, draft, onDraftChange, embedded, tone, externalTargets, externalTargetsLabel, externalSelection, onExternalTargetChange, resolveInteractionOperations, }: ComposerPickerProps): import("react").JSX.Element | null;

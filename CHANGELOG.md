@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.10 - 2026-08-27
+
+- Keep mobile picker headings, model names, descriptions, and values readable by wrapping instead of truncating.
+- Resolve optional mobile interaction operations only through Cordis non-strict service lookup.
+- Consolidate picker directory operations and isolate popup activation, positioning, and dismissal in deep internal modules.
+
 ## 0.3.9 - 2026-08-27
 
 - Preserve the 320px preferred picker width whenever the mobile viewport allows it, shifting away from the trigger instead of squeezing to 240px.

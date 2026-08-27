@@ -9,7 +9,8 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-model-selection/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { selectPlanReview } from '../../picker/plan-review.ts'
-import { ComposerPicker, type PickerDirectoryFace } from './ComposerPicker.tsx'
+import { ComposerPicker } from './ComposerPicker.tsx'
+import type { PickerDirectoryFace } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { CONTINUE_IN_DSH_SLOT, ContinueInDshAdapter, type ContinueInDshFace } from './ContinueInDshAdapter.tsx'
 export type { ContinueInDshOwner, PlanExternalAgentTarget } from './ContinueInDshAdapter.tsx'
@@ -32,11 +33,10 @@ const PLAN_REVIEW_PRIORITY = -7
 function interactionOperationsFrom(ctx: ClientContext): PickerInteractionOperations | undefined {
   const holder = ctx as ClientContext & {
     get?(name: string, strict?: boolean): unknown
-    interactionOperations?: unknown
   }
   let value: unknown
   try {
-    value = holder.get?.('interactionOperations', false) ?? holder.interactionOperations
+    value = holder.get?.('interactionOperations', false)
   } catch {
     return undefined
   }
@@ -59,9 +59,7 @@ function ModelSeat(
       locked={props.locked}
       available={props.available}
       directory={directory}
-      getDirectorySnapshot={props.getDirectorySnapshot}
-      load={props.load}
-      select={props.select}
+      directoryFace={props}
       t={props.t}
       {...props.resolveInteractionOperations === undefined
         ? {}

@@ -3,8 +3,8 @@
  */
 
 import {
-  useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState,
-  type CSSProperties, type KeyboardEvent,
+  useEffect, useMemo, useRef, useState,
+  type KeyboardEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
 import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
@@ -13,7 +13,7 @@ import {
   IconChevronRightOutline14, IconCloseOutline16, IconSearchOutline16, IconWarningOutline16,
   Input, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { CatalogGroupView, FamilyMember, ModelFamily } from '../../picker/family.ts'
+import type { FamilyMember, ModelFamily } from '../../picker/family.ts'
 import {
   contextLabelForMember,
   contextTiers,
@@ -31,21 +31,12 @@ import {
 } from '../../picker/family.ts'
 import { beginSelection } from '../../picker/selection-feedback.ts'
 import type { PickerKey } from './locales.ts'
-import { installPickerDismissal, type PickerInteractionOperations } from './popup-dismissal.ts'
+import type { PickerDirectoryOperations, PickerDirectorySnapshot } from './PickerDirectory.ts'
+import type { PickerInteractionOperations } from './popup-dismissal.ts'
+import { useComposerPickerSurface } from './useComposerPickerSurface.ts'
 import css from './ComposerPicker.module.css'
 
-export interface PickerDirectorySnapshot {
-  current: ModelSelection | null
-  groups: readonly CatalogGroupView[]
-  failures: readonly { id: string, name: string, message: string }[]
-  status: string
-  error: string | null
-}
-
-export interface PickerDirectoryStore {
-  subscribe: (listener: () => void) => () => void
-  getSnapshot: () => PickerDirectorySnapshot
-}
+export type { PickerDirectoryFace, PickerDirectoryOperations, PickerDirectorySnapshot } from './PickerDirectory.ts'
 
 export type ExternalAgentAdapterId = 'codex' | 'claude-code' | 'cursor' | 'antigravity'
 export type ExternalPlanTargetId = `external-agent:${ExternalAgentAdapterId}`
@@ -58,19 +49,11 @@ export interface ComposerPickerExternalTarget {
   disabled?: boolean
 }
 
-export interface PickerDirectoryFace {
-  hooks: { directory: PickerDirectoryStore }
-  getDirectorySnapshot: () => PickerDirectorySnapshot
-  load: () => void
-  select: (selection: ModelSelection) => Promise<boolean>
-}
-
 interface ComposerPickerBaseProps {
   locked: boolean
   available: boolean
   directory: PickerDirectorySnapshot
-  getDirectorySnapshot: () => PickerDirectorySnapshot
-  load: () => void
+  directoryFace: PickerDirectoryOperations
   t: (key: PickerKey, params?: Record<string, string>) => string
   embedded?: boolean
   tone?: 'capsule'
@@ -82,8 +65,8 @@ interface ComposerPickerBaseProps {
 }
 
 export type ComposerPickerProps = ComposerPickerBaseProps & (
-  | { select: (selection: ModelSelection) => Promise<boolean>; draft?: never; onDraftChange?: never }
-  | { select?: never; draft?: ModelSelection; onDraftChange: (selection: ModelSelection) => void }
+  | { draft?: never; onDraftChange?: never }
+  | { draft?: ModelSelection; onDraftChange: (selection: ModelSelection) => void }
 )
 
 type Pane = 'root' | 'model' | 'effort' | 'context' | 'fast' | 'thinking'
@@ -152,25 +135,20 @@ export function ModelPaneHeader({
 }
 
 export function ComposerPicker({
-  locked, available, directory: state, getDirectorySnapshot, load, select, t, draft, onDraftChange, embedded,
+  locked, available, directory: state, directoryFace, t, draft, onDraftChange, embedded,
   tone,
   externalTargets = [], externalTargetsLabel, externalSelection, onExternalTargetChange,
   resolveInteractionOperations,
 }: ComposerPickerProps) {
-  const [open, setOpen] = useState(false)
+  const { getDirectorySnapshot, load, select } = directoryFace
   const [pane, setPane] = useState<Pane>('root')
   const [searching, setSearching] = useState(false)
   const [query, setQuery] = useState('')
-  const [menuStyle, setMenuStyle] = useState<CSSProperties>({ position: 'fixed', zIndex: 4000 })
   const [toast, setToast] = useState<{ seq: number, text: string } | null>(null)
   const toastSeq = useRef(0)
   const lastActionRef = useRef<'load' | 'select'>('load')
-  const triggerRef = useRef<HTMLButtonElement | null>(null)
-  const menuRef = useRef<HTMLDivElement | null>(null)
-  const pointerOpenIntent = useRef<{ open: boolean, until: number } | null>(null)
   const lockedRef = useRef(locked)
   lockedRef.current = locked
-  const id = useId()
 
   const families = useMemo(() => groupFamilies(state.groups), [state.groups])
   const currentSelection = draft ?? state.current
@@ -201,23 +179,33 @@ export function ComposerPicker({
   const sections = useMemo(() => sectionFamilies(visibleFamilies), [visibleFamilies])
   const busy = state.status === 'selecting'
 
-  const close = useCallback((restoreFocus = false): void => {
-    setOpen(false)
-    setPane('root')
-    setSearching(false)
-    setQuery('')
-    if (restoreFocus) queueMicrotask(() => { triggerRef.current?.focus() })
-  }, [])
-
   const reload = (): void => {
     if (lockedRef.current) return
     lastActionRef.current = 'load'
     load()
   }
 
-  useEffect(() => {
-    if (locked) close()
-  }, [close, locked])
+  const {
+    id, open, menuStyle, triggerRef, menuRef, close,
+    onTriggerPointerDown, onTriggerClick,
+  } = useComposerPickerSurface({
+    locked,
+    embedded: embedded ?? false,
+    pane,
+    reload,
+    onOpen: () => {
+      setPane(embedded && tone !== 'capsule' ? 'model' : 'root')
+      setSearching(false)
+      setQuery('')
+    },
+    onClose: () => {
+      setPane('root')
+      setSearching(false)
+      setQuery('')
+    },
+    ...(tone === undefined ? {} : { tone }),
+    ...(resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations }),
+  })
 
   useEffect(() => {
     if (available) {
@@ -226,54 +214,8 @@ export function ComposerPicker({
     }
   }, [available, load])
 
-  useLayoutEffect(() => {
-    if (!open) return
-    const trigger = triggerRef.current
-    if (trigger === null) return
-    const rect = trigger.getBoundingClientRect()
-    const gutter = 8
-    const maxWidth = Math.min(420, window.innerWidth - gutter * 2)
-    const preferredWidth = Math.min(320, maxWidth)
-    const right = Math.min(
-      Math.max(gutter, window.innerWidth - rect.right),
-      Math.max(gutter, window.innerWidth - gutter - preferredWidth),
-    )
-    const safeRight = `max(${right}px, calc(env(safe-area-inset-right) + ${gutter}px))`
-    setMenuStyle({
-      position: 'fixed',
-      right: safeRight,
-      bottom: `max(${Math.max(gutter, window.innerHeight - rect.top + gutter)}px, calc(env(safe-area-inset-bottom) + ${gutter}px))`,
-      maxWidth: `max(0px, calc(100vw - ${safeRight} - env(safe-area-inset-left) - ${gutter}px))`,
-      zIndex: 4000,
-    })
-  }, [open, pane, embedded])
-
-  useEffect(() => {
-    if (!open || tone === 'capsule') return
-    const interaction = resolveInteractionOperations?.()
-    return installPickerDismissal({
-      documentTarget: document,
-      surfaceId: `composer-model-picker-${id}`,
-      ...(interaction === undefined ? {} : { interaction }),
-      trigger: () => triggerRef.current,
-      popup: () => menuRef.current,
-      dismiss: close,
-    })
-  }, [close, id, open, resolveInteractionOperations])
 
   if (!available && externalTargets.length === 0) return null
-
-  const show = (): void => {
-    if (lockedRef.current) return
-    // Capsule (Plan Review) matches the composer: Model / Effort / Context / Fast
-    // on the first pane. Other embedded faces still open the model list so Workers
-    // are not hidden behind a Model row.
-    setPane(embedded && tone !== 'capsule' ? 'model' : 'root')
-    setSearching(false)
-    setQuery('')
-    setOpen(true)
-    if (tone !== 'capsule') reload()
-  }
 
   const returnToRoot = (): void => {
     setPane('root')
@@ -620,19 +562,8 @@ export function ComposerPicker({
         aria-controls={open ? `${id}-menu` : undefined}
         title={triggerLabel}
         disabled={locked}
-        onPointerDown={event => {
-          event.stopPropagation()
-          // Mobile's popup fallback may emit a detail-zero click for 750ms after touch.
-          // Keep every activation in that window idempotent to this pointer's intent.
-          pointerOpenIntent.current = { open: !open, until: Date.now() + 750 }
-        }}
-        onClick={event => {
-          event?.stopPropagation()
-          const intent = pointerOpenIntent.current
-          const desiredOpen = intent !== null && Date.now() <= intent.until ? intent.open : !open
-          if (intent !== null && Date.now() > intent.until) pointerOpenIntent.current = null
-          if (desiredOpen) show(); else close()
-        }}
+        onPointerDown={onTriggerPointerDown}
+        onClick={onTriggerClick}
       >
         <span className={css.triggerLabel}>{triggerLabel}</span>
         <IconChevronDownOutline14 className={classNames(css.chevron, open && css.chevronOpen)} />

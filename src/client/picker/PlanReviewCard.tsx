@@ -6,7 +6,8 @@ import { Button, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import {
   PlanApprovalResponseError, approvePlanReview, planActionView, planReviewOf, settlePlanAction,
 } from '../../picker/plan-review.ts'
-import { ComposerPicker, type PickerDirectoryFace } from './ComposerPicker.tsx'
+import { ComposerPicker } from './ComposerPicker.tsx'
+import type { PickerDirectoryFace, PickerDirectoryOperations } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import css from './PlanReviewCard.module.css'
 
@@ -64,9 +65,7 @@ interface PlanReviewStateProps {
   review: NonNullable<ReturnType<typeof planReviewOf>>
   available: boolean
   snapshot: ReturnType<PlanReviewFace['getDirectorySnapshot']>
-  getDirectorySnapshot: PlanReviewFace['getDirectorySnapshot']
-  load: PlanReviewFace['load']
-  select: PlanReviewFace['select']
+  directoryFace: PickerDirectoryOperations
   t: PlanReviewCardProps['t']
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
 }
@@ -89,17 +88,16 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
     review={review}
     available={props.available}
     snapshot={snapshot}
-    getDirectorySnapshot={props.getDirectorySnapshot}
-    load={props.load}
-    select={props.select}
+    directoryFace={props}
     t={props.t}
     {...props.resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations: props.resolveInteractionOperations }}
   />
 }
 
 function PlanReviewState({
-  matched, review, available, snapshot, getDirectorySnapshot, load, select, t, resolveInteractionOperations,
+  matched, review, available, snapshot, directoryFace, t, resolveInteractionOperations,
 }: PlanReviewStateProps) {
+  const { getDirectorySnapshot, load, select } = directoryFace
   const [execution, setExecution] = useState<ModelSelection | undefined>(snapshot.current ?? undefined)
   const [busy, setBusy] = useState(false)
   const [blocked, setBlocked] = useState(false)
@@ -165,8 +163,7 @@ function PlanReviewState({
                 locked={busy || blocked}
                 available={available}
                 directory={snapshot}
-                getDirectorySnapshot={getDirectorySnapshot}
-                load={load}
+                directoryFace={directoryFace}
                 t={t}
                 {...resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations }}
                 {...execution === undefined ? {} : { draft: execution }}

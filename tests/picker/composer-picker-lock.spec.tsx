@@ -27,8 +27,9 @@ const target = { id: 'external-agent:codex' as const, label: 'Codex', disabled: 
 
 function props(locked: boolean, onExternalTargetChange = vi.fn()) {
   return {
-    locked, available: false, directory: snapshot, getDirectorySnapshot: () => snapshot,
-    load: vi.fn(), draft: { provider: 'codex', model: 'gpt' }, onDraftChange: vi.fn(),
+    locked, available: false, directory: snapshot,
+    directoryFace: { getDirectorySnapshot: () => snapshot, load: vi.fn(), select: vi.fn(async () => true) },
+    draft: { provider: 'codex', model: 'gpt' }, onDraftChange: vi.fn(),
     t: (key: string) => key, embedded: true, externalTargets: [target],
     externalSelection: undefined, onExternalTargetChange,
   }

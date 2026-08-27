@@ -1,6 +1,7 @@
 /** Continue-in-DSH draft editor contributed into external-agents' Plan router slot. */
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
-import { type ExternalAgentAdapterId, type ExternalPlanTargetId, type PickerDirectoryFace, type PlanTargetId } from './ComposerPicker.tsx';
+import { type ExternalAgentAdapterId, type ExternalPlanTargetId, type PlanTargetId } from './ComposerPicker.tsx';
+import type { PickerDirectoryFace } from './PickerDirectory.ts';
 import type { PickerInteractionOperations } from './popup-dismissal.ts';
 /** Mirrored public slot id; there is deliberately no runtime plugin dependency. */
 export declare const CONTINUE_IN_DSH_SLOT: "external-agents.plan-review.continue-in-dsh";

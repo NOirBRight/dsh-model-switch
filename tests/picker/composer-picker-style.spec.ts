@@ -15,4 +15,13 @@ describe('composer picker mobile sizing', () => {
     expect(block('.list')).toContain('overflow-x: hidden')
     expect(block('.list')).toContain('overflow-y: auto')
   })
+
+  it.each(['.paneTitle', '.modelName', '.description', '.cellValue'])(
+    'keeps %s readable without ellipsis or single-line clipping',
+    (selector) => {
+      expect(block(selector)).not.toContain('text-overflow: ellipsis')
+      expect(block(selector)).not.toContain('white-space: nowrap')
+      expect(block(selector)).toContain('overflow-wrap: anywhere')
+    },
+  )
 })

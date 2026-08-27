@@ -33,10 +33,14 @@ function bench(strictOptionalLookup = false) {
     effect: (register: () => unknown) => register(),
     get: vi.fn(() => undefined),
   }
+  let directInteractionReads = 0
   const ctx = strictOptionalLookup
     ? new Proxy(raw, {
         get(target, property, receiver) {
-          if (property === 'interactionOperations') throw new Error('cannot get property interactionOperations')
+          if (property === 'interactionOperations') {
+            directInteractionReads += 1
+            throw new Error('cannot get property interactionOperations')
+          }
           return Reflect.get(target, property, receiver)
         },
       })
@@ -46,7 +50,7 @@ function bench(strictOptionalLookup = false) {
     return register(ctx)
   }
   installComposerPicker(ctx as never)
-  return { entries, injections }
+  return { entries, injections, directInteractionReads: () => directInteractionReads }
 }
 
 describe('composer picker seat ownership', () => {
@@ -57,10 +61,11 @@ describe('composer picker seat ownership', () => {
   })
 
   it('uses non-strict lookup for the optional interaction service', () => {
-    const { entries } = bench(true)
+    const { entries, directInteractionReads } = bench(true)
     const model = entries.find(({ spec }) => spec.name === 'conversation.input.model')
     const face = (model?.spec.inject as (sessionId: string) => { resolveInteractionOperations(): unknown })('session-1')
     expect(() => face.resolveInteractionOperations()).not.toThrow()
     expect(face.resolveInteractionOperations()).toBeUndefined()
+    expect(directInteractionReads()).toBe(0)
   })
 })

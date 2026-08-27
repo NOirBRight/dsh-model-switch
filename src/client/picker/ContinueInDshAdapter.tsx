@@ -7,9 +7,9 @@ import {
   ComposerPicker,
   type ExternalAgentAdapterId,
   type ExternalPlanTargetId,
-  type PickerDirectoryFace,
   type PlanTargetId,
 } from './ComposerPicker.tsx'
+import type { PickerDirectoryFace } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 
 /** Mirrored public slot id; there is deliberately no runtime plugin dependency. */
@@ -67,8 +67,7 @@ export function ContinueInDshAdapter(props: Props) {
     locked={props.locked}
     available={props.available}
     directory={directory}
-    getDirectorySnapshot={props.getDirectorySnapshot}
-    load={props.load}
+    directoryFace={props}
     t={props.t}
     {...props.resolveInteractionOperations === undefined
       ? {}
