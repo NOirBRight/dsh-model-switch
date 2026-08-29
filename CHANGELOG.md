@@ -2,8 +2,13 @@
 
 ## Unreleased
 
-- Let the composer model trigger use the full available seat width on mobile instead of clipping long model labels at `45cqw`.
-- Keep composer and Plan model switches session-local by restoring the configured Main default after rc.2's coupled `session.selectModel` default write, fenced so concurrent Settings edits win.
+## 0.4.1 - 2026-08-29
+
+- Support DSH 0.1.2-alpha.1 through the public Cordis, Settings, Remote, Session, and Model Directory services after the monolithic client runtime removal.
+- Carry fixed Subagent reasoning effort on alpha.1 while retaining rc.2 provider-default compatibility.
+- Let the composer model trigger use the full available seat width on mobile instead of clipping long model labels.
+- Keep Composer and Plan model switches session-local with a revision-fenced Main-default restore where the Host couples session selection to deployment defaults.
+- Publish bilingual product documentation and screenshots, including the provider-catalog rules for custom Picker families.
 
 ## 0.3.11 - 2026-08-27
 

@@ -1,6 +1,6 @@
 {
   "name": "dsh-model-switch",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Explicit model routing plus composer/Plan picker for DeepSeek Harness",
   "repository": {
     "type": "git",
@@ -51,6 +51,8 @@
     "cordis.patch.yml",
     "CHANGELOG.md",
     "README.md",
+    "README.zh.md",
+    "docs/screenshots/*.png",
     "PRODUCT.md",
     "IMPLEMENTATION_PLAN.md"
   ],

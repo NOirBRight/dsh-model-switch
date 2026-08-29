@@ -1,17 +1,17 @@
-export type ClientContext = import('@deepseek-ai/cordis').Context & Record<string, any>;
-export interface SettingsScopeSnapshot<T> {
-    status: 'loading' | 'ready' | 'unavailable';
-    value: T | undefined;
-    base: unknown;
-    user: unknown;
-    revision: number | undefined;
-    writable: boolean;
-    mode: 'host' | 'memory';
+/** Dual-version picker types shared by rc.2 and alpha.1. */
+export type { ClientContext, SettingsScope, SettingsScopeSnapshot } from '../shim.ts';
+/** Structural Plan wait used across rc.2 respond and alpha.1 answer/cancel. */
+export interface PendingWait<K extends string> {
+    readonly kind: K;
+    readonly key: string;
+    readonly sessionId: unknown;
+    readonly payload?: {
+        questions?: readonly unknown[];
+    };
+    readonly questions?: readonly unknown[];
+    respond?(message: unknown): Promise<{
+        accepted: boolean;
+    }>;
+    answer?(answer: unknown): Promise<void>;
+    cancel?(): Promise<void>;
 }
-export interface SettingsScope<T> {
-    getSnapshot(): SettingsScopeSnapshot<T>;
-    subscribe(listener: () => void): () => void;
-    set(field: string, value: unknown): Promise<void>;
-    unset(field: string): Promise<void>;
-}
-export type PendingWait<K extends string> = import('@deepseek-ai/dsh-client-runtime/client').PendingWait<K & keyof import('@deepseek-ai/dsh-client-runtime/client').PendingPayloads>;

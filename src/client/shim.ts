@@ -1,3 +1,21 @@
-/** Official types only. `dsh-client-runtime` was removed in DSH 0.1.2-alpha.1. */
+/** Dual-version client types after the monolithic runtime removal. */
 export type { Context as ClientContext } from '@deepseek-ai/cordis'
-export type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
+
+/** Public Settings scope fields used by Model Switch on rc.2 and alpha.1. */
+export interface SettingsScopeSnapshot<T> {
+  status: 'loading' | 'ready' | 'unavailable'
+  value: T | undefined
+  base: unknown
+  user: unknown
+  revision: number | undefined
+  writable: boolean
+  mode: 'host' | 'memory'
+}
+
+/** Minimal Settings controller surface consumed by this plugin. */
+export interface SettingsScope<T> {
+  getSnapshot(): SettingsScopeSnapshot<T>
+  subscribe(listener: () => void): () => void
+  set(field: string, value: unknown): Promise<void>
+  unset(field: string): Promise<void>
+}
