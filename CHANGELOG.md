@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Let the composer model trigger use the full available seat width on mobile instead of clipping long model labels at `45cqw`.
+- Keep composer and Plan model switches session-local by restoring the configured Main default after rc.2's coupled `session.selectModel` default write, fenced so concurrent Settings edits win.
+
 ## 0.3.11 - 2026-08-27
 
 - Lock the real composer UI path for independent Context 1M and Fast On selection: when the provider catalog publishes a combined `*-1m-fast` row, the picker preserves both dimensions and submits that exact model id.

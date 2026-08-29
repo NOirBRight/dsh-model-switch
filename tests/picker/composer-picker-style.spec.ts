@@ -12,13 +12,24 @@ function block(selector: string): string {
 }
 
 describe('composer picker mobile sizing', () => {
+  it('keeps the regular trigger compact and on one line', () => {
+    expect(block('.trigger')).toContain('width: fit-content')
+    expect(block('.trigger')).toContain('max-width: 256px')
+    expect(block('.triggerLabel')).toContain('white-space: nowrap')
+    expect(block('.triggerLabel')).toContain('text-overflow: ellipsis')
+  })
+
+  it('caps the expanded picker card at the longest-title width', () => {
+    expect(block('.menu')).toContain('width: min(280px')
+  })
+
   it('allows only vertical scrolling inside the menu list', () => {
     expect(block('.list')).toContain('overflow-x: hidden')
     expect(block('.list')).toContain('overflow-y: auto')
   })
 
   it.each([
-    '.triggerLabel', '.paneTitle', '.groupTitle', '.status', '.empty', '.error', '.warning',
+    '.paneTitle', '.groupTitle', '.status', '.empty', '.error', '.warning',
     '.modelName', '.description', '.cellLabel', '.cellValue',
   ])(
     'keeps %s readable without ellipsis or single-line clipping',

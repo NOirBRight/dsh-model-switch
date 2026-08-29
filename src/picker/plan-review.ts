@@ -24,11 +24,18 @@ interface QuestionItem {
 
 interface QuestionWaitLike {
   kind: string
-  payload: { questions: readonly QuestionItem[] }
+  key: string
+  questions?: readonly QuestionItem[]
+  payload?: { questions: readonly QuestionItem[] }
+  // alpha.1 PendingQuestion has questions directly; rc.2 PendingWait has payload.questions
+  [key: string]: unknown
 }
 
 interface ComposerOwner {
-  interactions: readonly { kind: string; payload?: unknown }[]
+  /** alpha.1: the single effective interaction, undefined when none. */
+  pendingInteraction?: { kind: string; payload?: unknown } | undefined
+  /** rc.2: the pending-interaction array. Kept as a fallback. */
+  interactions?: readonly { kind: string; payload?: unknown }[]
 }
 
 export function planReviewOf(questions: readonly QuestionItem[]): PlanReview | undefined {
@@ -51,17 +58,31 @@ export function planReviewOf(questions: readonly QuestionItem[]): PlanReview | u
   }
 }
 
-function isQuestionWait(value: { kind: string; payload?: unknown }): value is QuestionWaitLike {
-  if (value.kind !== 'question' || value.payload === undefined || typeof value.payload !== 'object' || value.payload === null) {
-    return false
-  }
+function isQuestionWait(value: { kind: string; payload?: unknown; questions?: unknown }): value is QuestionWaitLike {
+  if (value.kind !== 'question' && value.kind !== 'plan-review') return false
+  // alpha.1 PendingQuestion: questions directly; rc.2 PendingWait: payload.questions
+  if (Array.isArray((value as { questions?: unknown }).questions)) return true
+  if (value.payload === undefined || typeof value.payload !== 'object' || value.payload === null) return false
   return Array.isArray((value.payload as { questions?: unknown }).questions)
 }
 
+function questionsOf(wait: QuestionWaitLike): readonly QuestionItem[] {
+  if (Array.isArray(wait.questions)) return wait.questions as readonly QuestionItem[]
+  if (wait.payload !== undefined && typeof wait.payload === 'object' && wait.payload !== null) {
+    const qs = (wait.payload as { questions?: unknown }).questions
+    if (Array.isArray(qs)) return qs as readonly QuestionItem[]
+  }
+  return []
+}
+
 export function selectPlanReview(owner: ComposerOwner): QuestionWaitLike | null {
-  const wait = owner.interactions.find(isQuestionWait)
+  // alpha.1 replaced the pending-interaction array with one effective value.
+  const candidates = owner.pendingInteraction !== undefined
+    ? [owner.pendingInteraction]
+    : owner.interactions ?? []
+  const wait = candidates.find(isQuestionWait)
   if (wait === undefined) return null
-  return planReviewOf(wait.payload.questions) === undefined ? null : wait
+  return planReviewOf(questionsOf(wait)) === undefined ? null : wait
 }
 
 export class PlanApprovalResponseError extends Error {}

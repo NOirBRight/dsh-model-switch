@@ -23,12 +23,21 @@ interface QuestionItem {
 }
 interface QuestionWaitLike {
     kind: string;
-    payload: {
+    key: string;
+    questions?: readonly QuestionItem[];
+    payload?: {
         questions: readonly QuestionItem[];
     };
+    [key: string]: unknown;
 }
 interface ComposerOwner {
-    interactions: readonly {
+    /** alpha.1: the single effective interaction, undefined when none. */
+    pendingInteraction?: {
+        kind: string;
+        payload?: unknown;
+    } | undefined;
+    /** rc.2: the pending-interaction array. Kept as a fallback. */
+    interactions?: readonly {
         kind: string;
         payload?: unknown;
     }[];

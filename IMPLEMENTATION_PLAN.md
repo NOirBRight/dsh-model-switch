@@ -19,7 +19,7 @@ Register each feasible Settings/runtime capability only through released public 
 
 Known seam constraints from rc.2 inspection:
 
-- Web session creation has no atomic create-time model override; use the existing public Main Settings namespace rather than post-create selection.
+- Web session creation has no atomic create-time model override; use the existing public Main Settings namespace rather than post-create selection. rc.2 couples `session.selectModel` to a deployment-default write, so the owned composer/Plan picker restores the captured Main default through `settings.mutate` at the immediately following revision; conflicts are left untouched so concurrent Settings edits win.
 - Tool registration has disposal but no atomic replacement; stage complete generations and roll back on registration failure.
 - A later child model switch cannot rewrite its durable continuable descriptor; creation snapshots remain authoritative.
 - Search routing owns only provider id `model-switch`; the deployment profile pins `web.searchProvider: model-switch` while preserving its existing `fetchProvider`. The official `web_search` and `web_fetch` tools are untouched.

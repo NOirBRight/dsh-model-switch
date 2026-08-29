@@ -1,3 +1,4 @@
+import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type { AgentOptions, ModelSelection } from '@deepseek-ai/dsh-agent'
 import OfficialSubagentRuntime, {
   type ContinuableStart,
@@ -15,10 +16,21 @@ function present(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== ''
 }
 
+/** AgentOptions gains `reasoningEffort` in 0.1.2-alpha.1; rc.2 lacks the field.
+ *  This structural alias carries it without breaking the rc.2 devDep typecheck. */
+type EffortCapableAgentOptions = AgentOptions & { reasoningEffort?: ReasoningEffortId }
+
 function explicitRoute(options: AgentOptions | undefined): ModelSelection | undefined {
-  const provider = options?.provider
-  const model = options?.model
-  if (present(provider) && present(model)) return { provider, model }
+  const effortCapable = options as EffortCapableAgentOptions | undefined
+  const provider = effortCapable?.provider
+  const model = effortCapable?.model
+  if (present(provider) && present(model)) {
+    return {
+      provider,
+      model,
+      ...(effortCapable?.reasoningEffort === undefined ? {} : { reasoningEffort: effortCapable.reasoningEffort }),
+    }
+  }
   if (present(provider) || present(model)) {
     throw new SubagentRouteUnavailableError('explicit Subagent routes require both provider and model')
   }
@@ -29,19 +41,22 @@ function providerModel(selection: ModelSelection, source: string): ModelSelectio
   if (!present(selection.provider) || !present(selection.model)) {
     throw new SubagentRouteUnavailableError(source + ' must provide non-empty provider and model')
   }
-  return { provider: selection.provider, model: selection.model }
+  return {
+    provider: selection.provider,
+    model: selection.model,
+    ...(selection.reasoningEffort === undefined ? {} : { reasoningEffort: selection.reasoningEffort }),
+  }
 }
 
 function fixedRoute(settings: Config): ModelSelection {
   if (!present(settings.subagentProvider) || !present(settings.subagentModel)) {
     throw new SubagentRouteUnavailableError('fixed Subagent policy requires non-empty subagentProvider and subagentModel')
   }
-  if (present(settings.subagentReasoningEffort)) {
-    throw new SubagentRouteUnavailableError(
-      'fixed Subagent reasoning effort requires an unreleased rc.2 one-shot/cold-resume snapshot seam',
-    )
+  return {
+    provider: settings.subagentProvider,
+    model: settings.subagentModel,
+    ...(present(settings.subagentReasoningEffort) ? { reasoningEffort: ReasoningEffortId(settings.subagentReasoningEffort) } : {}),
   }
-  return { provider: settings.subagentProvider, model: settings.subagentModel }
 }
 
 type RoutableSubagentRequest = Pick<SubagentStartRequest, 'parent' | 'agentOptions'>
@@ -71,7 +86,12 @@ export function routeSubagentRequest<T extends RoutableSubagentRequest>(
     : providerModel(fromParent ?? main, fromParent === undefined ? 'Main default' : 'parent route')
   return {
     ...request,
-    agentOptions: { ...request.agentOptions, provider: selected.provider, model: selected.model },
+    agentOptions: {
+      ...request.agentOptions,
+      provider: selected.provider,
+      model: selected.model,
+      ...(selected.reasoningEffort === undefined ? {} : { reasoningEffort: selected.reasoningEffort }),
+    },
   }
 }
 

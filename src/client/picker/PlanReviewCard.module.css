@@ -45,6 +45,25 @@
   background: var(--dsw-alias-state-warn-primary);
 }
 
+.stripTitle {
+  flex: 0 0 auto;
+  font-weight: 600;
+}
+
+.headerPicker {
+  margin-left: auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 55%;
+  display: flex;
+  align-items: center;
+}
+
+.headerPicker > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
 .body {
   flex: 1 1 auto;
   min-height: 0;
@@ -84,12 +103,13 @@
   gap: 12px;
   min-width: 0;
   min-height: 32px;
+  justify-content: space-between;
 }
 
 .picker {
-  flex: 1 1 0;
+  flex: 1 1 16rem;
   min-width: 0;
-  max-width: 11rem;
+  max-width: 16rem;
 }
 
 .pickerError {
@@ -109,6 +129,7 @@
   justify-content: flex-end;
   flex-wrap: nowrap;
   gap: 8px;
+  margin-left: auto;
 }
 
 .discuss,
@@ -150,19 +171,27 @@
     padding-left: 12px;
   }
 
-  .bar {
-    gap: 4px;
+  .strip {
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
-  .picker {
-    flex: 0 1 6.5rem;
-    max-width: 6.5rem;
+  .headerPicker {
+    flex: 1 1 100%;
+    max-width: 100%;
+    margin-left: 0;
+  }
+
+  .bar {
+    justify-content: flex-end;
+    gap: 6px;
   }
 
   .actions {
-    flex: 1 1 auto;
+    flex: 1 1 100%;
     min-width: 0;
-    gap: 4px;
+    justify-content: flex-end;
+    gap: 6px;
   }
 
   .discuss,

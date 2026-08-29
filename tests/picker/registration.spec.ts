@@ -30,6 +30,8 @@ function bench(strictOptionalLookup = false) {
     },
     modelDirectories: { directoryFor: vi.fn(() => directory) },
     sessions: { subagentAddress: vi.fn(() => undefined) },
+    settingsScope: { bind: vi.fn(() => ({ getSnapshot: () => ({ status: 'loading' }) })) },
+    remote: { settings: { mutate: vi.fn(async () => ({ ok: true, value: { revision: 9 } })) } },
     effect: (register: () => unknown) => register(),
     get: vi.fn(() => undefined),
   }
@@ -56,8 +58,48 @@ function bench(strictOptionalLookup = false) {
 describe('composer picker seat ownership', () => {
   it('uses the official model-seat service gate and an unambiguous winning priority', () => {
     const { entries, injections } = bench()
-    expect(injections).toContainEqual(['slots', 'modelDirectories'])
+    expect(injections).toContainEqual(['slots', 'modelDirectories', 'settingsScope', 'remote.settings'])
     expect(entries.find(({ spec }) => spec.name === 'conversation.input.model')?.spec.priority).toBe(-10)
+  })
+
+  it('restores the configured Main default after a session-only model switch', async () => {
+    let mainSnapshot = {
+      status: 'ready', value: { provider: 'deepseek', model: 'deep-chat' },
+      base: {}, user: {}, revision: 7, writable: true, mode: 'host',
+    }
+    const mutate = vi.fn(async () => ({ ok: true as const, value: { revision: 9 } }))
+    const directory = {
+      store: { subscribe: vi.fn(), getSnapshot: vi.fn() },
+      load: vi.fn(async () => undefined),
+      select: vi.fn(async () => {
+        mainSnapshot = { ...mainSnapshot, value: { provider: 'codex', model: 'gpt-switched' }, revision: 8 }
+      }),
+    }
+    const entries: Array<{ spec: Record<string, unknown> }> = []
+    const ctx = {
+      locale: { register: vi.fn(() => () => undefined) },
+      slots: {
+        inject: (_name: string, register: () => unknown) => register(),
+        register: (spec: Record<string, unknown>) => { entries.push({ spec }); return () => undefined },
+      },
+      modelDirectories: { directoryFor: vi.fn(() => directory) },
+      sessions: { subagentAddress: vi.fn(() => undefined) },
+      settingsScope: { bind: vi.fn(() => ({ getSnapshot: () => mainSnapshot, subscribe: vi.fn(() => vi.fn()) })) },
+      remote: { settings: { mutate } },
+      effect: (register: () => unknown) => register(),
+      get: vi.fn(() => undefined),
+      inject: (_services: string[], register: (scope: unknown) => unknown) => register(ctx),
+    }
+    installComposerPicker(ctx as never)
+    const model = entries.find(({ spec }) => spec.name === 'conversation.input.model')
+    const face = (model?.spec.inject as (sessionId: string) => { select(selection: { provider: string; model: string }): Promise<boolean> })('session-1')
+
+    await expect(face.select({ provider: 'codex', model: 'gpt-switched' })).resolves.toBe(true)
+    expect(mutate).toHaveBeenCalledWith('agent-default-model', [
+      { op: 'set', path: ['provider'], value: 'deepseek' },
+      { op: 'set', path: ['model'], value: 'deep-chat' },
+      { op: 'unset', path: ['reasoningEffort'] },
+    ], 8)
   })
 
   it('uses non-strict lookup for the optional interaction service', () => {

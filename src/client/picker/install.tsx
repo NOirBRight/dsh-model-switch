@@ -3,11 +3,13 @@
  */
 
 import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
-import type { ClientContext, PendingWait } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
+import type { PendingWait, SettingsScopeSnapshot } from './shim.js'
 import type { ComposerChainProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-model-selection/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import { decodeMainSettings, MAIN_SETTINGS_ID, type MainSettingsView } from '../../client-contract.ts'
 import { selectPlanReview } from '../../picker/plan-review.ts'
 import { ComposerPicker } from './ComposerPicker.tsx'
 import { pickerDirectoryView, type PickerDirectoryFace } from './PickerDirectory.ts'
@@ -47,6 +49,43 @@ interface DirectoryFace extends PickerDirectoryFace {
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
 }
 
+function mainDefaultOps(selection: MainSettingsView) {
+  return [
+    { op: 'set' as const, path: ['provider'], value: selection.provider },
+    { op: 'set' as const, path: ['model'], value: selection.model },
+    selection.reasoningEffort === undefined || selection.reasoningEffort === ''
+      ? { op: 'unset' as const, path: ['reasoningEffort'] }
+      : { op: 'set' as const, path: ['reasoningEffort'], value: selection.reasoningEffort },
+  ]
+}
+
+interface RemoteSettingsFace {
+  mutate(ns: string, ops: readonly unknown[], expectedRevision: number | undefined): Promise<{
+    ok: boolean
+    value?: { revision: number }
+    error?: { code: string; message: string }
+  }>
+}
+
+async function restoreMainDefault(
+  remoteSettings: RemoteSettingsFace,
+  before: SettingsScopeSnapshot<MainSettingsView>,
+): Promise<void> {
+  if (before.status !== 'ready' || before.mode !== 'host' || !before.writable
+    || before.value === undefined || before.revision === undefined) return
+  const response = await remoteSettings.mutate(
+    MAIN_SETTINGS_ID,
+    mainDefaultOps(before.value),
+    // session.selectModel performs exactly one complete-section default write
+    // before its RPC resolves. Fence the compensating write so a concurrent
+    // Settings-page edit wins instead of being overwritten.
+    before.revision + 1,
+  )
+  if (!response.ok && response.error?.code !== 'settings-conflict') {
+    throw new Error(`${response.error?.code}: ${response.error?.message}`)
+  }
+}
+
 function ModelSeat(
   props: PropsRuntime<'conversation.input.model'> & PropsLocale<'composer-picker'> & InjectFace<DirectoryFace>,
 ) {
@@ -76,9 +115,11 @@ function ModelSeatEntry(props: Parameters<typeof ModelSeat>[0]) {
 export function installComposerPicker(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-model-switch: composer picker dictionaries')
 
-  ctx.inject(['slots', 'modelDirectories'], (scope: ClientContext) => {
+  ctx.inject(['slots', 'modelDirectories', 'settingsScope', 'remote.settings'], (scope: ClientContext) => {
     const models = scope.modelDirectories
     const sessions = scope.sessions as { subagentAddress?: (id: unknown) => unknown } | undefined
+    const mainDefaults = scope.settingsScope.bind({ namespace: MAIN_SETTINGS_ID, decode: decodeMainSettings })
+    const remoteSettings = (scope as unknown as { remote: { settings: RemoteSettingsFace } }).remote.settings
     const resolveInteractionOperations = (): PickerInteractionOperations | undefined => interactionOperationsFrom(scope)
     const directoryFace = (sessionId: Parameters<typeof models.directoryFor>[0]): DirectoryFace => {
       const directory = models.directoryFor(sessionId)
@@ -91,9 +132,17 @@ export function installComposerPicker(ctx: ClientContext): void {
         load: () => {
           if (available) directory.load().catch(() => { /* surfaced on the store */ })
         },
-        select: (selection: ModelSelection) => available
-          ? directory.select(selection).then(() => true, () => false)
-          : Promise.resolve(false),
+        select: async (selection: ModelSelection) => {
+          if (!available) return false
+          const defaultBeforeSwitch = mainDefaults.getSnapshot()
+          try {
+            await directory.select(selection)
+            await restoreMainDefault(remoteSettings, defaultBeforeSwitch)
+            return true
+          } catch {
+            return false
+          }
+        },
       }
     }
 

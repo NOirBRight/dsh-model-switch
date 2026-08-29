@@ -32,6 +32,7 @@ export declare const SUBAGENT_SETTINGS_FIELDS: Readonly<{
     readonly mode: "subagentMode";
     readonly provider: "subagentProvider";
     readonly model: "subagentModel";
+    readonly effort: "subagentReasoningEffort";
 }>;
 export declare const SEARCH_SETTINGS_FIELDS: Readonly<{
     readonly provider: "searchProvider";

@@ -7,9 +7,11 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  width: fit-content;
   min-width: 0;
-  max-width: 220px;
-  max-width: min(360px, 45cqw);
+  /* Fixed cap based on measured longest label (256px for DeepSeek V4 Flash Vision (exp) · High);
+     the flex parent handles narrow viewports via min-width:0 + ellipsis. */
+  max-width: 256px;
   min-height: 28px;
   padding: 4px 4px 4px 8px;
   border: none;
@@ -36,7 +38,10 @@
 
 .triggerLabel {
   min-width: 0;
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  overflow-wrap: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .triggerEffort {
@@ -97,7 +102,9 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  width: min(320px, max(0px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right))));
+  /* 280px fits the longest configured model title plus both 32px header
+     controls; the viewport expression keeps it inside narrow mobile screens. */
+  width: min(280px, max(0px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right))));
   max-height: min(360px, calc(56dvh - env(safe-area-inset-bottom)));
   overflow: hidden;
   padding: 4px;

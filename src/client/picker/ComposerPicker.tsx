@@ -430,8 +430,6 @@ export function ComposerPicker({
                       && family?.provider === item.provider && family.base === item.base
                       ? member
                       : item.members.find(entry => !entry.fast && entry.contextTier === null) ?? item.members[0]
-                    const description = representative?.model.description
-                      ?? item.members.find(entry => entry.model.description !== undefined)?.model.description
                     return (
                       <button
                         type="button"
@@ -447,7 +445,6 @@ export function ComposerPicker({
                       >
                         <span className={css.optionCopy}>
                           <span className={css.modelName}>{item.name}</span>
-                          {description !== undefined && <span className={css.description}>{description}</span>}
                         </span>
                         <span className={css.check}>{selected ? <IconCheckOutline16 /> : null}</span>
                       </button>
@@ -478,7 +475,6 @@ export function ComposerPicker({
             >
               <span className={css.optionCopy}>
                 <span className={css.modelName}>{level.name}</span>
-                {level.description !== undefined && <span className={css.description}>{level.description}</span>}
               </span>
               <span className={css.check}>{effectiveEffort === level.id ? <IconCheckOutline16 /> : null}</span>
             </button>

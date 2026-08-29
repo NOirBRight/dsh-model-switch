@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
-import type { PendingWait } from '@deepseek-ai/dsh-client-runtime/client'
+import type { PendingWait } from './shim.js'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconEditOutline16, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import {
   PlanApprovalResponseError, approvePlanReview, planActionView, planReviewOf, settlePlanAction,
 } from '../../picker/plan-review.ts'
@@ -53,9 +53,20 @@ async function respondAnswer(
   rejectedMessage: string,
   terminalRejection = false,
 ): Promise<void> {
-  const receipt = await wait.respond({
+  // alpha.1 PendingQuestion has .answer(); rc.2 PendingWait has .respond()
+  const target = wait as unknown as { answer?: (a: unknown) => Promise<void>; respond?: (m: unknown) => Promise<{ accepted: boolean }>; sessionId: unknown }
+  if (typeof target.answer === 'function') {
+    try {
+      await target.answer({ answers: [{ id, selected: [label] }] })
+      return
+    } catch {
+      const ErrorType = terminalRejection ? PlanApprovalResponseError : Error
+      throw new ErrorType(rejectedMessage)
+    }
+  }
+  const receipt = await target.respond!({
     ok: true,
-    value: { sessionId: wait.sessionId, answer: { answers: [{ id, selected: [label] }] } },
+    value: { sessionId: target.sessionId, answer: { answers: [{ id, selected: [label] }] } },
   })
   if (!receipt.accepted) {
     const ErrorType = terminalRejection ? PlanApprovalResponseError : Error
@@ -64,7 +75,12 @@ async function respondAnswer(
 }
 
 async function respondCancel(wait: QuestionWait, message: string, rejectedMessage: string): Promise<void> {
-  const receipt = await wait.respond({
+  const target = wait as unknown as { cancel?: () => Promise<void>; respond?: (m: unknown) => Promise<{ accepted: boolean }> }
+  if (typeof target.cancel === 'function') {
+    try { await target.cancel() } catch { throw new Error(rejectedMessage) }
+    return
+  }
+  const receipt = await target.respond!({
     ok: false,
     error: { code: 'cancelled', message, details: {} },
   })
@@ -80,9 +96,16 @@ interface PlanReviewStateProps {
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
 }
 
+function questionsOfWait(wait: QuestionWait): readonly Parameters<typeof planReviewOf>[0][number][] {
+  const raw = wait as unknown as { questions?: unknown; payload?: { questions?: unknown } }
+  if (Array.isArray(raw.questions)) return raw.questions as never
+  if (raw.payload !== undefined && typeof raw.payload === 'object' && raw.payload !== null && Array.isArray((raw.payload as { questions?: unknown }).questions)) return (raw.payload as { questions: unknown }).questions as never
+  return []
+}
+
 export function PlanReviewCard(props: PlanReviewCardProps) {
   const snapshot = props.useDirectory(value => value)
-  const review = planReviewOf(props.matched.payload.questions as Parameters<typeof planReviewOf>[0])
+  const review = planReviewOf(questionsOfWait(props.matched) as Parameters<typeof planReviewOf>[0])
   if (review === undefined) {
     return (
       <div className={css.frame} data-plan-review-key={props.matched.key}>
@@ -154,7 +177,29 @@ function PlanReviewState({
       <section className={css.card} aria-label={review.question}>
         <div className={css.strip}>
           <span className={css.dot} />
-          {t('plan.header')}
+          <span className={css.stripTitle}>{t('plan.header')}</span>
+          <div
+            className={css.headerPicker}
+            aria-label={t('plan.execution')}
+            onPointerDown={event => { event.stopPropagation() }}
+          >
+            <PickerGuard
+              errorLabel={message => t('plan.pickerCrash', { message })}
+              retryLabel={t('retry')}
+            >
+            <ComposerPicker
+              locked={busy || blocked}
+              available={available}
+              directory={directory}
+              t={t}
+              {...resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations }}
+              {...execution === undefined ? {} : { draft: execution }}
+              onDraftChange={setExecution}
+              embedded
+              tone="capsule"
+            />
+            </PickerGuard>
+          </div>
         </div>
         <div className={css.body} data-plan-review-scroll>
           <MarkdownText text={review.plan} />
@@ -162,32 +207,11 @@ function PlanReviewState({
         <div className={css.footer}>
           <div className={css.feedback} role="status">{action.error}</div>
           <div className={css.bar}>
-            <div
-              className={css.picker}
-              aria-label={t('plan.execution')}
-              onPointerDown={event => { event.stopPropagation() }}
-            >
-              <PickerGuard
-                errorLabel={message => t('plan.pickerCrash', { message })}
-                retryLabel={t('retry')}
-              >
-              <ComposerPicker
-                locked={busy || blocked}
-                available={available}
-                directory={directory}
-                t={t}
-                {...resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations }}
-                {...execution === undefined ? {} : { draft: execution }}
-                onDraftChange={setExecution}
-                embedded
-                tone="capsule"
-              />
-              </PickerGuard>
-            </div>
             <div className={css.actions}>
               <Button
                 variant="ghost"
                 className={css.discuss}
+                icon={<IconEditOutline16 size={14} />}
                 disabled={busy || blocked}
                 onClick={() => {
                   settle(() => respondCancel(matched, t('plan.cancelMessage'), t('plan.cancelRejected')))

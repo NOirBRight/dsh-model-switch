@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-remotes/client'
-import type { SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SettingsScopeSnapshot } from './shim.js'
 import { MainSettingsConflictError, type CapabilityRouteView, type MainSettingsView, type SubagentSettingsView } from '../client-contract.js'
 import type { ModelSwitchLocaleKey } from './locales.js'
 
