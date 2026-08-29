@@ -1,4 +1,4 @@
-import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
+import type { SettingsScope, SettingsScopeSnapshot } from './shim.ts'
 
 export type SettingsFieldMap<View> = Readonly<Partial<Record<keyof View & string, string>>>
 
