@@ -1,0 +1,223 @@
+<!doctype html>
+<!--
+  PROTOTYPE — THROWAWAY, NOT PRODUCTION.
+  Question: What should Plan Review look like when approval can either continue
+  in the current DSH model or ask the current Agent to delegate the approved plan?
+  Three structurally different variants, switchable with ?variant=A|B|C.
+  Assumption: this standalone HTML approximates the existing DSH conversation
+  surface because the real client bundle requires window.__DSH_BOOT__.
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PROTOTYPE — Plan execution routing</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg:#f7f7f5; --panel:#fff; --panel-2:#fafaf8; --text:#191919; --muted:#73726d;
+      --line:#e8e7e2; --line-strong:#d8d6cf; --warn:#bd7b04; --warn-bg:#fff7e8;
+      --brand:#1c1c1c; --green:#167a53; --green-bg:#eaf8f1; --blue:#3566d6; --blue-bg:#edf2ff;
+      --red:#b23b34; --red-bg:#fff0ee; --shadow:0 12px 34px rgba(24,24,18,.09);
+      --radius:16px; --sidebar:236px;
+      font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-size:14px}
+    button,select{font:inherit} button{cursor:pointer} button:disabled{cursor:not-allowed;opacity:.46}
+    .app{min-height:100vh;display:grid;grid-template-columns:var(--sidebar) 1fr}
+    .sidebar{position:fixed;inset:0 auto 0 0;width:var(--sidebar);padding:14px 12px;border-right:1px solid var(--line);background:#f1f1ee}
+    .brand{display:flex;align-items:center;gap:9px;padding:6px 8px 18px;font-weight:720}.brandMark{width:27px;height:27px;border-radius:8px;background:#171717;color:#fff;display:grid;place-items:center;font-size:12px}
+    .newChat{width:100%;border:1px solid var(--line-strong);border-radius:10px;background:#fff;padding:9px 11px;text-align:left;font-weight:600}
+    .navLabel{margin:20px 9px 7px;color:#96958f;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+    .navItem{display:flex;gap:9px;align-items:center;padding:8px 9px;border-radius:8px;color:#5f5e59}.navItem.active{background:#fff;color:#1d1d1b;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .dotIcon{width:7px;height:7px;border-radius:50%;background:#aaa}.navItem.active .dotIcon{background:#292929}
+    .main{grid-column:2;min-width:0}.topbar{height:56px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.85);backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 22px;position:sticky;top:0;z-index:20}
+    .crumb{font-weight:650}.topMeta{margin-left:auto;color:var(--muted);font-size:12px}.conversation{max-width:1040px;margin:0 auto;padding:42px 38px 150px}
+    .message{max-width:760px;margin:0 auto 24px}.who{font-size:12px;font-weight:700;color:#8a8984;margin-bottom:8px}.bubble{line-height:1.7;color:#373733}
+    .prototypeNotice{position:fixed;right:18px;top:70px;z-index:30;width:260px;border:1px solid var(--line-strong);background:rgba(255,255,255,.96);box-shadow:var(--shadow);border-radius:13px;padding:12px}
+    .prototypeNotice strong{display:block;font-size:12px;color:var(--red);letter-spacing:.03em}.prototypeNotice p{font-size:12px;line-height:1.45;color:var(--muted);margin:5px 0 9px}.prototypeNotice select{width:100%;border:1px solid var(--line-strong);background:white;border-radius:8px;padding:7px}
+    .planFrame{max-width:920px;margin:38px auto 0}.planCard{border:1px solid #e0b355;border-radius:20px;background:#fff;box-shadow:var(--shadow);overflow:visible}
+    .planHeader{min-height:51px;padding:9px 14px 9px 16px;display:flex;align-items:center;gap:8px;border-radius:20px 20px 0 0;background:var(--warn-bg);color:var(--warn)}
+    .warnDot{width:8px;height:8px;background:#efa710;border-radius:50%}.planTitle{font-size:13px;font-weight:700}.headerRight{margin-left:auto;display:flex;align-items:center;gap:8px;min-width:0}
+    .planBody{height:315px;overflow:auto;padding:13px 16px 22px;line-height:1.7}.planBody h1{font-size:21px;margin:0 0 22px}.planBody h2{font-size:17px;margin:20px 0 7px}.planBody ul{padding-left:22px;margin:8px 0}.planBody li{margin:4px 0}
+    .footer{padding:9px 16px 13px}.actions{display:flex;align-items:center;gap:9px;justify-content:flex-end}.btn{border:1px solid transparent;border-radius:10px;padding:7px 12px;background:transparent;color:#353532}.btn.outline{border-color:var(--line);background:#fff}.btn.primary{background:#1d1d1f;color:white}.btn.ghost{color:#6f6e69}.btn .arrow{margin-left:7px;color:#aaa}
+    .capsule{border:1px solid rgba(0,0,0,.06);background:#fff;border-radius:999px;padding:7px 11px;display:flex;align-items:center;gap:8px;max-width:340px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+    .capsule .kind{font-size:11px;color:#9a9993}.capsule .value{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}.capsule .chev{color:#aaa}
+    .popover{position:absolute;right:14px;top:47px;width:390px;border:1px solid var(--line-strong);border-radius:14px;background:#fff;box-shadow:0 18px 50px rgba(25,25,20,.18);z-index:10;padding:10px;display:none}.popover.open{display:block}
+    .segmented{display:grid;grid-template-columns:1fr 1fr;background:#f2f2ef;border-radius:9px;padding:3px;gap:3px}.segment{border:0;border-radius:7px;background:transparent;padding:7px 10px;color:#72716c}.segment.active{background:#fff;color:#20201e;box-shadow:0 1px 3px rgba(0,0,0,.08);font-weight:650}
+    .pickerList{margin-top:9px;display:grid;gap:5px;max-height:245px;overflow:auto}.pickerRow{border:1px solid transparent;border-radius:10px;background:#fff;padding:9px 10px;display:flex;align-items:center;gap:10px;text-align:left;width:100%}.pickerRow:hover:not(:disabled){background:#f6f6f3}.pickerRow.selected{border-color:#a8bdf1;background:var(--blue-bg)}
+    .workerLogo{width:28px;height:28px;border-radius:8px;background:#f0f0ed;display:grid;place-items:center;font-size:12px;font-weight:800}.workerText{min-width:0;flex:1}.workerName{font-weight:650}.workerMeta{font-size:11px;color:var(--muted);margin-top:2px}.badge{font-size:10px;border-radius:999px;padding:3px 6px;background:#eee;color:#666}.badge.ok{background:var(--green-bg);color:var(--green)}.badge.external{background:var(--blue-bg);color:var(--blue)}
+    .hint{font-size:11px;line-height:1.45;color:var(--muted);padding:8px 3px 2px}.hint strong{color:#444}
+    .routingBand{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#fbfbf9;padding:14px 16px}.bandHead{display:flex;align-items:center;gap:12px;margin-bottom:11px}.bandHead strong{font-size:13px}.bandHead .segmented{width:270px;margin-left:auto}
+    .routeColumns{display:grid;grid-template-columns:1fr 1.35fr;gap:12px}.modelSummary,.workerGrid{border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px}.modelSummary{display:flex;align-items:center;gap:10px}.modelAvatar{width:34px;height:34px;border-radius:10px;background:#111;color:#fff;display:grid;place-items:center;font-size:12px;font-weight:750}.summaryText strong{display:block}.summaryText span{font-size:11px;color:var(--muted)}
+    .workerGrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}.workerCard{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px;display:flex;align-items:center;gap:8px;text-align:left}.workerCard.selected{border-color:#7d9be5;background:var(--blue-bg)}.workerCard .workerLogo{width:25px;height:25px}
+    .routeNote{display:flex;align-items:flex-start;gap:7px;margin-top:9px;color:#706f6a;font-size:11px;line-height:1.45}.routeNote .shield{color:var(--green)}
+    .decisionFooter{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:end}.decisionLabel{font-size:11px;color:#85847e;margin-bottom:7px}.decisionChoices{display:flex;gap:8px;flex-wrap:wrap}.decision{border:1px solid var(--line);border-radius:12px;background:#fff;padding:9px 11px;display:flex;align-items:center;gap:9px;text-align:left;min-width:170px}.decision.selected{border-color:#111;box-shadow:inset 0 0 0 1px #111}.decision small{display:block;color:var(--muted);margin-top:2px}.decision .workerLogo{width:28px;height:28px}.primaryGroup{display:flex;gap:8px;align-items:center}
+    .statePanel{max-width:920px;margin:12px auto 0;border:1px dashed #cfcdc4;border-radius:12px;background:rgba(255,255,255,.65);padding:10px 12px;display:grid;grid-template-columns:1fr 1fr;gap:12px;font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:#666}.statePanel strong{color:#333}.eventLog{max-height:74px;overflow:auto}.event{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .switcher{position:fixed;left:calc(50% + var(--sidebar)/2);bottom:22px;transform:translateX(-50%);z-index:100;border:1px solid #050505;background:#171717;color:#fff;border-radius:999px;box-shadow:0 12px 34px rgba(0,0,0,.28);display:flex;align-items:center;padding:5px;gap:4px}.switcher button{border:0;color:#fff;background:transparent;width:34px;height:34px;border-radius:50%;font-size:18px}.switcher button:hover{background:#333}.switchLabel{min-width:220px;text-align:center;font-size:12px;font-weight:650}.switchLabel small{color:#aaa;font-weight:450;margin-left:4px}
+    .variantNote{max-width:920px;margin:0 auto 9px;display:flex;align-items:center;gap:8px;color:#85847e;font-size:11px}.variantKey{border:1px solid var(--line-strong);background:#fff;border-radius:6px;padding:2px 5px;color:#444;font-weight:700}
+    .hidden{display:none!important}.errorLine{color:var(--red);font-size:11px;margin-right:auto}.successLine{color:var(--green);font-size:11px;margin-right:auto}
+    @media(max-width:900px){:root{--sidebar:0px}.sidebar{display:none}.main{grid-column:1}.app{display:block}.prototypeNotice{position:static;width:auto;margin:12px 12px 0}.conversation{padding:25px 12px 130px}.switcher{left:50%}.routeColumns{grid-template-columns:1fr}.planBody{height:280px}.statePanel{grid-template-columns:1fr}.decisionFooter{grid-template-columns:1fr}.primaryGroup{justify-content:flex-end}.workerGrid{grid-template-columns:1fr}.popover{right:6px;width:min(390px,calc(100vw - 24px))}.headerRight{max-width:70%}.capsule .kind{display:none}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="brandMark">DSH</span>DeepSeek Harness</div>
+    <button class="newChat">＋ 新建会话</button>
+    <div class="navLabel">Workspace</div>
+    <div class="navItem active"><span class="dotIcon"></span>dsh-model-switch</div>
+    <div class="navItem"><span class="dotIcon"></span>Plan Review</div>
+    <div class="navLabel">Recent</div>
+    <div class="navItem"><span class="dotIcon"></span>模型切换设计</div>
+    <div class="navItem"><span class="dotIcon"></span>External Agents 集成</div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><span class="crumb">Plan execution routing</span><span class="topMeta">Prototype · no real action</span></header>
+    <section class="prototypeNotice">
+      <strong>PROTOTYPE — 不会执行任务</strong>
+      <p>切换部署事实，验证没装 External Agents 时应该显示什么。</p>
+      <select id="environment" aria-label="部署事实">
+        <option value="external">已安装 External Agents</option>
+        <option value="native">仅 DSH 官方委托</option>
+        <option value="none">未启用任何委托工具</option>
+      </select>
+    </section>
+    <div class="conversation">
+      <article class="message"><div class="who">You</div><div class="bubble">给 Plan Review 增加执行方式选择：可以由当前 DSH 模型执行，也可以批准后让当前 Agent 委托 Codex 或 Claude Code。</div></article>
+      <article class="message"><div class="who">Assistant</div><div class="bubble">我已经整理好计划。请选择执行方式后批准。</div></article>
+      <div id="variantMount"></div>
+      <div class="statePanel">
+        <div><strong>Relevant state</strong><pre id="stateDump" style="margin:5px 0 0;white-space:pre-wrap"></pre></div>
+        <div><strong>Prototype events</strong><div class="eventLog" id="eventLog"></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+<nav class="switcher" aria-label="Prototype variants">
+  <button id="prev" aria-label="Previous variant">←</button>
+  <div class="switchLabel" id="switchLabel"></div>
+  <button id="next" aria-label="Next variant">→</button>
+</nav>
+<script>
+const variants = {
+  A: { name: 'Header capsule', note: '最小改动：执行方式和目标都收进现有标题胶囊。' },
+  B: { name: 'Routing band', note: '最清晰：计划正文与操作区之间增加专门的执行路由带。' },
+  C: { name: 'Decision actions', note: '以动作表达意图：用户直接选择“当前 Agent 执行”或“委托给…”。' },
+};
+const params = new URLSearchParams(location.search);
+let variant = variants[params.get('variant')] ? params.get('variant') : 'A';
+const envParam = params.get('env');
+const state = {
+  environment: ['external','native','none'].includes(envParam) ? envParam : 'external',
+  mode: 'model', model: 'Grok 4.6 · High Effort', worker: 'codex', busy: false,
+  status: 'ready', events: ['Prototype loaded — no mutation will leave this page'],
+};
+document.querySelector('#environment').value = state.environment;
+const catalog = {
+  external: [
+    {id:'codex',name:'Codex',logo:'CX',source:'External Agents',available:true,tool:'subagent_codex'},
+    {id:'claude',name:'Claude Code',logo:'CL',source:'External Agents',available:true,tool:'subagent_claude_code'},
+    {id:'cursor',name:'Cursor Agent',logo:'CU',source:'External Agents',available:true,tool:'worker_cursor'},
+    {id:'antigravity',name:'Antigravity',logo:'AG',source:'External Agents',available:true,tool:'worker_antigravity'},
+  ],
+  native: [
+    {id:'codex',name:'Codex',logo:'CX',source:'DSH 官方',available:true,tool:'subagent_codex'},
+    {id:'claude',name:'Claude Code',logo:'CL',source:'DSH 官方 · 工具未启用',available:false,tool:'subagent_claude_code'},
+  ],
+  none: [
+    {id:'codex',name:'Codex',logo:'CX',source:'默认目录 · 未启用',available:false,tool:'subagent_codex'},
+    {id:'claude',name:'Claude Code',logo:'CL',source:'默认目录 · 未启用',available:false,tool:'subagent_claude_code'},
+  ],
+};
+const plan =   '<h1>Plan 执行路由</h1><h2>目标</h2><p>让用户在批准计划时明确选择：由当前 DSH 会话执行，或由当前 Agent 调用一个已验证可用的委托工具。</p>' +
+  '<h2>成功标准</h2><ul><li>DSH 模型路径仍然先提交模型，再回答标准 Approve。</li><li>委托路径先保存一次性执行意图，再回答标准 Approve。</li><li>下一步由当前 Agent 调用指定工具；失败时不得静默回退为自己执行。</li></ul>' +
+  '<h2>能力发现</h2><p>Codex 与 Claude Code 可作为默认目录项显示，但只有当前会话真正拥有对应工具时才可选择。</p>';
+function workers(){ return catalog[state.environment]; }
+function selectedWorker(){ return workers().find(w=>w.id===state.worker) || workers().find(w=>w.available) || workers()[0]; }
+function workerRows(compact=false){
+  return workers().map(w=>`<button class="${compact?'workerCard':'pickerRow'} ${state.mode==='delegate'&&state.worker===w.id?'selected':''}" data-worker="${w.id}" ${w.available?'':'disabled'}>
+    <span class="workerLogo">${w.logo}</span><span class="workerText"><span class="workerName">${w.name}</span><span class="workerMeta">${w.source}</span></span>
+    ${w.available?`<span class="badge ${w.source==='External Agents'?'external':'ok'}">可用</span>`:'<span class="badge">不可用</span>'}
+  </button>`).join('');
+}
+function commonHeader(right='') { return `<div class="planHeader"><span class="warnDot"></span><span class="planTitle">计划待审</span><div class="headerRight">${right}</div></div>`; }
+function actions(primaryLabel='确认执行', extraClass=''){
+  return `<div class="actions ${extraClass}"><span id="actionStatus" class="errorLine"></span><button class="btn ghost" data-action="discuss">✎ 去聊天里说</button><button class="btn outline" data-action="reject">拒绝</button><button class="btn primary" data-action="approve">${primaryLabel}</button></div>`;
+}
+function variantA(){
+  const w=selectedWorker(); const label=state.mode==='model'?state.model:(w?.name||'选择委托目标');
+  return `<div class="variantNote"><span class="variantKey">A</span>${variants.A.note}</div><div class="planFrame"><section class="planCard" style="position:relative">
+    ${commonHeader(`<button class="capsule" id="capsule"><span class="kind">${state.mode==='model'?'DSH 模型':'外部委托'}</span><span class="value">${label}</span><span class="chev">⌄</span></button>`)}
+    <div class="popover" id="popover"><div class="segmented"><button class="segment ${state.mode==='model'?'active':''}" data-mode="model">DSH 模型</button><button class="segment ${state.mode==='delegate'?'active':''}" data-mode="delegate">外部委托</button></div>
+      <div class="pickerList">${state.mode==='model'?modelRows():workerRows()}</div>${delegateHint()}</div>
+    <div class="planBody">${plan}</div><div class="footer">${actions(state.mode==='delegate'?'确认并委托':'确认执行')}</div>
+  </section></div>`;
+}
+function variantB(){
+  return `<div class="variantNote"><span class="variantKey">B</span>${variants.B.note}</div><div class="planFrame"><section class="planCard">
+    ${commonHeader('<span class="badge">执行方式在下方确认</span>')}<div class="planBody">${plan}</div>
+    <div class="routingBand"><div class="bandHead"><strong>批准后如何执行？</strong><div class="segmented"><button class="segment ${state.mode==='model'?'active':''}" data-mode="model">当前 DSH Agent</button><button class="segment ${state.mode==='delegate'?'active':''}" data-mode="delegate">外部委托</button></div></div>
+      <div class="routeColumns"><div class="modelSummary"><span class="modelAvatar">DSH</span><span class="summaryText"><strong>${state.model}</strong><span>当前会话 · 切换后执行</span></span></div><div class="workerGrid">${workerRows(true)}</div></div>${delegateHint(true)}</div>
+    <div class="footer">${actions(state.mode==='delegate'?'批准并委托':'批准并执行')}</div>
+  </section></div>`;
+}
+function variantC(){
+  const w=selectedWorker();
+  return `<div class="variantNote"><span class="variantKey">C</span>${variants.C.note}</div><div class="planFrame"><section class="planCard">
+    ${commonHeader('<span class="badge">选择一个批准动作</span>')}<div class="planBody">${plan}</div><div class="footer decisionFooter">
+      <div><div class="decisionLabel">批准计划，并选择下一步</div><div class="decisionChoices">
+        <button class="decision ${state.mode==='model'?'selected':''}" data-mode="model"><span class="modelAvatar" style="width:28px;height:28px;border-radius:8px">DSH</span><span><strong>当前 Agent 执行</strong><small>${state.model}</small></span></button>
+        <button class="decision ${state.mode==='delegate'?'selected':''}" data-open-workers><span class="workerLogo">${w?.logo||'→'}</span><span><strong>委托给 ${w?.name||'Worker'}</strong><small>${w?.source||'没有可用工具'}</small></span><span>⌄</span></button>
+      </div><div class="pickerList ${state.mode==='delegate'?'':'hidden'}" id="inlineWorkers" style="max-width:520px">${workerRows()}</div>${delegateHint(true)}</div>
+      <div class="primaryGroup"><button class="btn ghost" data-action="discuss">去聊天里说</button><button class="btn outline" data-action="reject">拒绝</button><button class="btn primary" data-action="approve">${state.mode==='delegate'?'批准并委托':'批准并执行'}</button></div><span id="actionStatus" class="errorLine"></span>
+    </div>
+  </section></div>`;
+}
+function modelRows(){return ['Grok 4.6 · High Effort','Claude Sonnet 4.6 · High','GPT-5.6 Codex · Medium'].map(m=>`<button class="pickerRow ${state.model===m?'selected':''}" data-model="${m}"><span class="workerLogo">M</span><span class="workerText"><span class="workerName">${m}</span><span class="workerMeta">在当前 DSH 会话内执行</span></span></button>`).join('')}
+function delegateHint(always=false){
+  if(state.mode!=='delegate'&&!always)return '';
+  const w=selectedWorker();
+  if(!w||!w.available)return '<div class="routeNote"><span>ⓘ</span><span>Codex 和 Claude Code 作为默认目录项保留，但当前 Profile 没有可调用的委托工具；不能批准委托。</span></div>';
+  return `<div class="routeNote"><span class="shield">◆</span><span>标准 Approve 后，当前 Agent 将调用 <strong>${w.tool}</strong>。工具失败时停止并报告，不会静默改为自己执行。</span></div>`;
+}
+function render(){
+  const mount=document.querySelector('#variantMount'); mount.innerHTML=variant==='A'?variantA():variant==='B'?variantB():variantC();
+  document.querySelector('#switchLabel').innerHTML=`${variant} — ${variants[variant].name}<small>← → 切换</small>`;
+  bind(); dump();
+}
+function bind(){
+  document.querySelector('#capsule')?.addEventListener('click',()=>document.querySelector('#popover').classList.toggle('open'));
+  document.querySelectorAll('[data-mode]').forEach(el=>el.addEventListener('click',()=>{state.mode=el.dataset.mode;state.events.unshift('Execution mode → '+state.mode);render()}));
+  document.querySelectorAll('[data-worker]').forEach(el=>el.addEventListener('click',()=>{state.mode='delegate';state.worker=el.dataset.worker;state.events.unshift('Delegate target → '+selectedWorker().name);render()}));
+  document.querySelectorAll('[data-model]').forEach(el=>el.addEventListener('click',()=>{state.mode='model';state.model=el.dataset.model;state.events.unshift('Session model → '+state.model);render()}));
+  document.querySelector('[data-open-workers]')?.addEventListener('click',()=>{state.mode='delegate';state.events.unshift('Opened delegate choices');render()});
+  document.querySelectorAll('[data-action]').forEach(el=>el.addEventListener('click',()=>act(el.dataset.action)));
+}
+function act(action){
+  if(action==='approve'){
+    const w=selectedWorker();
+    if(state.mode==='delegate'&&(!w||!w.available)){state.status='blocked: selected delegation tool unavailable';state.events.unshift('BLOCKED — no callable delegation tool');dump();showStatus('当前没有可调用的委托工具。');return}
+    if(state.mode==='model'){
+      state.status='simulated: model committed, standard Approve accepted';state.events.unshift('Approve → commit '+state.model+' → current Agent executes');showStatus('模拟完成：提交模型，然后发送标准 Approve。',true)
+    }else{
+      state.status='simulated: pending delegate intent prepared, standard Approve accepted';state.events.unshift('Approve → arm '+w.tool+' intent → parent Agent delegates');showStatus('模拟完成：批准后由当前 Agent 调用 '+w.tool+'。',true)
+    }
+  }else if(action==='reject'){state.status='simulated: Keep planning';state.events.unshift('Keep planning response');showStatus('模拟：保持 Plan Mode。')}
+  else{state.status='simulated: review cancelled';state.events.unshift('Discuss / cancel response');showStatus('模拟：关闭审查并返回聊天。')}
+  dump();
+}
+function showStatus(text,ok=false){const node=document.querySelector('#actionStatus');if(node){node.textContent=text;node.className=ok?'successLine':'errorLine'}}
+function dump(){
+  const w=selectedWorker(); document.querySelector('#stateDump').textContent=JSON.stringify({variant,environment:state.environment,executionMode:state.mode,sessionModel:state.model,delegateTarget:w?{id:w.id,source:w.source,tool:w.tool,available:w.available}:null,status:state.status},null,2);
+  document.querySelector('#eventLog').innerHTML=state.events.map(e=>'<div class="event">• '+e+'</div>').join('');
+}
+function setVariant(next){variant=next;params.set('variant',variant);params.set('env',state.environment);history.replaceState(null,'','?'+params);render()}
+function cycle(delta){const keys=Object.keys(variants);setVariant(keys[(keys.indexOf(variant)+delta+keys.length)%keys.length])}
+document.querySelector('#prev').addEventListener('click',()=>cycle(-1));document.querySelector('#next').addEventListener('click',()=>cycle(1));
+document.querySelector('#environment').addEventListener('change',e=>{state.environment=e.target.value;const first=workers().find(w=>w.available)||workers()[0];state.worker=first.id;state.events.unshift('Deployment facts → '+state.environment);params.set('env',state.environment);history.replaceState(null,'','?'+params);render()});
+addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)||document.activeElement.isContentEditable)return;if(e.key==='ArrowLeft')cycle(-1);if(e.key==='ArrowRight')cycle(1)});
+render();
+</script>
+</body>
+</html>
