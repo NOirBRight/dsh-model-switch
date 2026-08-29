@@ -145,6 +145,7 @@
     "vitest": "^4.1.8"
   },
   "dependencies": {
-    "@deepseek-ai/schemastery": "^3.18.1"
+    "@deepseek-ai/schemastery": "^3.18.1",
+    "dsh-llm-providers-ui": "link:../dsh-llm-providers-ui"
   }
 }

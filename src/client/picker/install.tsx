@@ -12,7 +12,8 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import { decodeMainSettings, MAIN_SETTINGS_ID, type MainSettingsView } from '../../client-contract.ts'
 import { selectPlanReview } from '../../picker/plan-review.ts'
 import { ComposerPicker } from './ComposerPicker.tsx'
-import { pickerDirectoryView, type PickerDirectoryFace } from './PickerDirectory.ts'
+import { decodeProviderOrder, PROVIDERS_SETTINGS_NS } from 'dsh-llm-providers-ui/client'
+import { pickerDirectoryViewOrdered, type PickerDirectoryFace } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { CONTINUE_IN_DSH_SLOT, ContinueInDshAdapter, type ContinueInDshFace } from './ContinueInDshAdapter.tsx'
 export type { ContinueInDshOwner, PlanExternalAgentTarget } from './ContinueInDshAdapter.tsx'
@@ -42,6 +43,27 @@ function interactionOperationsFrom(ctx: ClientContext): PickerInteractionOperati
   if (value === null || typeof value !== 'object') return undefined
   const candidate = value as Partial<PickerInteractionOperations>
   return typeof candidate.registerSurface === 'function' ? candidate as PickerInteractionOperations : undefined
+}
+
+const EMPTY_ORDER: readonly string[] = []
+
+function providerOrderStore(settingsScope: { bind(options: { namespace: string, decode: (value: unknown) => { order: string[] } }): { getSnapshot(): { value?: { order: string[] } | undefined }, subscribe(listener: () => void): () => void } }) {
+  let bound: ReturnType<typeof settingsScope.bind> | undefined
+  try {
+    bound = settingsScope.bind({ namespace: PROVIDERS_SETTINGS_NS, decode: decodeProviderOrder })
+  } catch {
+    bound = undefined
+  }
+  let last: readonly string[] = EMPTY_ORDER
+  return {
+    subscribe: (listener: () => void) => bound?.subscribe(listener) ?? (() => {}),
+    getSnapshot: () => {
+      const next = bound?.getSnapshot().value?.order ?? EMPTY_ORDER
+      if (next.length === last.length && next.every((key, index) => key === last[index])) return last
+      last = next
+      return last
+    },
+  }
 }
 
 interface DirectoryFace extends PickerDirectoryFace {
@@ -90,11 +112,12 @@ function ModelSeat(
   props: PropsRuntime<'conversation.input.model'> & PropsLocale<'composer-picker'> & InjectFace<DirectoryFace>,
 ) {
   const directory = props.useDirectory(snapshot => snapshot)
+  const order = props.useProviderOrder(value => value)
   return (
     <ComposerPicker
       locked={props.locked}
       available={props.available}
-      directory={pickerDirectoryView(directory, props)}
+      directory={pickerDirectoryViewOrdered(directory, props, order)}
       t={props.t}
       {...props.resolveInteractionOperations === undefined
         ? {}
@@ -119,6 +142,7 @@ export function installComposerPicker(ctx: ClientContext): void {
     const models = scope.modelDirectories
     const sessions = scope.sessions as { subagentAddress?: (id: unknown) => unknown } | undefined
     const mainDefaults = scope.settingsScope.bind({ namespace: MAIN_SETTINGS_ID, decode: decodeMainSettings })
+    const orderStore = providerOrderStore(scope.settingsScope)
     const remoteSettings = (scope as unknown as { remote: { settings: RemoteSettingsFace } }).remote.settings
     const resolveInteractionOperations = (): PickerInteractionOperations | undefined => interactionOperationsFrom(scope)
     const directoryFace = (sessionId: Parameters<typeof models.directoryFor>[0]): DirectoryFace => {
@@ -126,7 +150,7 @@ export function installComposerPicker(ctx: ClientContext): void {
       const available = sessions?.subagentAddress?.(sessionId) === undefined
       return {
         available,
-        hooks: { directory: directory.store },
+        hooks: { directory: directory.store, providerOrder: orderStore },
         getDirectorySnapshot: directory.store.getSnapshot,
         resolveInteractionOperations,
         load: () => {

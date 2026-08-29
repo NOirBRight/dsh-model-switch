@@ -9,7 +9,7 @@ import {
   type ExternalPlanTargetId,
   type PlanTargetId,
 } from './ComposerPicker.tsx'
-import { pickerDirectoryView, type PickerDirectoryFace } from './PickerDirectory.ts'
+import { pickerDirectoryViewOrdered, type PickerDirectoryFace } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 
 /** Mirrored public slot id; there is deliberately no runtime plugin dependency. */
@@ -55,6 +55,7 @@ type Props = PropsRuntime<typeof CONTINUE_IN_DSH_SLOT>
 
 export function ContinueInDshAdapter(props: Props) {
   const directory = props.useDirectory(snapshot => snapshot)
+  const order = props.useProviderOrder(value => value)
   const [draft, setDraft] = useState<ModelSelection | undefined>()
 
   useLayoutEffect(() => props.registerCommit(async () => {
@@ -66,7 +67,7 @@ export function ContinueInDshAdapter(props: Props) {
   return <ComposerPicker
     locked={props.locked}
     available={props.available}
-    directory={pickerDirectoryView(directory, props)}
+    directory={pickerDirectoryViewOrdered(directory, props, order)}
     t={props.t}
     {...props.resolveInteractionOperations === undefined
       ? {}

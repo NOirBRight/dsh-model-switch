@@ -7,7 +7,7 @@ import {
   PlanApprovalResponseError, approvePlanReview, planActionView, planReviewOf, settlePlanAction,
 } from '../../picker/plan-review.ts'
 import { ComposerPicker } from './ComposerPicker.tsx'
-import { pickerDirectoryView, type PickerDirectoryFace, type PickerDirectoryView } from './PickerDirectory.ts'
+import { pickerDirectoryViewOrdered, type PickerDirectoryFace, type PickerDirectoryView } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { RetryBoundary } from './RetryBoundary.tsx'
 import css from './PlanReviewCard.module.css'
@@ -105,6 +105,7 @@ function questionsOfWait(wait: QuestionWait): readonly Parameters<typeof planRev
 
 export function PlanReviewCard(props: PlanReviewCardProps) {
   const snapshot = props.useDirectory(value => value)
+  const order = props.useProviderOrder(value => value)
   const review = planReviewOf(questionsOfWait(props.matched) as Parameters<typeof planReviewOf>[0])
   if (review === undefined) {
     return (
@@ -120,7 +121,7 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
     matched={props.matched}
     review={review}
     available={props.available}
-    directory={pickerDirectoryView(snapshot, props)}
+    directory={pickerDirectoryViewOrdered(snapshot, props, order)}
     t={props.t}
     {...props.resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations: props.resolveInteractionOperations }}
   />

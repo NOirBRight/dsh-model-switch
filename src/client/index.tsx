@@ -9,6 +9,7 @@ import { RemoteSettingsScope, type RemoteSettingsFace } from './remote-settings-
 import { RUNTIME_CAPABILITIES } from '../runtime-capabilities.js'
 import { ModelSwitchSettings, type ModelSwitchSettingsFace } from './ModelSwitchSettings.js'
 import { en, zh, type ModelSwitchLocaleKey } from './locales.js'
+import { decodeProviderOrder, PROVIDERS_SETTINGS_NS, sortCatalogGroups } from 'dsh-llm-providers-ui/client'
 import { installComposerPicker } from './picker/install.tsx'
 import { installModelSwitchNavIcon } from './nav-icon.ts'
 
@@ -58,7 +59,13 @@ export function apply(ctx: ClientContext): void {
     inject: (): ModelSwitchSettingsFace => ({ t, hooks: { mainSettings: main, subagentSettings: subagent, searchSettings: search, imageSettings: image }, capabilities: RUNTIME_CAPABILITIES, saveMain, setSubagent: (field, value) => value === undefined ? subagent.unset(field) : subagent.set(field, value), setCapability: (route, field, value) => { const scope = route === 'search' ? search : image; return value === undefined ? scope.unset(field) : scope.set(field, value) }, loadCatalog: async () => {
       const response = await (ctx as unknown as { remote: { session: { modelCatalog(): Promise<{ ok: boolean; value?: { groups: readonly ModelProviderGroup[] }; error?: { message: string } }> } } }).remote.session.modelCatalog()
       if (!response.ok || response.value === undefined) throw new Error(t('catalogFailed'))
-      return response.value.groups
+      let order: string[] = []
+      try {
+        order = ctx.settingsScope.bind({ namespace: PROVIDERS_SETTINGS_NS, decode: decodeProviderOrder }).getSnapshot().value?.order ?? []
+      } catch {
+        order = []
+      }
+      return sortCatalogGroups(response.value.groups, order)
     } }),
   }, ModelSwitchSettings))
 }
