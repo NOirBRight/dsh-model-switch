@@ -1,6 +1,6 @@
 {
   "name": "dsh-model-switch",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Explicit model routing plus composer/Plan picker for DeepSeek Harness",
   "repository": {
     "type": "git",
@@ -146,6 +146,6 @@
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.18.1",
-    "dsh-llm-providers-ui": "link:../dsh-llm-providers-ui"
+    "dsh-llm-providers-ui": "github:NOirBRight/dsh-llm-providers-ui#v0.1.0"
   }
 }

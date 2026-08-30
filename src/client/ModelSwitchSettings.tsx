@@ -16,6 +16,7 @@ export interface ModelSwitchSettingsFace {
   setSubagent: (field: 'mode' | 'provider' | 'model' | 'effort', value: string | undefined) => Promise<void>
   setCapability: (route: 'search' | 'image', field: 'provider' | 'model', value: string | undefined) => Promise<void>
   loadCatalog: () => Promise<readonly ModelProviderGroup[]>
+  subscribeProviderOrder?: (listener: () => void) => () => void
 }
 
 export type ModelSwitchSettingsProps = PropsRuntime<'settings.section'> & InjectFace<ModelSwitchSettingsFace>

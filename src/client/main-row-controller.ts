@@ -9,6 +9,7 @@ export interface SettingsControllerInputs {
   useMainSettings: Share<MainSettingsView>; useSubagentSettings: Share<SubagentSettingsView>
   saveMain(next: MainSettingsView, expectedRevision: number): Promise<number>
   loadCatalog(): Promise<readonly ModelProviderGroup[]>
+  subscribeProviderOrder?: (listener: () => void) => () => void
   t(key: ModelSwitchLocaleKey): string
 }
 export interface Choice { id: string; name: string; unavailable?: true }
@@ -42,7 +43,15 @@ export function useModelSwitchSettingsController(input: SettingsControllerInputs
   const [busy, setBusy] = useState(false); const [message, setMessage] = useState<string | undefined>()
   const locked = useRef(false); const acceptedRevision = useRef<number | undefined>()
   useEffect(() => { setDraft(main.value); setMessage(undefined); if (main.revision !== undefined && (acceptedRevision.current === undefined || main.revision > acceptedRevision.current)) acceptedRevision.current = main.revision }, [main.revision, main.value])
-  useEffect(() => { let live = true; void input.loadCatalog().then(value => { if (live) setGroups(value) }).catch(() => { if (live) setMessage(input.t('catalogFailed')) }); return () => { live = false } }, [input.loadCatalog, input.t])
+  useEffect(() => {
+    let live = true
+    const load = (): void => {
+      void input.loadCatalog().then(value => { if (live) setGroups(value) }).catch(() => { if (live) setMessage(input.t('catalogFailed')) })
+    }
+    load()
+    const stop = input.subscribeProviderOrder?.(() => { if (live) load() })
+    return () => { live = false; stop?.() }
+  }, [input.loadCatalog, input.subscribeProviderOrder, input.t])
   const { providers, models, efforts } = deriveMainChoices(groups, draft)
   const disabled = main.status !== 'ready' || !main.writable || draft === undefined || busy || draft.provider.trim() === '' || draft.model.trim() === ''
   const setProvider = (provider: string): void => setDraft(current => { if (current === undefined) return current; const first = groups.find(item => item.id === provider)?.models[0]; return { provider, model: first?.id ?? current.model, ...(first?.reasoning?.defaultEffort === undefined ? {} : { reasoningEffort: first.reasoning.defaultEffort }) } })

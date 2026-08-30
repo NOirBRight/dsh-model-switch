@@ -15,9 +15,16 @@ export interface PickerDirectoryOperations {
 export interface PickerDirectoryView extends PickerDirectoryOperations {
     snapshot: PickerDirectorySnapshot;
 }
+export interface ProviderOrderStore {
+    subscribe: (listener: () => void) => () => void;
+    getSnapshot: () => readonly string[];
+}
 export interface PickerDirectoryFace extends PickerDirectoryOperations {
     hooks: {
         directory: PickerDirectoryStore;
+        providerOrder: ProviderOrderStore;
     };
 }
 export declare function pickerDirectoryView(snapshot: PickerDirectorySnapshot, operations: PickerDirectoryOperations): PickerDirectoryView;
+/** Directory view whose groups follow the shared LLM Providers card order. */
+export declare function pickerDirectoryViewOrdered(snapshot: PickerDirectorySnapshot, operations: PickerDirectoryOperations, order: readonly string[]): PickerDirectoryView;

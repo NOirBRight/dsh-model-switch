@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.2
+
+- Settings → LLM Providers: drag cards to reorder; chat picker follows `llm-providers.order` via dsh-llm-providers-ui.
+
+
 ## Unreleased
 
 ## 0.4.1 - 2026-08-29

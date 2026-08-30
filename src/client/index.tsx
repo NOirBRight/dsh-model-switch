@@ -54,6 +54,13 @@ export function apply(ctx: ClientContext): void {
     await main.reload()
     return result.value?.revision ?? expectedRevision
   }
+  let subscribeProviderOrder: ((listener: () => void) => () => void) | undefined
+  try {
+    const orderScope = ctx.settingsScope.bind({ namespace: PROVIDERS_SETTINGS_NS, decode: decodeProviderOrder })
+    subscribeProviderOrder = listener => orderScope.subscribe(listener)
+  } catch {
+    subscribeProviderOrder = undefined
+  }
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section', id: 'model-switch', order: 9, label: () => t('nav'), locale: localeNamespace,
     inject: (): ModelSwitchSettingsFace => ({ t, hooks: { mainSettings: main, subagentSettings: subagent, searchSettings: search, imageSettings: image }, capabilities: RUNTIME_CAPABILITIES, saveMain, setSubagent: (field, value) => value === undefined ? subagent.unset(field) : subagent.set(field, value), setCapability: (route, field, value) => { const scope = route === 'search' ? search : image; return value === undefined ? scope.unset(field) : scope.set(field, value) }, loadCatalog: async () => {
@@ -66,6 +73,6 @@ export function apply(ctx: ClientContext): void {
         order = []
       }
       return sortCatalogGroups(response.value.groups, order)
-    } }),
+    }, ...(subscribeProviderOrder === undefined ? {} : { subscribeProviderOrder }) }),
   }, ModelSwitchSettings))
 }
