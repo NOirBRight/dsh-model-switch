@@ -9,7 +9,7 @@ import { RemoteSettingsScope, type RemoteSettingsFace } from './remote-settings-
 import { RUNTIME_CAPABILITIES } from '../runtime-capabilities.js'
 import { ModelSwitchSettings, type ModelSwitchSettingsFace } from './ModelSwitchSettings.js'
 import { en, zh, type ModelSwitchLocaleKey } from './locales.js'
-import { decodeProviderOrder, PROVIDERS_SETTINGS_NS, sortCatalogGroups } from 'dsh-llm-providers-ui/client'
+import { decodeProviderOrder, PROVIDERS_SETTINGS_NS, sortCatalogGroups } from 'dsh-llm-providers-ui/order'
 import { installComposerPicker } from './picker/install.tsx'
 import { installModelSwitchNavIcon } from './nav-icon.ts'
 

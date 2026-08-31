@@ -1,4 +1,4 @@
-import { sortCatalogGroups } from 'dsh-llm-providers-ui/client'
+import { sortCatalogGroups } from 'dsh-llm-providers-ui/order'
 import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
 import type { ModelDirectoryState } from '@deepseek-ai/dsh-client-ui-model-selection/client'
 

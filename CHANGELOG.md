@@ -5,7 +5,9 @@
 - Settings → LLM Providers: drag cards to reorder; chat picker follows `llm-providers.order` via dsh-llm-providers-ui.
 
 
-## Unreleased
+## 0.4.3
+
+- Keep a Host-accepted composer selection visible while its durable Session projection catches up, then return authority to newer projected selections.
 
 ## 0.4.1 - 2026-08-29
 

@@ -12,7 +12,7 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import { decodeMainSettings, MAIN_SETTINGS_ID, type MainSettingsView } from '../../client-contract.ts'
 import { selectPlanReview } from '../../picker/plan-review.ts'
 import { ComposerPicker } from './ComposerPicker.tsx'
-import { decodeProviderOrder, PROVIDERS_SETTINGS_NS } from 'dsh-llm-providers-ui/client'
+import { decodeProviderOrder, PROVIDERS_SETTINGS_NS } from 'dsh-llm-providers-ui/order'
 import { pickerDirectoryViewOrdered, type PickerDirectoryFace } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { CONTINUE_IN_DSH_SLOT, ContinueInDshAdapter, type ContinueInDshFace } from './ContinueInDshAdapter.tsx'

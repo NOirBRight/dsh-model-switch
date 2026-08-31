@@ -38,6 +38,17 @@ import css from './ComposerPicker.module.css'
 
 export type { PickerDirectoryFace, PickerDirectoryOperations, PickerDirectorySnapshot, PickerDirectoryView } from './PickerDirectory.ts'
 
+interface AcceptedSelection {
+  selection: ModelSelection
+  projectedBeforeRequest: ModelSelection | null
+}
+
+function sameSelection(left: ModelSelection | null, right: ModelSelection | null): boolean {
+  return left?.provider === right?.provider
+    && left?.model === right?.model
+    && left?.reasoningEffort === right?.reasoningEffort
+}
+
 export type ExternalAgentAdapterId = 'codex' | 'claude-code' | 'cursor' | 'antigravity'
 export type ExternalPlanTargetId = `external-agent:${ExternalAgentAdapterId}`
 export type PlanTargetId = 'dsh' | ExternalPlanTargetId
@@ -144,14 +155,16 @@ export function ComposerPicker({
   const [searching, setSearching] = useState(false)
   const [query, setQuery] = useState('')
   const [toast, setToast] = useState<{ seq: number, text: string } | null>(null)
+  const [acceptedSelection, setAcceptedSelection] = useState<AcceptedSelection>()
   const toastSeq = useRef(0)
+  const selectionGeneration = useRef(0)
   const lastActionRef = useRef<'load' | 'select'>('load')
   const lockedRef = useRef(locked)
   lockedRef.current = locked
 
   const families = useMemo(() => groupFamilies(state.groups), [state.groups])
-  const currentSelection = draft ?? state.current
-  const currentCanBeUsed = draft !== undefined || state.routable !== false
+  const currentSelection = draft ?? acceptedSelection?.selection ?? state.current
+  const currentCanBeUsed = draft !== undefined || acceptedSelection !== undefined || state.routable !== false
   const family = currentSelection === null
     ? undefined
     : findFamily(families, currentSelection.provider, currentSelection.model)
@@ -211,8 +224,24 @@ export function ComposerPicker({
     if (available) {
       lastActionRef.current = 'load'
       load()
+      return
     }
+    selectionGeneration.current += 1
+    setAcceptedSelection(undefined)
   }, [available, load])
+
+  useEffect(() => {
+    if (acceptedSelection === undefined) return
+    if (!sameSelection(state.current, acceptedSelection.projectedBeforeRequest)) {
+      setAcceptedSelection(undefined)
+    }
+  }, [acceptedSelection, state.current])
+
+  useEffect(() => {
+    if (!locked) return
+    selectionGeneration.current += 1
+    setAcceptedSelection(undefined)
+  }, [locked])
 
 
   if (!available && externalTargets.length === 0) return null
@@ -240,13 +269,20 @@ export function ComposerPicker({
       returnToRoot()
       return
     }
-    if (currentCanBeUsed && state.current?.provider === next.provider && state.current.model === next.model
-      && state.current.reasoningEffort === next.reasoningEffort) {
+    if (currentCanBeUsed && sameSelection(currentSelection, next)) {
       returnToRoot()
       return
     }
     lastActionRef.current = 'select'
-    if (select !== undefined) void beginSelection(() => select(next), returnToRoot, settleSelection)
+    if (select !== undefined) {
+      const generation = ++selectionGeneration.current
+      const projectedBeforeRequest = state.current
+      void beginSelection(() => select(next), returnToRoot, (accepted) => {
+        if (generation !== selectionGeneration.current || lockedRef.current) return
+        if (accepted) setAcceptedSelection({ selection: next, projectedBeforeRequest })
+        settleSelection(accepted)
+      })
+    }
   }
 
   const chooseMember = (nextFamily: ModelFamily, next: FamilyMember, effort?: string): void => {
