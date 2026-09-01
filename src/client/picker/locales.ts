@@ -15,7 +15,6 @@ export const zh = {
   'menu.thinking': '思考',
   'menu.search': '搜索模型',
   'context.standard': '标准',
-  'external.section': '外部 Agent',
   'fast.on': '开',
   'fast.off': '关',
   'thinking.on': '开',
@@ -38,8 +37,10 @@ export const zh = {
   'plan.modelFailed': '切换执行模型失败；计划尚未批准，可以重试。',
   'plan.pickerCrash': '执行模型选择器出错：{message}',
   'plan.responseRejected': '计划答复已被另一客户端处理；已提交的模型切换无法由插件回滚。',
-  'plan.cancelMessage': '用户关闭计划审查并返回讨论。',
   'plan.cancelRejected': '计划审查已被另一客户端处理，无法返回讨论。',
+  'markdown.copy': '复制代码',
+  'markdown.copied': '已复制',
+  'markdown.footnotes': '脚注',
 } satisfies Record<string, string>
 
 export type PickerKey = keyof typeof zh
@@ -59,7 +60,6 @@ export const en = {
   'menu.thinking': 'Thinking',
   'menu.search': 'Search models',
   'context.standard': 'Standard',
-  'external.section': 'External Agents',
   'fast.on': 'On',
   'fast.off': 'Off',
   'thinking.on': 'On',
@@ -82,6 +82,8 @@ export const en = {
   'plan.modelFailed': 'Could not switch the execution model; the Plan is still pending and can be retried.',
   'plan.pickerCrash': 'Execution model picker error: {message}',
   'plan.responseRejected': 'Another client already handled this Plan response. A committed model change cannot be rolled back by this plugin.',
-  'plan.cancelMessage': 'The user closed Plan Review and returned to the discussion.',
   'plan.cancelRejected': 'Another client already handled this Plan review, so it cannot return to discussion.',
+  'markdown.copy': 'Copy code',
+  'markdown.copied': 'Copied',
+  'markdown.footnotes': 'Footnotes',
 } satisfies Record<PickerKey, string>

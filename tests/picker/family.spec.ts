@@ -182,4 +182,21 @@ describe('groupFamilies', () => {
       reasoningEffort: 'high',
     })
   })
+
+  it('drops an effort that the selected provider variant does not support', () => {
+    const commandCode = groupFamilies([{
+      id: 'commandcode',
+      name: 'Command Code',
+      models: [
+        { id: 'deepseek/deepseek-v4-flash', name: 'DeepSeek V4 Flash', reasoning: { defaultEffort: 'max', efforts: [{ id: 'max', name: 'Max' }] } },
+        { id: 'deepseek/deepseek-v4-flash-fast', name: 'DeepSeek V4 Flash Fast' },
+      ],
+    }])[0]!
+    const fast = commandCode.members.find(member => member.fast)!
+
+    expect(selectionOf(commandCode, fast, 'max')).toEqual({
+      provider: 'commandcode',
+      model: 'deepseek/deepseek-v4-flash-fast',
+    })
+  })
 })

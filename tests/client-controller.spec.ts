@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MainSettingsConflictError } from '../src/client-contract.js'
-import { acceptedRevisionAfterFailure, deriveMainChoices, expectedMainRevision } from '../src/client/main-row-controller.js'
+import { acceptedRevisionAfterFailure, deriveMainChoices, expectedMainRevision, selectRouteModel } from '../src/client/main-row-controller.js'
 
 describe('Model Switch Settings controller contracts', () => {
   const groups = [{ id: 'codex', name: 'Codex', models: [
@@ -19,5 +19,24 @@ describe('Model Switch Settings controller contracts', () => {
     expect(expectedMainRevision(8, 9)).toBe(9)
     expect(acceptedRevisionAfterFailure(9, new Error('settings-rejected'))).toBe(9)
     expect(acceptedRevisionAfterFailure(9, new MainSettingsConflictError('conflict'))).toBeUndefined()
+  })
+  it('replaces the previous model effort with the selected model default', () => {
+    const providerGroups = [
+      { id: 'codex', name: 'Codex', models: [{ id: 'gpt-5.6-luna', name: 'GPT-5.6 Luna', reasoning: { efforts: [{ id: 'max', name: 'Max' }], defaultEffort: 'max' } }] },
+      { id: 'opencode-go', name: 'OpenCode Go', models: [
+        { id: 'muse-spark', name: 'Muse Spark 1.2 Contributor' },
+        { id: 'reasoning-model', name: 'Reasoning Model', reasoning: { efforts: [{ id: 'xhigh', name: 'Xhigh' }], defaultEffort: 'xhigh' } },
+      ] },
+    ]
+
+    expect(selectRouteModel(providerGroups, 'opencode-go', 'muse-spark')).toEqual({
+      provider: 'opencode-go',
+      model: 'muse-spark',
+    })
+    expect(selectRouteModel(providerGroups, 'opencode-go', 'reasoning-model')).toEqual({
+      provider: 'opencode-go',
+      model: 'reasoning-model',
+      reasoningEffort: 'xhigh',
+    })
   })
 })

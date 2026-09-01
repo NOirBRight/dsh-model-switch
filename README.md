@@ -23,9 +23,11 @@ Invalid, unavailable, or unsupported routes fail explicitly. Model Switch never 
 
 Open **Settings → Model Switch**. Main changes affect new sessions only. Subagents may follow Main or use a fixed provider, model, and effort.
 
+Changing the Main or fixed Subagent provider/model replaces the previous model's effort with the target model's default. Models without reasoning support receive no effort.
+
 ![Model Switch settings with a fixed Subagent route](docs/screenshots/settings-subagent.png)
 
-Follow Main resolves the active parent request first, then the configured Main default. A fixed route is injected before the official Subagent descriptor is created. On DSH 0.1.1-rc.2, child effort falls back to the provider default because that runtime cannot carry the alpha.1 effort field.
+Follow Main resolves the active parent request first, then the configured Main default. A fixed route is injected before the official Subagent descriptor is created. DSH 0.1.2-alpha.1 carries provider, model, and fixed reasoning effort in that descriptor.
 
 ## How custom models appear in the Picker
 
@@ -58,6 +60,7 @@ Rules:
 - `-fast` creates the Fast axis.
 - `-<n>k` and `-<n>m` create Context tiers; suffixes may be combined with `-fast` in either order.
 - `reasoning.efforts` creates the Effort choices; `reasoning.defaultEffort` selects the initial value.
+- Switching Fast, Context, or Thinking variants keeps the current effort only when the target catalog row supports it; otherwise the target row's default effort (or no effort) is used.
 - Reasoning metadata marks a catalog row as Thinking-capable.
 - Unrecognized ids remain independent model families; Model Switch never drops them.
 
@@ -85,7 +88,7 @@ Install Model Switch and only the provider adapters you use. These versions are 
 ```sh
 DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.3
 DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.3
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.1
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.2
 ```
 
 For routed Web Search, set the existing Web plugin's `searchProvider` to `model-switch` and preserve its current `fetchProvider`. Model Switch never replaces `web_fetch`.
@@ -96,7 +99,7 @@ Production profiles must use released GitHub tags rather than workspace-local de
 
 ## Compatibility
 
-Model Switch v0.4.1 supports DSH 0.1.1-rc.2 and DSH 0.1.2-alpha.1 through plugin-owned compatibility adapters. Alpha.1 adds fixed Subagent effort transport and replaces the removed monolithic client runtime with public Cordis/client services. No DSH Core patch is required.
+Model Switch targets DSH 0.1.2-alpha.1 through public Cordis/client services and plugin-owned adapters. No DSH Core patch is required.
 
 ## Development
 
@@ -108,3 +111,41 @@ pnpm run check
 ```
 
 `check` builds Host and Client artifacts, runs unit and Cordis/Settings composition tests, validates the extracted package, and verifies reproducible bundles. Product scope is defined in [PRODUCT.md](PRODUCT.md); implementation constraints live in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
+
+
+## Release installation (Latest)
+
+Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools. The release artifact targets DeepSeek Harness 0.1.2-alpha.1 and contains built Host/Client files only; it has no sibling-repository source, workstation path, or local protocol dependency.
+
+Latest installation (the URL never contains a version):
+
+~~~sh
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch.tgz
+~~~
+
+Fixed-version installation:
+
+~~~sh
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.4/dsh-model-switch.tgz
+~~~
+
+Update, uninstall, and verify:
+
+~~~sh
+# Update to the latest Release
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch.tgz
+# Verify the loaded version
+dsh plugin --profile web list
+dsh plugin --profile web doctor
+# Uninstall only this plugin
+dsh plugin --profile web remove dsh-model-switch
+~~~
+
+Configuration: use the plugin section in Settings for Web UI plugins, or the profile dsh.profile.bundles entry for Host-only plugins. Start with this README's minimal YAML/JSON example and provide credentials/backend addresses explicitly.
+
+Rollback: rerun the fixed v0.4.4 command, verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never put a source checkout in the production profile.
+
+Release and integrity: [v0.4.4](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.4) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.4/SHA256SUMS).

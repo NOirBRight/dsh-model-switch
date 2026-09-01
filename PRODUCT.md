@@ -5,11 +5,11 @@
 ## Routes
 
 - **Default Main:** provider, model, and optional effort. It uses the public Settings namespace and is copied only into newly created sessions; existing sessions are never migrated or selected through the session picker.
-- **Default Subagent:** `follow-main` or a fixed provider/model/effort. Follow-main resolves the immediate parent's latest request header, then global Main, and injects the route before official descriptor creation. Local spawn, fork, continuable, and workflow children use this policy unless workflow explicitly supplies provider/model. DSH 0.1.2-alpha.1 carries fixed effort in child `AgentOptions`; on rc.2, the provider default effort applies because that runtime has no child effort field. Remote Codex/Claude children are outside unified routing.
+- **Default Subagent:** `follow-main` or a fixed provider/model/effort. Follow-main resolves the immediate parent's latest request header, then global Main, and injects the route before official descriptor creation. Local spawn, fork, continuable, and workflow children use this policy unless workflow explicitly supplies provider/model. DSH 0.1.2-alpha.1 carries the fixed route, including effort, in child `AgentOptions`. Remote Codex/Claude children are outside unified routing.
 - **Search Router:** does not register or replace `web_search`. Model Switch registers one public `WebSearchProvider` with id `model-switch`; the existing official `web_search` continues through `ctx.web`, whose configured search provider must be `model-switch`. The thin provider selects the configured backend adapter and model at execution time and returns the official `WebSearchResult` unchanged. v0.2.0 supports Codex Search only. `web_fetch` and its configured provider remain unchanged.
 - **Vision:** excluded. Model Switch exposes no Vision setting, does not shadow `read_image`, and does not preprocess chat attachments.
 - **Image Router:** owns a new, uniquely named stable `generate_image` tool. It selects the configured Codex or Grok adapter/model at execution time, rejects backend-incompatible fields, and returns normalized image metadata. Existing provider-specific image tools remain available as rollback paths.
-- **Composer Picker:** replaces the composer model seat with a suffix-grouped Model / Effort / Context / Fast / Thinking picker and submits through the official Model Directory. Picker changes are session-local. On a Host version that also persists session selection as the deployment default, the plugin restores the pre-switch Main default through the public Settings RPC with a revision fence; a concurrent Settings-page edit wins.
+- **Composer Picker:** replaces the composer model seat with a suffix-grouped Model / Effort / Context / Fast / Thinking picker and submits through the official Model Directory. Variant changes preserve an effort only when the target catalog row supports it, otherwise they use the target default or omit effort. Picker changes are session-local. On a Host version that also persists session selection as the deployment default, the plugin restores the pre-switch Main default through the public Settings RPC with a revision fence; a concurrent Settings-page edit wins.
 - **Plan Review:** intercepts the official `plan-review` composer takeover with a header execution-model picker and right-aligned Discuss in chat / Reject / Confirm actions. Confirm commits the selected model before answering.
 
 Model choices are capability-driven. Invalid, unavailable, or unsupported selections remain visible to configuration surfaces and fail loudly at use; routing never silently falls back.
@@ -20,13 +20,13 @@ Official `agent-presets` stay in the process. A nested `ctx.plugin(AgentPresets)
 
 ## Settings and lifecycle
 
-The settings surface aggregates public Settings namespaces, reads and mutates with optimistic revisions, and saves rows independently. Every registration, watcher, and dynamic tool generation has clean disposal. All visible copy lives in zh/en locale dictionaries.
+The settings surface aggregates public Settings namespaces, reads and mutates with optimistic revisions, and saves rows independently. Changing a Main or fixed Subagent model applies only the target catalog row's default effort, so an effort never leaks across providers or models. Every registration, watcher, and dynamic tool generation has clean disposal. All visible copy lives in zh/en locale dictionaries.
 
 ## Exclusions
 
 No compaction, title, fetch routing, fallback, load balancing, provider credentials, CLI/API, configuration history, or DSH Core edits. Coordinated changes are limited to Model Switch and self-maintained provider plugins. Installing this package replaces a standalone `dsh-composer-picker` install; keep only one composer model seat.
 
-Official `settings.section` has no icon field. The Settings nav glyph is a label-matched DOM swap, the same published pattern as usage-monitor, until an official icon seam exists. The `external-agents.plan-review.continue-in-dsh` child slot remains registered for dual-install; this package's Plan Review takeover currently wins (priority -7) because rc.2 has no public Plan-resolution seam.
+Official `settings.section` has no icon field. The Settings nav glyph is a label-matched DOM swap, the same published pattern as usage-monitor, until an official icon seam exists. The Plan Review takeover uses priority -5, and the composer model seat uses priority -10.
 
 ## Delivery architecture
 

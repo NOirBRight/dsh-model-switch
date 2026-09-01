@@ -1,4 +1,5 @@
-import type { SettingsScope, SettingsScopeSnapshot } from './shim.ts'
+import type { SettingsPathOpView } from '@deepseek-ai/dsh-api-remotes/client'
+import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 
 export type SettingsFieldMap<View> = Readonly<Partial<Record<keyof View & string, string>>>
 
@@ -14,9 +15,14 @@ export function deriveSettingsScope<Source, View>(source: SettingsScope<Source>,
     return previousView
   }
   const ownerField = (field: string): string => fields[field as keyof View & string] ?? field
+  const mapOperations = (ops: readonly SettingsPathOpView[]): SettingsPathOpView[] => ops.map(operation => ({
+    ...operation,
+    path: operation.path.map((part, index) => index === 0 ? ownerField(part) : part),
+  }))
   return {
     getSnapshot,
     subscribe: (listener) => source.subscribe(listener),
+    mutate: (ops, expectedRevision) => source.mutate(mapOperations(ops), expectedRevision),
     set: (field, value) => source.set(ownerField(field), value),
     unset: (field) => source.unset(ownerField(field)),
   }

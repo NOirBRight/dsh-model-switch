@@ -1,4 +1,5 @@
-import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
+import { sortCatalogGroups } from 'dsh-llm-providers-ui/order'
+import type { ModelSelection } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { ModelDirectoryState } from '@deepseek-ai/dsh-client-ui-model-selection/client'
 
 export type PickerDirectorySnapshot = Pick<
@@ -23,8 +24,13 @@ export interface PickerDirectoryView extends PickerDirectoryOperations {
   snapshot: PickerDirectorySnapshot
 }
 
+export interface ProviderOrderStore {
+  subscribe: (listener: () => void) => () => void
+  getSnapshot: () => readonly string[]
+}
+
 export interface PickerDirectoryFace extends PickerDirectoryOperations {
-  hooks: { directory: PickerDirectoryStore }
+  hooks: { directory: PickerDirectoryStore, providerOrder: ProviderOrderStore }
 }
 
 export function pickerDirectoryView(
@@ -37,4 +43,13 @@ export function pickerDirectoryView(
     load: operations.load,
     select: operations.select,
   }
+}
+
+/** Directory view whose groups follow the shared LLM Providers card order. */
+export function pickerDirectoryViewOrdered(
+  snapshot: PickerDirectorySnapshot,
+  operations: PickerDirectoryOperations,
+  order: readonly string[],
+) {
+  return pickerDirectoryView({ ...snapshot, groups: sortCatalogGroups(snapshot.groups, order) }, operations)
 }

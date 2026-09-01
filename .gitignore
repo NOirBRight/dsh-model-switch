@@ -8,6 +8,10 @@ lib/types/**/*.js
 lib/types/**/*.js.map
 lib/types/**/*.d.ts.map
 *.tgz
+!fixtures/
+!fixtures/alpha1/
+!fixtures/alpha1/tarballs/
+!fixtures/alpha1/tarballs/*.tgz
 *.tsbuildinfo
 coverage/
 *.log

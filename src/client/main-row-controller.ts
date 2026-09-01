@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-remotes/client'
-import type { SettingsScopeSnapshot } from './shim.js'
+import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types'
+import type { SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { MainSettingsConflictError, type CapabilityRouteView, type MainSettingsView, type SubagentSettingsView } from '../client-contract.js'
 import type { ModelSwitchLocaleKey } from './locales.js'
 
@@ -9,9 +9,15 @@ export interface SettingsControllerInputs {
   useMainSettings: Share<MainSettingsView>; useSubagentSettings: Share<SubagentSettingsView>
   saveMain(next: MainSettingsView, expectedRevision: number): Promise<number>
   loadCatalog(): Promise<readonly ModelProviderGroup[]>
+  subscribeProviderOrder?: (listener: () => void) => () => void
   t(key: ModelSwitchLocaleKey): string
 }
 export interface Choice { id: string; name: string; unavailable?: true }
+/** Build a settings route for a newly selected model using only that model's default effort. */
+export function selectRouteModel(groups: readonly ModelProviderGroup[], provider: string, model: string): MainSettingsView {
+  const defaultEffort = groups.find(group => group.id === provider)?.models.find(item => item.id === model)?.reasoning?.defaultEffort
+  return { provider, model, ...(defaultEffort === undefined ? {} : { reasoningEffort: defaultEffort }) }
+}
 export function deriveRouteChoices(groups: readonly ModelProviderGroup[], route: CapabilityRouteView | undefined, allowedProviders?: readonly string[]): { providers: Choice[]; models: Choice[] } {
   const allowed = allowedProviders === undefined ? undefined : new Set(allowedProviders)
   const providers: Choice[] = groups.filter(group => allowed === undefined || allowed.has(group.id)).map(group => ({ id: group.id, name: group.name }))
@@ -42,11 +48,19 @@ export function useModelSwitchSettingsController(input: SettingsControllerInputs
   const [busy, setBusy] = useState(false); const [message, setMessage] = useState<string | undefined>()
   const locked = useRef(false); const acceptedRevision = useRef<number | undefined>()
   useEffect(() => { setDraft(main.value); setMessage(undefined); if (main.revision !== undefined && (acceptedRevision.current === undefined || main.revision > acceptedRevision.current)) acceptedRevision.current = main.revision }, [main.revision, main.value])
-  useEffect(() => { let live = true; void input.loadCatalog().then(value => { if (live) setGroups(value) }).catch(() => { if (live) setMessage(input.t('catalogFailed')) }); return () => { live = false } }, [input.loadCatalog, input.t])
+  useEffect(() => {
+    let live = true
+    const load = (): void => {
+      void input.loadCatalog().then(value => { if (live) setGroups(value) }).catch(() => { if (live) setMessage(input.t('catalogFailed')) })
+    }
+    load()
+    const stop = input.subscribeProviderOrder?.(() => { if (live) load() })
+    return () => { live = false; stop?.() }
+  }, [input.loadCatalog, input.subscribeProviderOrder, input.t])
   const { providers, models, efforts } = deriveMainChoices(groups, draft)
   const disabled = main.status !== 'ready' || !main.writable || draft === undefined || busy || draft.provider.trim() === '' || draft.model.trim() === ''
-  const setProvider = (provider: string): void => setDraft(current => { if (current === undefined) return current; const first = groups.find(item => item.id === provider)?.models[0]; return { provider, model: first?.id ?? current.model, ...(first?.reasoning?.defaultEffort === undefined ? {} : { reasoningEffort: first.reasoning.defaultEffort }) } })
-  const setModel = (id: string): void => setDraft(current => { if (current === undefined) return current; const selected = groups.find(item => item.id === current.provider)?.models.find(item => item.id === id); return { provider: current.provider, model: id, ...(selected?.reasoning?.defaultEffort === undefined ? {} : { reasoningEffort: selected.reasoning.defaultEffort }) } })
+  const setProvider = (provider: string): void => setDraft(current => { if (current === undefined) return current; const first = groups.find(item => item.id === provider)?.models[0]; return selectRouteModel(groups, provider, first?.id ?? current.model) })
+  const setModel = (id: string): void => setDraft(current => current === undefined ? current : selectRouteModel(groups, current.provider, id))
   const setReasoningEffort = (value: string): void => setDraft(current => { if (current === undefined) return current; const next = { ...current }; if (value === '') delete next.reasoningEffort; else next.reasoningEffort = value; return next })
   const reset = (): void => { setDraft(main.value); setMessage(undefined) }
   const save = async (): Promise<void> => {

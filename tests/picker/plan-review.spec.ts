@@ -11,19 +11,16 @@ const reviewQuestion = {
 
 describe('plugin-owned Plan Review', () => {
   it('claims only a binary plan-review question from the composer chain', () => {
-    const wait = { kind: 'question', payload: { questions: [reviewQuestion] } }
-    expect(selectPlanReview({ interactions: [{ kind: 'approval' }, wait] })).toBe(wait)
+    const pending = {
+      kind: 'plan-review', key: 'question:1', sessionId: 'session-1',
+      questions: [reviewQuestion], answer: vi.fn(), cancel: vi.fn(),
+    }
+    expect(selectPlanReview({ pendingInteraction: pending } as never)).toBe(pending)
     expect(planReviewOf([reviewQuestion])?.plan).toBe('# Plan')
-    expect(selectPlanReview({ interactions: [{ kind: 'question', payload: { questions: [{ id: 'q', question: 'Hi?' }] } }] })).toBeNull()
-  })
 
-  it.each([
-    { name: 'missing payload', wait: { kind: 'question' } },
-    { name: 'null payload', wait: { kind: 'question', payload: null } },
-    { name: 'missing questions', wait: { kind: 'question', payload: {} } },
-    { name: 'non-array questions', wait: { kind: 'question', payload: { questions: 'nope' } } },
-  ])('returns null for malformed lightweight composer owner input: $name', ({ wait }) => {
-    expect(selectPlanReview({ interactions: [wait] })).toBeNull()
+    const generic = { ...pending, kind: 'question', questions: [{ id: 'q', question: 'Hi?' }] }
+    expect(selectPlanReview({ pendingInteraction: generic } as never)).toBeNull()
+    expect(selectPlanReview({ pendingInteraction: undefined } as never)).toBeNull()
   })
 
   it.each([

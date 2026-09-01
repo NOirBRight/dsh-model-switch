@@ -1,42 +1,11 @@
-import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
+import type { ModelSelection } from '@deepseek-ai/dsh-api-session-controller/types'
+import type { ComposerChainProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { PendingQuestion, PlanReview } from '@deepseek-ai/dsh-client-ui-user-questions/client'
 
-export interface PlanReviewOption {
-  label: string
-  description?: string
-}
+export type { PlanReview } from '@deepseek-ai/dsh-client-ui-user-questions/client'
+export type PlanReviewOption = PlanReview['approve']
 
-export interface PlanReview {
-  id: string
-  question: string
-  plan: string
-  approve: PlanReviewOption
-  decline?: PlanReviewOption
-}
-
-interface QuestionItem {
-  id: string
-  question: string
-  detail?: string
-  multiSelect?: boolean
-  options?: readonly PlanReviewOption[]
-  intent?: { kind: string; approve?: string }
-}
-
-interface QuestionWaitLike {
-  kind: string
-  key: string
-  questions?: readonly QuestionItem[]
-  payload?: { questions: readonly QuestionItem[] }
-  // alpha.1 PendingQuestion has questions directly; rc.2 PendingWait has payload.questions
-  [key: string]: unknown
-}
-
-interface ComposerOwner {
-  /** alpha.1: the single effective interaction, undefined when none. */
-  pendingInteraction?: { kind: string; payload?: unknown } | undefined
-  /** rc.2: the pending-interaction array. Kept as a fallback. */
-  interactions?: readonly { kind: string; payload?: unknown }[]
-}
+type QuestionItem = PendingQuestion['questions'][number]
 
 export function planReviewOf(questions: readonly QuestionItem[]): PlanReview | undefined {
   if (questions.length !== 1) return undefined
@@ -58,31 +27,10 @@ export function planReviewOf(questions: readonly QuestionItem[]): PlanReview | u
   }
 }
 
-function isQuestionWait(value: { kind: string; payload?: unknown; questions?: unknown }): value is QuestionWaitLike {
-  if (value.kind !== 'question' && value.kind !== 'plan-review') return false
-  // alpha.1 PendingQuestion: questions directly; rc.2 PendingWait: payload.questions
-  if (Array.isArray((value as { questions?: unknown }).questions)) return true
-  if (value.payload === undefined || typeof value.payload !== 'object' || value.payload === null) return false
-  return Array.isArray((value.payload as { questions?: unknown }).questions)
-}
-
-function questionsOf(wait: QuestionWaitLike): readonly QuestionItem[] {
-  if (Array.isArray(wait.questions)) return wait.questions as readonly QuestionItem[]
-  if (wait.payload !== undefined && typeof wait.payload === 'object' && wait.payload !== null) {
-    const qs = (wait.payload as { questions?: unknown }).questions
-    if (Array.isArray(qs)) return qs as readonly QuestionItem[]
-  }
-  return []
-}
-
-export function selectPlanReview(owner: ComposerOwner): QuestionWaitLike | null {
-  // alpha.1 replaced the pending-interaction array with one effective value.
-  const candidates = owner.pendingInteraction !== undefined
-    ? [owner.pendingInteraction]
-    : owner.interactions ?? []
-  const wait = candidates.find(isQuestionWait)
-  if (wait === undefined) return null
-  return planReviewOf(questionsOf(wait)) === undefined ? null : wait
+export function selectPlanReview(owner: ComposerChainProps): PendingQuestion | null {
+  const interaction = owner.pendingInteraction
+  if (interaction === undefined || (interaction.kind !== 'question' && interaction.kind !== 'plan-review')) return null
+  return planReviewOf(interaction.questions) === undefined ? null : interaction
 }
 
 export class PlanApprovalResponseError extends Error {}

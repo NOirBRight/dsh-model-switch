@@ -7,7 +7,7 @@ import {
   type KeyboardEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
-import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
+import type { ModelSelection } from '@deepseek-ai/dsh-api-session-controller/types'
 import {
   Button, IconCheckOutline16, IconChevronDownOutline14, IconChevronLeftOutline14,
   IconChevronRightOutline14, IconCloseOutline16, IconSearchOutline16, IconWarningOutline16,
@@ -38,15 +38,15 @@ import css from './ComposerPicker.module.css'
 
 export type { PickerDirectoryFace, PickerDirectoryOperations, PickerDirectorySnapshot, PickerDirectoryView } from './PickerDirectory.ts'
 
-export type ExternalAgentAdapterId = 'codex' | 'claude-code' | 'cursor' | 'antigravity'
-export type ExternalPlanTargetId = `external-agent:${ExternalAgentAdapterId}`
-export type PlanTargetId = 'dsh' | ExternalPlanTargetId
+interface AcceptedSelection {
+  selection: ModelSelection
+  projectedBeforeRequest: ModelSelection | null
+}
 
-export interface ComposerPickerExternalTarget {
-  id: ExternalPlanTargetId
-  label: string
-  description?: string
-  disabled?: boolean
+function sameSelection(left: ModelSelection | null, right: ModelSelection | null): boolean {
+  return left?.provider === right?.provider
+    && left?.model === right?.model
+    && left?.reasoningEffort === right?.reasoningEffort
 }
 
 interface ComposerPickerBaseProps {
@@ -56,10 +56,6 @@ interface ComposerPickerBaseProps {
   t: (key: PickerKey, params?: Record<string, string>) => string
   embedded?: boolean
   tone?: 'capsule'
-  externalTargets?: readonly ComposerPickerExternalTarget[]
-  externalTargetsLabel?: string
-  externalSelection?: ExternalPlanTargetId
-  onExternalTargetChange?: (id: ExternalPlanTargetId | undefined) => void
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
 }
 
@@ -136,7 +132,6 @@ export function ModelPaneHeader({
 export function ComposerPicker({
   locked, available, directory, t, draft, onDraftChange, embedded,
   tone,
-  externalTargets = [], externalTargetsLabel, externalSelection, onExternalTargetChange,
   resolveInteractionOperations,
 }: ComposerPickerProps) {
   const { snapshot: state, getDirectorySnapshot, load, select } = directory
@@ -144,14 +139,16 @@ export function ComposerPicker({
   const [searching, setSearching] = useState(false)
   const [query, setQuery] = useState('')
   const [toast, setToast] = useState<{ seq: number, text: string } | null>(null)
+  const [acceptedSelection, setAcceptedSelection] = useState<AcceptedSelection>()
   const toastSeq = useRef(0)
+  const selectionGeneration = useRef(0)
   const lastActionRef = useRef<'load' | 'select'>('load')
   const lockedRef = useRef(locked)
   lockedRef.current = locked
 
   const families = useMemo(() => groupFamilies(state.groups), [state.groups])
-  const currentSelection = draft ?? state.current
-  const currentCanBeUsed = draft !== undefined || state.routable !== false
+  const currentSelection = draft ?? acceptedSelection?.selection ?? state.current
+  const currentCanBeUsed = draft !== undefined || acceptedSelection !== undefined || state.routable !== false
   const family = currentSelection === null
     ? undefined
     : findFamily(families, currentSelection.provider, currentSelection.model)
@@ -170,12 +167,6 @@ export function ComposerPicker({
     : contextLabelForMember(family, member)
   const thinkingPair = family !== undefined && member !== undefined ? thinkingSiblings(family, member) : null
   const visibleFamilies = useMemo(() => filterFamilies(families, query), [families, query])
-  const visibleExternalTargets = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    return needle.length === 0 ? externalTargets : externalTargets.filter(target =>
-      target.label.toLowerCase().includes(needle) || target.description?.toLowerCase().includes(needle),
-    )
-  }, [externalTargets, query])
   const sections = useMemo(() => sectionFamilies(visibleFamilies), [visibleFamilies])
   const busy = state.status === 'selecting'
 
@@ -211,11 +202,26 @@ export function ComposerPicker({
     if (available) {
       lastActionRef.current = 'load'
       load()
+      return
     }
+    selectionGeneration.current += 1
+    setAcceptedSelection(undefined)
   }, [available, load])
 
+  useEffect(() => {
+    if (acceptedSelection === undefined) return
+    if (!sameSelection(state.current, acceptedSelection.projectedBeforeRequest)) {
+      setAcceptedSelection(undefined)
+    }
+  }, [acceptedSelection, state.current])
 
-  if (!available && externalTargets.length === 0) return null
+  useEffect(() => {
+    if (!locked) return
+    selectionGeneration.current += 1
+    setAcceptedSelection(undefined)
+  }, [locked])
+
+  if (!available) return null
 
   const returnToRoot = (): void => {
     setPane('root')
@@ -234,19 +240,25 @@ export function ComposerPicker({
 
   const applySelection = (next: ModelSelection): void => {
     if (lockedRef.current) return
-    onExternalTargetChange?.(undefined)
     if (onDraftChange !== undefined) {
       onDraftChange(next)
       returnToRoot()
       return
     }
-    if (currentCanBeUsed && state.current?.provider === next.provider && state.current.model === next.model
-      && state.current.reasoningEffort === next.reasoningEffort) {
+    if (currentCanBeUsed && sameSelection(currentSelection, next)) {
       returnToRoot()
       return
     }
     lastActionRef.current = 'select'
-    if (select !== undefined) void beginSelection(() => select(next), returnToRoot, settleSelection)
+    if (select !== undefined) {
+      const generation = ++selectionGeneration.current
+      const projectedBeforeRequest = state.current
+      void beginSelection(() => select(next), returnToRoot, (accepted) => {
+        if (generation !== selectionGeneration.current || lockedRef.current) return
+        if (accepted) setAcceptedSelection({ selection: next, projectedBeforeRequest })
+        settleSelection(accepted)
+      })
+    }
   }
 
   const chooseMember = (nextFamily: ModelFamily, next: FamilyMember, effort?: string): void => {
@@ -258,27 +270,20 @@ export function ComposerPicker({
     applySelection(selectionOf(family, member, effort))
   }
 
-  const selectedExternal = externalTargets.find(target => target.id === externalSelection)
   const modelLabel = family?.name ?? member?.model.name ?? currentSelection?.model ?? t('trigger.fallback')
-  const effectiveLabel = selectedExternal?.label ?? modelLabel
   const contextBit = contextLabel === undefined || contextLabel === STANDARD_CONTEXT_LABEL
     ? undefined
     : member?.contextTier === null ? undefined : contextLabel
-  const triggerBits = selectedExternal !== undefined
-    ? [effectiveLabel]
-    : [
-      effectiveLabel,
-      ...effortLabel === undefined ? [] : [effortLabel],
-      ...member?.fast === true ? [t('menu.fast')] : [],
-      ...contextBit === undefined ? [] : [contextBit],
-      ...thinkingPair !== null && member?.thinking === true ? [t('menu.thinking')] : [],
-    ]
-  const externalHeading = externalTargetsLabel ?? t('external.section')
+  const triggerBits = [
+    modelLabel,
+    ...effortLabel === undefined ? [] : [effortLabel],
+    ...member?.fast === true ? [t('menu.fast')] : [],
+    ...contextBit === undefined ? [] : [contextBit],
+    ...thinkingPair !== null && member?.thinking === true ? [t('menu.thinking')] : [],
+  ]
   const contextDisplay = (label: string): string => label === STANDARD_CONTEXT_LABEL ? t('context.standard') : label
   const triggerLabel = triggerBits.join(' · ')
-  const triggerAria = selectedExternal !== undefined
-    ? selectedExternal.label
-    : currentSelection === null
+  const triggerAria = currentSelection === null
     ? t('trigger.selectAria')
     : t('trigger.aria', { model: triggerLabel })
 
@@ -338,31 +343,31 @@ export function ComposerPicker({
         <>
           <button type="button" role="menuitem" className={css.cell} onClick={() => { setPane('model'); setSearching(false); setQuery('') }}>
             <span className={css.cellLabel}>{t('menu.model')}</span>
-            <span className={css.cellValue}>{selectedExternal?.label ?? family?.name ?? modelLabel}</span>
+            <span className={css.cellValue}>{family?.name ?? modelLabel}</span>
             <IconChevronRightOutline14 className={css.cellChevron} />
           </button>
-          {selectedExternal === undefined && reasoning !== undefined && (
+          {reasoning !== undefined && (
             <button type="button" role="menuitem" className={css.cell} onClick={() => { setPane('effort') }}>
               <span className={css.cellLabel}>{t('menu.effort')}</span>
               <span className={css.cellValue}>{effortLabel}</span>
               <IconChevronRightOutline14 className={css.cellChevron} />
             </button>
           )}
-          {selectedExternal === undefined && family !== undefined && familyHasContextChoices(family) && (
+          {family !== undefined && familyHasContextChoices(family) && (
             <button type="button" role="menuitem" className={css.cell} onClick={() => { setPane('context') }}>
               <span className={css.cellLabel}>{t('menu.context')}</span>
               <span className={css.cellValue}>{contextDisplay(contextLabel ?? '')}</span>
               <IconChevronRightOutline14 className={css.cellChevron} />
             </button>
           )}
-          {selectedExternal === undefined && family !== undefined && familyHasFast(family) && (
+          {family !== undefined && familyHasFast(family) && (
             <button type="button" role="menuitem" className={css.cell} onClick={() => { setPane('fast') }}>
               <span className={css.cellLabel}>{t('menu.fast')}</span>
               <span className={css.cellValue}>{member?.fast === true ? t('fast.on') : t('fast.off')}</span>
               <IconChevronRightOutline14 className={css.cellChevron} />
             </button>
           )}
-          {selectedExternal === undefined && thinkingPair !== null && (
+          {thinkingPair !== null && (
             <button type="button" role="menuitem" className={css.cell} onClick={() => { setPane('thinking') }}>
               <span className={css.cellLabel}>{t('menu.thinking')}</span>
               <span className={css.cellValue}>{member?.thinking === true ? t('thinking.on') : t('thinking.off')}</span>
@@ -388,36 +393,6 @@ export function ComposerPicker({
             </div>
           ))}
           <div className={classNames(css.groups, 'scrollable')}>
-            {visibleExternalTargets.length > 0 && (
-              <section role="group" aria-label={externalHeading} className={css.group}>
-                <div className={css.groupTitle}>{externalHeading}</div>
-                {visibleExternalTargets.map(target => {
-                  const selected = externalSelection === target.id
-                  return (
-                    <button
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={selected}
-                      className={classNames(css.option, selected && css.selected)}
-                      key={`external:${target.id}`}
-                      disabled={locked || busy || target.disabled === true}
-                      onClick={() => {
-                        if (lockedRef.current) return
-                        onExternalTargetChange?.(target.id)
-                        if (embedded) close()
-                        else returnToRoot()
-                      }}
-                    >
-                      <span className={css.optionCopy}>
-                        <span className={css.modelName}>{target.label}</span>
-                        {target.description !== undefined && <span className={css.description}>{target.description}</span>}
-                      </span>
-                      <span className={css.check}>{selected ? <IconCheckOutline16 /> : null}</span>
-                    </button>
-                  )
-                })}
-              </section>
-            )}
             {sections.map(section => {
               const headingId = `${id}-${section.provider}`
               return (
@@ -454,7 +429,7 @@ export function ComposerPicker({
               )
             })}
           </div>
-          {state.status === 'ready' && visibleFamilies.length === 0 && visibleExternalTargets.length === 0 && (
+          {state.status === 'ready' && visibleFamilies.length === 0 && (
             <div className={css.empty}>{t('empty.models')}</div>
           )}
         </>

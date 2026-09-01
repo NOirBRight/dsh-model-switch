@@ -30,9 +30,9 @@ export declare const zh: {
     readonly requestFailed: "保存失败";
     readonly catalogFailed: "无法加载模型目录。";
     readonly conflict: "设置已在其他位置更改，请检查最新值后重试。";
-    readonly 'reason.central-subagent-routing': "rc.2 没有全局子代理启动路由接口。";
-    readonly 'reason.packaged-preset-roots': "rc.2 不支持插件提供额外 preset root。";
-    readonly 'reason.tool-owner-suppression': "rc.2 没有工具所有者或来源抑制接口。";
+    readonly 'reason.central-subagent-routing': "alpha.1 没有全局子代理启动路由接口。";
+    readonly 'reason.packaged-preset-roots': "alpha.1 不支持插件提供额外 preset root。";
+    readonly 'reason.tool-owner-suppression': "alpha.1 没有工具所有者或来源抑制接口。";
     readonly 'reason.search-provider-adapters': "当前公开版本没有可按模型切换的搜索 Provider Adapter。";
     readonly 'reason.vision-provider-adapters': "尚无 Provider 注册可独立路由的 Vision Adapter。";
     readonly 'reason.image-provider-adapters': "当前公开版本没有图像生成 Provider Adapter。";
