@@ -2,9 +2,9 @@
  * Composer model seat + Plan Review execution picker.
  */
 
-import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
+import type { ModelSelection } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import type { PendingWait, SettingsScopeSnapshot } from './shim.js'
+import type { SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { ComposerChainProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-model-selection/client'
@@ -12,11 +12,9 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import { decodeMainSettings, MAIN_SETTINGS_ID, type MainSettingsView } from '../../client-contract.ts'
 import { selectPlanReview } from '../../picker/plan-review.ts'
 import { ComposerPicker } from './ComposerPicker.tsx'
-import { decodeProviderOrder, PROVIDERS_SETTINGS_NS } from 'dsh-llm-providers-ui/client'
+import { decodeProviderOrder, PROVIDERS_SETTINGS_NS } from 'dsh-llm-providers-ui/order'
 import { pickerDirectoryViewOrdered, type PickerDirectoryFace } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
-import { CONTINUE_IN_DSH_SLOT, ContinueInDshAdapter, type ContinueInDshFace } from './ContinueInDshAdapter.tsx'
-export type { ContinueInDshOwner, PlanExternalAgentTarget } from './ContinueInDshAdapter.tsx'
 import { PlanReviewCard } from './PlanReviewCard.tsx'
 import { PickerSeatBoundary } from './PickerSeatBoundary.tsx'
 import { en, zh, type PickerKey } from './locales.ts'
@@ -29,9 +27,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 const NS = 'composer-picker'
 const MODEL_PRIORITY = -10
-// Beat dsh-external-agents (-6). Its Plan card is the execute-with router; until a
-// public Plan-resolution seam exists that card cannot hand off, so this takeover owns review.
-const PLAN_REVIEW_PRIORITY = -7
+const PLAN_REVIEW_PRIORITY = -5
 
 function interactionOperationsFrom(ctx: ClientContext): PickerInteractionOperations | undefined {
   let value: unknown
@@ -177,17 +173,11 @@ export function installComposerPicker(ctx: ClientContext): void {
       inject: directoryFace,
     }, ModelSeatEntry))
 
-    scope.slots.inject(CONTINUE_IN_DSH_SLOT, () => scope.slots.register({
-      name: CONTINUE_IN_DSH_SLOT,
-      locale: NS,
-      inject: (sessionId): ContinueInDshFace => directoryFace(sessionId),
-    }, ContinueInDshAdapter))
-
     scope.slots.inject('conversation.composer', () => scope.slots.register({
       name: 'conversation.composer',
       locale: NS,
       priority: PLAN_REVIEW_PRIORITY,
-      select: (owner: ComposerChainProps) => selectPlanReview(owner) as PendingWait<'question'> | null,
+      select: (owner: ComposerChainProps) => selectPlanReview(owner),
       inject: directoryFace,
     }, PlanReviewCard))
   })

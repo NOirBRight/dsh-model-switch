@@ -1,4 +1,5 @@
-import type { SettingsScope, SettingsScopeSnapshot } from './shim.js'
+import type { SettingsPathOpView } from '@deepseek-ai/dsh-api-remotes/client'
+import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 
 interface RemoteError { code: string; message: string }
 interface RemoteResult<T> { ok: boolean; value?: T; error?: RemoteError }
@@ -53,9 +54,12 @@ export class RemoteSettingsScope<T> implements SettingsScope<T> {
   unset(field: string): Promise<void> {
     return this.write([{ op: 'unset', path: [field] }])
   }
+  mutate(ops: readonly SettingsPathOpView[], expectedRevision?: number): Promise<void> {
+    return this.write(ops, expectedRevision)
+  }
 
-  private async write(ops: readonly unknown[]): Promise<void> {
-    const result = await this.api.mutate(this.namespace, ops, this.snapshot.revision)
+  private async write(ops: readonly unknown[], expectedRevision = this.snapshot.revision): Promise<void> {
+    const result = await this.api.mutate(this.namespace, ops, expectedRevision)
     if (!result.ok || result.value === undefined) throw new Error((result.error?.code ?? 'settings-error') + ': ' + (result.error?.message ?? ''))
     const value = this.decode(result.value.value)
     if (value === undefined) throw new Error('settings namespace is invalid')

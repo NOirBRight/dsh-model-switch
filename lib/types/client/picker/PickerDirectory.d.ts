@@ -1,4 +1,4 @@
-import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client';
+import type { ModelSelection } from '@deepseek-ai/dsh-api-session-controller/types';
 import type { ModelDirectoryState } from '@deepseek-ai/dsh-client-ui-model-selection/client';
 export type PickerDirectorySnapshot = Pick<ModelDirectoryState, 'current' | 'routable' | 'groups' | 'failures' | 'status' | 'error'>;
 export interface PickerDirectoryStore {

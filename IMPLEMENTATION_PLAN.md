@@ -11,15 +11,15 @@
 
 ## Milestone 2 — released runtime seams
 
-Register each feasible Settings/runtime capability only through released public Cordis/DSH interfaces, and expose every unavailable route as explicit capability data rather than simulated behavior. Contract-test against clean rc.2 infrastructure rather than a hand-built context alone.
+Register each feasible Settings/runtime capability only through released public Cordis/DSH interfaces, and expose every unavailable route as explicit capability data rather than simulated behavior. Contract-test against clean alpha.1 infrastructure rather than a hand-built context alone.
 
-**Implemented foundation on rc.2:** Model Switch owns its Settings namespace; Main reads/saves through the official Agent Default Model service; registration, committed updates, Main delegation, and disposal are covered by a real Cordis + Settings composition test.
+**Implemented foundation on alpha.1:** Model Switch owns its Settings namespace; Main reads/saves through the official Agent Default Model service; registration, committed updates, Main delegation, and disposal are covered by a real Cordis + Settings composition test.
 
-**Implemented coordinated replacement:** the package bundle patch disables the released Loader row with id `subagent` and inserts the uniquely identified plugin-owned `dsh-model-switch/subagent-runtime`; removing the bundle restores the official profile composition. The replacement subclasses the released rc.2 `SubagentRuntime`, selects provider/model before delegating to official one-shot and continuable descriptor creation, and fails closed for partial routes, ambiguous/unexpected rows, and explicitly configured Subagent effort because rc.2 has no released one-shot/cold-resume effort snapshot seam; inherited Main/parent effort is omitted while provider/model still follow the active route. Do not replace the launcher-pinned AgentPresets row: a nested AgentPresets instance loads a second dsh-scope identity and breaks session.create. Official presets consume the replacement `subagents` service after the Subagent Loader row is replaced. Search must use the released Web provider seam rather than registering a duplicate tool; Image may register only the unique `generate_image` name.
+**Implemented coordinated replacement:** the package bundle patch disables the released Loader row with id `subagent` and inserts the uniquely identified plugin-owned `dsh-model-switch/subagent-runtime`; removing the bundle restores the official profile composition. The replacement selects provider/model/effort before delegating to the official alpha.1 one-shot and continuable descriptor creation, and fails closed for partial routes, ambiguous or unexpected rows, and unsupported effort transport. Do not replace the launcher-pinned AgentPresets row: a nested AgentPresets instance loads a second dsh-scope identity and breaks session.create. Official presets consume the replacement `subagents` service after the Subagent Loader row is replaced. Search must use the released Web provider seam rather than registering a duplicate tool; Image may register only the unique `generate_image` name.
 
-Known seam constraints from rc.2 inspection:
+Known seam constraints from alpha.1 inspection:
 
-- Web session creation has no atomic create-time model override; use the existing public Main Settings namespace rather than post-create selection. rc.2 couples `session.selectModel` to a deployment-default write, so the owned composer/Plan picker restores the captured Main default through `settings.mutate` at the immediately following revision; conflicts are left untouched so concurrent Settings edits win.
+- Web session creation has no atomic create-time model override; use the existing public Main Settings namespace rather than post-create selection. The Host couples `session.selectModel` to a deployment-default write, so the owned composer/Plan picker restores the captured Main default through `settings.mutate` at the immediately following revision; conflicts are left untouched so concurrent Settings edits win.
 - Tool registration has disposal but no atomic replacement; stage complete generations and roll back on registration failure.
 - A later child model switch cannot rewrite its durable continuable descriptor; creation snapshots remain authoritative.
 - Search routing owns only provider id `model-switch`; the deployment profile pins `web.searchProvider: model-switch` while preserving its existing `fetchProvider`. The official `web_search` and `web_fetch` tools are untouched.
@@ -29,7 +29,7 @@ Known seam constraints from rc.2 inspection:
 
 ## Milestone 3 — settings surface
 
-Contribute the Model Switch settings section through declared client slots (rc.2 has no generic standalone page registry). Use one lifecycle controller/store, three derived prop shares, plain presentation data/callbacks, optimistic revisions, independent row saves, capability filtering, and zh/en dictionaries.
+Contribute the Model Switch settings section through declared client slots (alpha.1 has no generic standalone page registry). Use one lifecycle controller/store, three derived prop shares, plain presentation data/callbacks, optimistic revisions, independent row saves, capability filtering, and zh/en dictionaries.
 
 ## Milestone 4 — provider adapters and composition
 

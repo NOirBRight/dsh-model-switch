@@ -7,9 +7,9 @@ import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import { type SubagentProvider, type SubagentRequest, type SubagentRun } from '@deepseek-ai/dsh-subagent'
+import { type ResolvedSubagentStartRequest, type SubagentCapabilities, type SubagentProvider, type SubagentRun } from '@deepseek-ai/dsh-subagent'
 import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
-import ModelSwitchSubagentRuntime from '../src/subagent-runtime.js'
+import profileSubagentRuntime, { ModelSwitchSubagentRuntime } from '../src/subagent-runtime.js'
 import type { Config } from '../src/host-settings.js'
 import type { ModelSelection } from '../src/capabilities.js'
 
@@ -36,7 +36,7 @@ async function loadComposition(): Promise<Context> {
   const context = new Context()
   ctx = context
   await context.plugin(TestModelSwitch)
-  await context.plugin(ModelSwitchSubagentRuntime)
+  await context.plugin(profileSubagentRuntime)
   return context
 }
 
@@ -47,20 +47,28 @@ function parentWithRoute(route?: ModelSelection) {
   return { options: {}, session } as never
 }
 
-async function registerCapture(context: Context, provider: SubagentProvider): Promise<void> {
+async function registerCapture(context: Context, provider: Omit<SubagentProvider, 'name'>): Promise<void> {
   const plugin = Object.assign((pluginContext: Context) => {
     pluginContext.subagents.registerProvider({ ...provider, name: 'capture' })
   }, { inject: ['subagents'] })
   await context.plugin(plugin)
 }
 
-function successfulRun(request: SubagentRequest): SubagentRun {
+function successfulRun(_request: ResolvedSubagentStartRequest): SubagentRun {
   return {
     id: SessionId('one-shot-child') as never,
-    result: Promise.resolve({ stopReason: { kind: 'stop' }, output: [], usage: { inputTokens: 0, outputTokens: 0 } }),
+    localAgent: undefined,
+    result: Promise.resolve({ stopReason: 'completed', output: [] }),
     dispose: async () => {},
-    request,
-  } as unknown as SubagentRun
+  }
+}
+
+const routingCapabilities: SubagentCapabilities = {
+  agentOptions: true,
+  outputSchema: false,
+  depthLimit: false,
+  toolFilter: false,
+  persona: false,
 }
 
 describe('public profile-patched Subagent replacement', () => {
@@ -68,9 +76,10 @@ describe('public profile-patched Subagent replacement', () => {
     const context = await loadComposition()
     expect(context.subagents).toBeInstanceOf(ModelSwitchSubagentRuntime)
 
-    let observed: SubagentRequest | undefined
-    const provider: SubagentProvider = {
-      capabilities: { streaming: false },
+    let observed: ResolvedSubagentStartRequest | undefined
+    const provider: Omit<SubagentProvider, 'name'> = {
+      capabilities: routingCapabilities,
+      inheritsParentContext: true,
       start: async (request) => { observed = request; return successfulRun(request) },
     }
     await registerCapture(context, provider)
@@ -86,9 +95,10 @@ describe('public profile-patched Subagent replacement', () => {
     ;(context.modelSwitch as unknown as TestModelSwitch).settings = {
       subagentMode: 'fixed', subagentProvider: 'fixed-provider', subagentModel: 'fixed-model',
     }
-    let observed: SubagentRequest | undefined
+    let observed: ResolvedSubagentStartRequest | undefined
     await registerCapture(context, {
-      capabilities: { streaming: false },
+      capabilities: routingCapabilities,
+      inheritsParentContext: true,
       start: async (request) => { observed = request; return successfulRun(request) },
     })
     await context.subagents.start('capture', {
@@ -107,7 +117,7 @@ describe('public profile-patched Subagent replacement', () => {
     await context.plugin(JsonlSessionPersistence, { root })
     await context.plugin(AgentLoop, { agents: [] })
     await context.plugin(TestModelSwitch)
-    await context.plugin(ModelSwitchSubagentRuntime)
+    await context.plugin(profileSubagentRuntime)
     await context.plugin(SubagentSpawn, { providerName: 'spawn' })
     const parent = context.agentLoop.create(SessionId('parent'), { provider: 'parent-provider', model: 'parent-model' })
     ;(context.modelSwitch as unknown as TestModelSwitch).settings = {

@@ -1,11 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-remotes/client'
-import type { SettingsScope, SettingsScopeSnapshot } from './shim.js'
+import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types'
+import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { CapabilityRouteView, MainSettingsView, SubagentSettingsView } from '../client-contract.js'
 import type { RuntimeCapabilities } from '../runtime-capabilities.js'
 import type { ModelSwitchLocaleKey } from './locales.js'
-import { deriveRouteChoices, useModelSwitchSettingsController, type Choice } from './main-row-controller.js'
+import { deriveRouteChoices, selectRouteModel, useModelSwitchSettingsController, type Choice } from './main-row-controller.js'
 import css from './ModelSwitchSettings.module.css'
 
 export interface ModelSwitchSettingsFace {
@@ -154,7 +154,7 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
       {props.capabilities.centralSubagentRouting.available ? <RouteCard title={props.t('subagent')} summary={subagentSummary} icon="subagent" open={open === 'subagent'} onToggle={() => { toggle('subagent') }}>
         {subagentDraft === undefined ? <p className={css.hint}>{props.t('loading')}</p> : <><div className={css.formGrid}>
           <label className={cx(css.field, css.fieldFull)}><span className={css.fieldLabel}>{props.t('subagentMode')}</span><select className={css.input} disabled={busy === 'subagent' || !subagent.writable} value={subagentDraft.mode} onChange={event => { setSubagentDraft({ ...subagentDraft, mode: event.target.value as SubagentSettingsView['mode'] }) }}><option value="fixed">{props.t('subagentFixed')}</option><option value="follow-main">{props.t('subagentFollowMain')}</option></select></label>
-          {subagentDraft.mode === 'fixed' ? <><Field label={props.t('provider')} value={subagentDraft.provider ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.providers} onChange={provider => { const first = groups.find(group => group.id === provider)?.models[0]; setSubagentDraft({ ...subagentDraft, provider, ...(first === undefined ? {} : { model: first.id }) }) }} /><Field label={props.t('model')} value={subagentDraft.model ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.models} onChange={model => { setSubagentDraft({ ...subagentDraft, model }) }} /><Field label={props.t('effort')} value={subagentDraft.reasoningEffort ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentEfforts} onChange={effort => { setSubagentDraft({ ...subagentDraft, reasoningEffort: effort }) }} /></> : null}
+          {subagentDraft.mode === 'fixed' ? <><Field label={props.t('provider')} value={subagentDraft.provider ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.providers} onChange={provider => { const first = groups.find(group => group.id === provider)?.models[0]; setSubagentDraft({ mode: subagentDraft.mode, ...selectRouteModel(groups, provider, first?.id ?? subagentDraft.model ?? '') }) }} /><Field label={props.t('model')} value={subagentDraft.model ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.models} onChange={model => { setSubagentDraft({ mode: subagentDraft.mode, ...selectRouteModel(groups, subagentDraft.provider ?? '', model) }) }} /><Field label={props.t('effort')} value={subagentDraft.reasoningEffort ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentEfforts} onChange={effort => { setSubagentDraft({ ...subagentDraft, reasoningEffort: effort }) }} /></> : null}
         </div><Actions t={props.t} busy={busy === 'subagent'} disabled={subagentDisabled} {...(message?.route === 'subagent' ? { message: message.text } : {})} onCancel={() => { resetSubagent(); setMessage(undefined) }} onSave={saveSubagent} /></>}
       </RouteCard> : <RouteCard title={props.t('subagent')} summary={unavailable('centralSubagentRouting')} icon="subagent" open={false} onToggle={() => {}} disabled badge={props.t('unavailable')} badgeWarn />}
     </section>

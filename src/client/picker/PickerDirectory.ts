@@ -1,5 +1,5 @@
-import { sortCatalogGroups } from 'dsh-llm-providers-ui/client'
-import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
+import { sortCatalogGroups } from 'dsh-llm-providers-ui/order'
+import type { ModelSelection } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { ModelDirectoryState } from '@deepseek-ai/dsh-client-ui-model-selection/client'
 
 export type PickerDirectorySnapshot = Pick<

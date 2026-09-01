@@ -30,7 +30,7 @@ describe('composer picker mobile sizing', () => {
 
   it.each([
     '.paneTitle', '.groupTitle', '.status', '.empty', '.error', '.warning',
-    '.modelName', '.description', '.cellLabel', '.cellValue',
+    '.modelName', '.description',
   ])(
     'keeps %s readable without ellipsis or single-line clipping',
     (selector) => {
@@ -39,4 +39,13 @@ describe('composer picker mobile sizing', () => {
       expect(block(selector)).toContain('overflow-wrap: anywhere')
     },
   )
+
+  it('keeps root summary rows on one line and ellipsizes only the value', () => {
+    expect(block('.cell')).toContain('height: 40px')
+    expect(block('.cellLabel')).toContain('white-space: nowrap')
+    expect(block('.cellLabel')).not.toContain('overflow-wrap: anywhere')
+    expect(block('.cellValue')).toContain('white-space: nowrap')
+    expect(block('.cellValue')).toContain('text-overflow: ellipsis')
+    expect(block('.cellValue')).toContain('overflow: hidden')
+  })
 })

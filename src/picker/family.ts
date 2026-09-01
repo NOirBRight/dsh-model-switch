@@ -298,7 +298,10 @@ export function selectionOf(
   member: FamilyMember,
   reasoningEffort?: string,
 ): ModelSelectionView {
-  const effort = reasoningEffort ?? member.model.reasoning?.defaultEffort
+  const reasoning = member.model.reasoning
+  const effort = reasoningEffort !== undefined && reasoning?.efforts.some(level => level.id === reasoningEffort)
+    ? reasoningEffort
+    : reasoning?.defaultEffort
   return {
     provider: family.provider,
     model: member.model.id,

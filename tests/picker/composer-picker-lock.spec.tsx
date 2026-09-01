@@ -23,15 +23,12 @@ Object.assign(globalThis, {
 })
 
 const snapshot = { current: null, routable: null, groups: [], failures: [], status: 'ready', error: null }
-const target = { id: 'external-agent:codex' as const, label: 'Codex', disabled: false }
-
-function props(locked: boolean, onExternalTargetChange = vi.fn()) {
+function props(locked: boolean) {
   return {
-    locked, available: false,
+    locked, available: true,
     directory: { snapshot, getDirectorySnapshot: () => snapshot, load: vi.fn(), select: vi.fn(async () => true) },
     draft: { provider: 'codex', model: 'gpt' }, onDraftChange: vi.fn(),
-    t: (key: string) => key, embedded: true, externalTargets: [target],
-    externalSelection: undefined, onExternalTargetChange,
+    t: (key: string) => key, embedded: true,
   }
 }
 
@@ -121,6 +118,111 @@ describe('ComposerPicker Plan transaction lock', () => {
     expect(trigger.props['aria-label']).toBe('retained-route')
   })
 
+  it('shows a Host-accepted selection while the directory projection catches up', async () => {
+    const oldSelection = { provider: 'codex', model: 'old-model' }
+    const delayedSnapshot = {
+      current: oldSelection,
+      routable: true,
+      groups: [{
+        id: 'codex',
+        name: 'Codex',
+        models: [
+          { id: 'old-model', name: 'Old Model' },
+          { id: 'new-model', name: 'New Model' },
+        ],
+      }],
+      failures: [],
+      status: 'ready' as const,
+      error: null,
+    }
+    const select = vi.fn(async () => true)
+    const pickerProps = {
+      locked: false,
+      available: true,
+      directory: {
+        snapshot: delayedSnapshot,
+        getDirectorySnapshot: () => delayedSnapshot,
+        load: vi.fn(),
+        select,
+      },
+      t: (key: string, params?: Record<string, string>) => params?.model ?? key,
+      tone: 'capsule' as const,
+    }
+    let picker!: ReturnType<typeof create>
+    await act(async () => { picker = create(<ComposerPicker {...pickerProps as never} />) })
+    await act(async () => { picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.onClick() })
+    const modelPane = picker.root.findAllByProps({ role: 'menuitem' }).find(item =>
+      item.findAllByType('span').some(span => span.children.includes('menu.model')),
+    )
+    await act(async () => { modelPane!.props.onClick() })
+    const newModel = picker.root.findAllByProps({ role: 'menuitemradio' }).find(item =>
+      item.findAllByType('span').some(span => span.children.includes('New Model')),
+    )
+    await act(async () => { newModel!.props.onClick() })
+
+    expect(select).toHaveBeenCalledWith({ provider: 'codex', model: 'new-model' })
+    expect(picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.title).toBe('New Model')
+
+    const projectedSnapshot = { ...delayedSnapshot, current: { provider: 'codex', model: 'new-model' } }
+    await act(async () => {
+      picker.update(<ComposerPicker {...{
+        ...pickerProps,
+        directory: {
+          ...pickerProps.directory,
+          snapshot: projectedSnapshot,
+          getDirectorySnapshot: () => projectedSnapshot,
+        },
+      } as never} />)
+    })
+    await act(async () => {
+      picker.update(<ComposerPicker {...pickerProps as never} />)
+    })
+    expect(picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.title).toBe('Old Model')
+  })
+
+  it('drops a Host-accepted overlay when the picker locks', async () => {
+    const oldSelection = { provider: 'codex', model: 'old-model' }
+    const delayedSnapshot = {
+      current: oldSelection,
+      routable: true,
+      groups: [{ id: 'codex', name: 'Codex', models: [
+        { id: 'old-model', name: 'Old Model' },
+        { id: 'new-model', name: 'New Model' },
+      ] }],
+      failures: [],
+      status: 'ready' as const,
+      error: null,
+    }
+    const pickerProps = {
+      locked: false,
+      available: true,
+      directory: {
+        snapshot: delayedSnapshot,
+        getDirectorySnapshot: () => delayedSnapshot,
+        load: vi.fn(),
+        select: vi.fn(async () => true),
+      },
+      t: (key: string, params?: Record<string, string>) => params?.model ?? key,
+      tone: 'capsule' as const,
+    }
+    let picker!: ReturnType<typeof create>
+    await act(async () => { picker = create(<ComposerPicker {...pickerProps as never} />) })
+    await act(async () => { picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.onClick() })
+    const modelPane = picker.root.findAllByProps({ role: 'menuitem' }).find(item =>
+      item.findAllByType('span').some(span => span.children.includes('menu.model')),
+    )
+    await act(async () => { modelPane!.props.onClick() })
+    const newModel = picker.root.findAllByProps({ role: 'menuitemradio' }).find(item =>
+      item.findAllByType('span').some(span => span.children.includes('New Model')),
+    )
+    await act(async () => { newModel!.props.onClick() })
+    expect(picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.title).toBe('New Model')
+    await act(async () => {
+      picker.update(<ComposerPicker {...{ ...pickerProps, locked: true } as never} />)
+    })
+    expect(picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.title).toBe('Old Model')
+  })
+
   it('opens exactly once from a mobile pointerdown plus click activation', async () => {
     let picker!: ReturnType<typeof create>
     await act(async () => { picker = create(<ComposerPicker {...props(false) as never} />) })
@@ -175,23 +277,6 @@ describe('ComposerPicker Plan transaction lock', () => {
     })
     await act(async () => { picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.onClick() })
     expect(String(picker.root.findByProps({ role: 'menu' }).props.style.right)).toContain('62px')
-  })
-
-  it('closes an already-open menu and rejects stale target actions when locked', async () => {
-    const onExternalTargetChange = vi.fn()
-    let picker!: ReturnType<typeof create>
-    await act(async () => { picker = create(<ComposerPicker {...props(false, onExternalTargetChange) as never} />) })
-    const trigger = picker.root.findByProps({ 'aria-haspopup': 'menu' })
-    await act(async () => { trigger.props.onClick() })
-    const option = picker.root.findByProps({ role: 'menuitemradio' })
-    expect(option.props.disabled).toBe(false)
-    const staleClick = option.props.onClick
-
-    await act(async () => { picker.update(<ComposerPicker {...props(true, onExternalTargetChange) as never} />) })
-    expect(picker.root.findAllByProps({ role: 'menuitemradio' })).toHaveLength(0)
-    await act(async () => { staleClick() })
-    expect(onExternalTargetChange).not.toHaveBeenCalled()
-    expect(picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.disabled).toBe(true)
   })
 
   it('opens the Model/Effort root pane on a capsule trigger', async () => {

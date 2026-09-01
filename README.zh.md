@@ -23,9 +23,11 @@
 
 打开 **设置 → Model Switch**。Main 修改只影响新建会话。Subagent 可以跟随 Main，也可以使用固定 provider、model 和 effort。
 
+切换 Main 或固定 Subagent 的 provider/model 时，会用目标模型的默认 effort 替换旧模型的 effort；目标模型不支持推理时不传 effort。
+
 ![Model Switch 设置中的固定 Subagent 路由](docs/screenshots/settings-subagent.png)
 
-Follow Main 先读取当前父请求，再读取配置的 Main 默认值。固定路由会在官方 Subagent descriptor 创建前注入。DSH 0.1.1-rc.2 无法携带 alpha.1 的子代理 effort 字段，因此 rc.2 上的子代理 effort 使用 provider 默认值。
+Follow Main 先读取当前父请求，再读取配置的 Main 默认值。固定路由会在官方 Subagent descriptor 创建前注入。DSH 0.1.2-alpha.1 会在该 descriptor 中携带 provider、model 和固定 reasoning effort。
 
 ## 自定义模型如何出现在 Picker
 
@@ -58,6 +60,7 @@ Model Switch 按 provider，以及剥离以下后缀后的 model id 对 Catalog 
 - `-fast` 生成 Fast 轴。
 - `-<n>k` 和 `-<n>m` 生成 Context 档位；可以与 `-fast` 按任意顺序组合。
 - `reasoning.efforts` 生成 Effort 选项；`reasoning.defaultEffort` 是初始值。
+- 切换 Fast、Context 或 Thinking 变体时，只有目标 Catalog 行支持当前 effort 才会保留；否则改用目标行的默认 effort，目标没有默认值时不传 effort。
 - Catalog 中存在 reasoning 元数据时，该模型行具备 Thinking 能力。
 - 无法识别的 id 不会被丢弃，而是作为独立 model family 显示。
 
@@ -85,7 +88,7 @@ Plan Review 拥有独立于 Main 的执行模型草稿。**确认执行**会先�
 ```sh
 DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.3
 DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.3
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.1
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.2
 ```
 
 如需路由 Web Search，把现有 Web 插件的 `searchProvider` 设置为 `model-switch`，并保留当前 `fetchProvider`。Model Switch 不会替换 `web_fetch`。
@@ -96,7 +99,7 @@ DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#
 
 ## 兼容性
 
-Model Switch v0.4.1 通过插件自有兼容 Adapter 支持 DSH 0.1.1-rc.2 和 DSH 0.1.2-alpha.1。alpha.1 增加固定 Subagent effort 传输，并用公开 Cordis/client 服务取代已经删除的单体 client runtime。无需 DSH Core patch。
+Model Switch 面向 DSH 0.1.2-alpha.1，通过公开 Cordis/client 服务和插件自有 Adapter 工作。无需 DSH Core patch。
 
 ## 开发
 
@@ -108,3 +111,41 @@ pnpm run check
 ```
 
 `check` 会构建 Host/Client artifacts，运行单元测试和 Cordis/Settings 组合测试，检查提取后的发布包，并验证 bundle 可复现。产品范围见 [PRODUCT.md](PRODUCT.md)，实现约束见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)。
+
+
+## 正式版安装（Latest）
+
+Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools. 正式成品只支持 DeepSeek Harness 0.1.2-alpha.1；发布包只包含构建后的 Host/Client 产物，不包含兄弟仓库源码、本机路径或本地协议依赖。
+
+Latest 安装命令（永久不含版本号）：
+
+~~~sh
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch.tgz
+~~~
+
+固定版本安装命令：
+
+~~~sh
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.4/dsh-model-switch.tgz
+~~~
+
+更新、卸载与验证：
+
+~~~sh
+# 更新到最新 Release
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch.tgz
+# 验证加载与版本
+dsh plugin --profile web list
+dsh plugin --profile web doctor
+# 只卸载本插件
+dsh plugin --profile web remove dsh-model-switch
+~~~
+
+配置入口：Web 使用「设置」中的本插件页面；Host-only 插件使用 profile 的 dsh.profile.bundles 配置。先复制本 README 的最小 YAML/JSON 示例，再填写凭据或后端地址。
+
+回滚：重新执行固定版本 v0.4.4 命令，确认插件列表后只重启一次 Web 服务。失败时查看 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor，不要把源码 checkout 写入 production profile。
+
+Release 与完整性：[v0.4.4](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.4) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.4/SHA256SUMS)。

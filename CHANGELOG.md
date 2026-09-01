@@ -5,12 +5,14 @@
 - Settings → LLM Providers: drag cards to reorder; chat picker follows `llm-providers.order` via dsh-llm-providers-ui.
 
 
-## Unreleased
+## 0.4.3
+
+- Keep a Host-accepted composer selection visible while its durable Session projection catches up, then return authority to newer projected selections.
 
 ## 0.4.1 - 2026-08-29
 
 - Support DSH 0.1.2-alpha.1 through the public Cordis, Settings, Remote, Session, and Model Directory services after the monolithic client runtime removal.
-- Carry fixed Subagent reasoning effort on alpha.1 while retaining rc.2 provider-default compatibility.
+- Carry fixed Subagent reasoning effort on alpha.1.
 - Let the composer model trigger use the full available seat width on mobile instead of clipping long model labels.
 - Keep Composer and Plan model switches session-local with a revision-fenced Main-default restore where the Host couples session selection to deployment defaults.
 - Publish bilingual product documentation and screenshots, including the provider-catalog rules for custom Picker families.
@@ -75,7 +77,7 @@
 - Plan Review uses the official warn-strip card, a short capsule trigger, and a two-level Model/Effort/Context/Fast/Thinking menu.
 - One `dsh plugin add dsh-model-switch` now covers routing Settings and composer/Plan selection. Remove a standalone `dsh-composer-picker` install to avoid a second model seat.
 - Picker trigger shows the family name plus distinct effort / Fast / context bits; duplicate context windows collapse to one menu row.
-- Known limitations: Settings nav icon still patches official nav DOM (no public icon field, same pattern as usage-monitor). The `external-agents.plan-review.continue-in-dsh` adapter stays registered for dual-install; Plan Review takeover currently wins at priority -7 because the official Plan handoff seam is unavailable.
+- Known limitations: Settings nav icon still patches official nav DOM (no public icon field, same pattern as usage-monitor).
 
 ## 0.2.0 - 2026-08-26
 

@@ -14,7 +14,6 @@ export declare const zh: {
     'menu.thinking': string;
     'menu.search': string;
     'context.standard': string;
-    'external.section': string;
     'fast.on': string;
     'fast.off': string;
     'thinking.on': string;
@@ -37,8 +36,10 @@ export declare const zh: {
     'plan.modelFailed': string;
     'plan.pickerCrash': string;
     'plan.responseRejected': string;
-    'plan.cancelMessage': string;
     'plan.cancelRejected': string;
+    'markdown.copy': string;
+    'markdown.copied': string;
+    'markdown.footnotes': string;
 };
 export type PickerKey = keyof typeof zh;
 export declare const en: {
@@ -56,7 +57,6 @@ export declare const en: {
     'menu.thinking': string;
     'menu.search': string;
     'context.standard': string;
-    'external.section': string;
     'fast.on': string;
     'fast.off': string;
     'thinking.on': string;
@@ -79,6 +79,8 @@ export declare const en: {
     'plan.modelFailed': string;
     'plan.pickerCrash': string;
     'plan.responseRejected': string;
-    'plan.cancelMessage': string;
     'plan.cancelRejected': string;
+    'markdown.copy': string;
+    'markdown.copied': string;
+    'markdown.footnotes': string;
 };

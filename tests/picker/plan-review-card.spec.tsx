@@ -21,14 +21,14 @@ import { en, zh, type PickerKey } from '../../src/client/picker/locales.ts'
 
 const selection = { provider: 'codex', model: 'gpt-5.6-sol' }
 const baseSnapshot = { current: selection, routable: true, groups: [], failures: [], status: 'ready', error: null as string | null }
-function wait(respond = vi.fn(async () => ({ accepted: true })), key = 'plan-1') {
+function wait(answer = vi.fn(async () => undefined), key = 'plan-1', cancel = vi.fn(async () => undefined)) {
   return {
-    kind: 'question', key, sessionId: 'session-1', respond,
-    payload: { questions: [{
+    kind: 'plan-review', key, sessionId: 'session-1', answer, cancel,
+    questions: [{
       id: 'approve-plan', question: 'Ready?', detail: '# Plan', multiSelect: false,
       intent: { kind: 'plan-review', approve: 'Approve' },
       options: [{ label: 'Approve' }, { label: 'Keep planning' }],
-    }] },
+    }],
   }
 }
 function props(overrides: Record<string, unknown> = {}) {
@@ -37,6 +37,7 @@ function props(overrides: Record<string, unknown> = {}) {
     matched: wait() as never,
     available: true,
     useDirectory: (selector: (value: typeof baseSnapshot) => unknown) => selector(snapshot),
+    useProviderOrder: (selector: (value: readonly string[]) => unknown) => selector([]),
     getDirectorySnapshot: () => snapshot,
     setSnapshot: (next: typeof baseSnapshot) => { snapshot = next },
     load: () => undefined,
@@ -96,11 +97,11 @@ describe('PlanReviewCard', () => {
   })
 
   it('keeps a rejected approval visible, shows a localized error, and retries it', async () => {
-    const respond = vi.fn(async () => ({ accepted: true }))
+    const answer = vi.fn(async () => undefined)
     const select = vi.fn<() => Promise<boolean>>()
       .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(true)
-    const fixture = props({ matched: wait(respond), select, t: locale(zh) })
+    const fixture = props({ matched: wait(answer), select, t: locale(zh) })
     fixture.setSnapshot({ ...baseSnapshot, error: null })
     let card!: ReturnType<typeof create>
     await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
@@ -111,43 +112,37 @@ describe('PlanReviewCard', () => {
       node.children.includes(zh['plan.modelFailed']),
     )).toBe(true)
     expect(approve(card, zh['plan.approve']).props.disabled).toBe(false)
-    expect(respond).not.toHaveBeenCalled()
+    expect(answer).not.toHaveBeenCalled()
 
     await act(async () => { approve(card, zh['plan.approve']).props.onClick(); await Promise.resolve(); await Promise.resolve() })
     expect(select).toHaveBeenCalledTimes(2)
-    expect(respond).toHaveBeenCalledTimes(1)
+    expect(answer).toHaveBeenCalledTimes(1)
   })
 
-  it('keeps a transient response failure after commit visible and retryable', async () => {
-    const respond = vi.fn()
-      .mockRejectedValueOnce(new Error('transport unavailable'))
-      .mockResolvedValueOnce({ accepted: true })
+  it('uses PendingQuestion.answer as a one-way local settlement', async () => {
+    const answer = vi.fn(async () => undefined)
     const select = vi.fn(async () => true)
-    const fixture = props({ matched: wait(respond), select, t: locale(en) })
+    const fixture = props({ matched: wait(answer), select, t: locale(en) })
     let card!: ReturnType<typeof create>
     await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
 
     await act(async () => { approve(card, en['plan.approve']).props.onClick(); await Promise.resolve(); await Promise.resolve() })
-    expect(card.root.findAllByProps({ role: 'status' }).some(node =>
-      node.children.includes('transport unavailable'),
-    )).toBe(true)
-    expect(approve(card, en['plan.approve']).props.disabled).toBe(false)
-
-    await act(async () => { approve(card, en['plan.approve']).props.onClick(); await Promise.resolve(); await Promise.resolve() })
-    expect(select).toHaveBeenCalledTimes(2)
-    expect(respond).toHaveBeenCalledTimes(2)
+    expect(select).toHaveBeenCalledOnce()
+    expect(answer).toHaveBeenCalledOnce()
+    expect(card.root.findAllByProps({ role: 'status' }).every(node => node.children.length === 0)).toBe(true)
+    expect(approve(card, en['plan.approve']).props.disabled).toBe(true)
   })
 
   it('fails closed when another client wins the non-atomic response race after commit', async () => {
-    const respond = vi.fn(async () => ({ accepted: false, reason: 'already-settled' }))
+    const answer = vi.fn(async () => { throw new Error('already-settled') })
     const select = vi.fn(async () => true)
-    const fixture = props({ matched: wait(respond), select, t: locale(en) })
+    const fixture = props({ matched: wait(answer), select, t: locale(en) })
     let card!: ReturnType<typeof create>
     await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
 
     await act(async () => { approve(card, en['plan.approve']).props.onClick(); await Promise.resolve(); await Promise.resolve() })
     expect(select).toHaveBeenCalledTimes(1)
-    expect(respond).toHaveBeenCalledTimes(1)
+    expect(answer).toHaveBeenCalledTimes(1)
     expect(approve(card, en['plan.approve']).props.disabled).toBe(true)
     expect(card.root.findAllByType('button').every(button => button.props.disabled === true)).toBe(true)
     expect(card.root.findAllByProps({ role: 'status' }).some(node =>
@@ -156,12 +151,12 @@ describe('PlanReviewCard', () => {
 
     await act(async () => { approve(card, en['plan.approve']).props.onClick(); await Promise.resolve() })
     expect(select).toHaveBeenCalledTimes(1)
-    expect(respond).toHaveBeenCalledTimes(1)
+    expect(answer).toHaveBeenCalledTimes(1)
   })
 
   it('resets terminal action state when the registered boundary receives a different wait', async () => {
-    const first = vi.fn(async () => ({ accepted: false, reason: 'already-settled' }))
-    const second = vi.fn(async () => ({ accepted: true }))
+    const first = vi.fn(async () => { throw new Error('already-settled') })
+    const second = vi.fn(async () => undefined)
     const fixture = props({ matched: wait(first, 'plan-1'), t: locale(en) })
     let card!: ReturnType<typeof create>
     await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
@@ -178,16 +173,14 @@ describe('PlanReviewCard', () => {
   })
 
   it('renders localized cancellation rejection and leaves the uncommitted action retryable', async () => {
-    const respond = vi.fn(async () => ({ accepted: false, reason: 'already-settled' }))
-    const fixture = props({ matched: wait(respond), t: locale(zh) })
+    const cancel = vi.fn(async () => { throw new Error('already-settled') })
+    const fixture = props({ matched: wait(undefined, 'plan-1', cancel), t: locale(zh) })
     let card!: ReturnType<typeof create>
     await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
 
     const discuss = card.root.findAllByType('button').find(button => button.children.includes(zh['plan.discuss']))!
     await act(async () => { discuss.props.onClick(); await Promise.resolve(); await Promise.resolve() })
-    expect(respond).toHaveBeenCalledWith(expect.objectContaining({
-      ok: false, error: expect.objectContaining({ message: zh['plan.cancelMessage'] }),
-    }))
+    expect(cancel).toHaveBeenCalledOnce()
     expect(card.root.findAllByProps({ role: 'status' }).some(node =>
       node.children.includes(zh['plan.cancelRejected']),
     )).toBe(true)
@@ -197,15 +190,15 @@ describe('PlanReviewCard', () => {
   it('starts at most one approval operation for same-tick gestures', async () => {
     let resolveCommit!: (accepted: boolean) => void
     const select = vi.fn(() => new Promise<boolean>(resolve => { resolveCommit = resolve }))
-    const respond = vi.fn(async () => ({ accepted: true }))
-    const fixture = props({ matched: wait(respond), select })
+    const answer = vi.fn(async () => undefined)
+    const fixture = props({ matched: wait(answer), select })
     let card!: ReturnType<typeof create>
     await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
 
     const button = approve(card)
     await act(async () => { button.props.onClick(); button.props.onClick(); await Promise.resolve() })
     expect(select).toHaveBeenCalledTimes(1)
-    expect(respond).not.toHaveBeenCalled()
+    expect(answer).not.toHaveBeenCalled()
 
     await act(async () => { resolveCommit(false); await Promise.resolve(); await Promise.resolve() })
   })
@@ -213,16 +206,16 @@ describe('PlanReviewCard', () => {
   it('cannot answer before the execution-model commit resolves', async () => {
     let resolveCommit!: (accepted: boolean) => void
     const select = vi.fn(() => new Promise<boolean>(resolve => { resolveCommit = resolve }))
-    const respond = vi.fn(async () => ({ accepted: true }))
-    const fixture = props({ matched: wait(respond), select })
+    const answer = vi.fn(async () => undefined)
+    const fixture = props({ matched: wait(answer), select })
     let card!: ReturnType<typeof create>
     await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
 
     await act(async () => { approve(card).props.onClick(); await Promise.resolve() })
     expect(approve(card).props.disabled).toBe(true)
-    expect(respond).not.toHaveBeenCalled()
+    expect(answer).not.toHaveBeenCalled()
 
     await act(async () => { resolveCommit(true); await Promise.resolve(); await Promise.resolve() })
-    expect(select.mock.invocationCallOrder[0]).toBeLessThan(respond.mock.invocationCallOrder[0]!)
+    expect(select.mock.invocationCallOrder[0]).toBeLessThan(answer.mock.invocationCallOrder[0]!)
   })
 })

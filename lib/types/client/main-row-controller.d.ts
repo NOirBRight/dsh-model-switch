@@ -1,5 +1,5 @@
-import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-remotes/client';
-import type { SettingsScopeSnapshot } from './shim.js';
+import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types';
+import type { SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client';
 import { type CapabilityRouteView, type MainSettingsView, type SubagentSettingsView } from '../client-contract.js';
 import type { ModelSwitchLocaleKey } from './locales.js';
 type Share<T> = (selector: (snapshot: SettingsScopeSnapshot<T>) => SettingsScopeSnapshot<T>) => SettingsScopeSnapshot<T>;
@@ -8,6 +8,7 @@ export interface SettingsControllerInputs {
     useSubagentSettings: Share<SubagentSettingsView>;
     saveMain(next: MainSettingsView, expectedRevision: number): Promise<number>;
     loadCatalog(): Promise<readonly ModelProviderGroup[]>;
+    subscribeProviderOrder?: (listener: () => void) => () => void;
     t(key: ModelSwitchLocaleKey): string;
 }
 export interface Choice {
@@ -15,6 +16,8 @@ export interface Choice {
     name: string;
     unavailable?: true;
 }
+/** Build a settings route for a newly selected model using only that model's default effort. */
+export declare function selectRouteModel(groups: readonly ModelProviderGroup[], provider: string, model: string): MainSettingsView;
 export declare function deriveRouteChoices(groups: readonly ModelProviderGroup[], route: CapabilityRouteView | undefined, allowedProviders?: readonly string[]): {
     providers: Choice[];
     models: Choice[];

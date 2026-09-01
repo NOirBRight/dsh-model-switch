@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sortCatalogGroups } from 'dsh-llm-providers-ui/client'
+import { sortCatalogGroups } from 'dsh-llm-providers-ui/order'
 
 describe('chat picker provider order', () => {
   it('places saved llm routes first and keeps unknown catalog groups after', () => {

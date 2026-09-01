@@ -1,4 +1,5 @@
-import type { SettingsScope, SettingsScopeSnapshot } from './shim.js';
+import type { SettingsPathOpView } from '@deepseek-ai/dsh-api-remotes/client';
+import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client';
 interface RemoteError {
     code: string;
     message: string;
@@ -36,6 +37,7 @@ export declare class RemoteSettingsScope<T> implements SettingsScope<T> {
     reload(): Promise<void>;
     set(field: string, value: unknown): Promise<void>;
     unset(field: string): Promise<void>;
+    mutate(ops: readonly SettingsPathOpView[], expectedRevision?: number): Promise<void>;
     private write;
     private accept;
     private publish;
