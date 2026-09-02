@@ -278,7 +278,12 @@ export const profileSubagentRuntime = Object.assign(
 export class ModelSwitchSubagentRuntime extends OfficialSubagentRuntime {
   static inject = ['modelSwitch']
 
-  private routed<T extends RoutableSubagentRequest>(request: T): T {
+  private routed<T extends RoutableSubagentRequest>(name: string, request: T): T {
+    const provider = this.ctx.subagents.getProvider(name)
+    // External Product Workers are one-shot process adapters. They do not
+    // accept DSH Agent options, so Model Switch must not reinterpret them as
+    // Native continuable Subagents or inject a provider/model route.
+    if (provider !== undefined && provider.capabilities.agentOptions !== true) return request
     const modelSwitch = routingSurface(this.ctx)
     return routeSubagentRequest(
       request,
@@ -288,11 +293,11 @@ export class ModelSwitchSubagentRuntime extends OfficialSubagentRuntime {
   }
 
   override start(name: string, request: SubagentStartRequest): Promise<SubagentRun> {
-    return super.start(name, this.routed(request))
+    return super.start(name, this.routed(name, request))
   }
 
   override startContinuable(spec: ContinuableStartSpec): Promise<ContinuableStart> {
-    return super.startContinuable({ ...spec, request: this.routed(spec.request) })
+    return super.startContinuable({ ...spec, request: this.routed(spec.provider, spec.request) })
   }
 }
 

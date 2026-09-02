@@ -1,7 +1,7 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import type { ModelSelection } from '@deepseek-ai/dsh-agent'
 import type { AgentDefaultModelConfig } from '@deepseek-ai/dsh-agent-default-model'
-import { installSettingsSection } from '@deepseek-ai/dsh-settings'
+import type SettingsProvider from '@deepseek-ai/dsh-settings'
 import { Config, MODEL_SWITCH_SETTINGS_NAMESPACE, type Config as ModelSwitchSettings } from './host-settings.js'
 import { RUNTIME_CAPABILITIES } from './runtime-capabilities.js'
 import { ModelSwitchAdapterRegistry } from './adapter-registry.js'
@@ -25,10 +25,15 @@ export class ModelSwitchRuntime extends Service {
     this.source = () => entry
     installModelSwitchSearchProvider(ctx, this)
     const imageTool = installGenerateImageTool(ctx, this)
-    installSettingsSection(ctx, MODEL_SWITCH_SETTINGS_NAMESPACE, Config, entry, {
-      setSource: (current) => { this.source = current },
-      onChange: () => { void imageTool.reconcile().catch(error => { ctx.logger.error('Model Switch: failed to regenerate generate_image schema'); ctx.logger.error(error) }) },
-    })
+    const install = (settings: SettingsProvider): void => {
+      settings.installSection(ctx, MODEL_SWITCH_SETTINGS_NAMESPACE, Config, entry, {
+        setSource: (current) => { this.source = current },
+        onChange: () => { void imageTool.reconcile().catch(error => { ctx.logger.error('Model Switch: failed to regenerate generate_image schema'); ctx.logger.error(error) }) },
+      })
+    }
+    const settings = ctx.get('settings')
+    if (settings === undefined) ctx.inject(['settings'], settingsCtx => install(settingsCtx.settings))
+    else install(settings)
   }
 
   currentSettings(): ModelSwitchSettings { return { ...this.source() } }

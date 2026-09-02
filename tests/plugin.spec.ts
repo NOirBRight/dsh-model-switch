@@ -22,7 +22,7 @@ describe('Host runtime surface', () => {
     expect(service.saveSelection).toHaveBeenCalledOnce()
     expect(port.currentSelection().provider).toBe('codex')
   })
-  it('reports available routing and remaining alpha.1 gaps', () => {
+  it('reports available routing and remaining Alpha.4 gaps', () => {
     expect(RUNTIME_CAPABILITIES.mainDefaults.available).toBe(true)
     expect(RUNTIME_CAPABILITIES.settings.available).toBe(true)
     expect(RUNTIME_CAPABILITIES.centralSubagentRouting.available).toBe(true)

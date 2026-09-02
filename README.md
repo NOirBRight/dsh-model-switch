@@ -4,6 +4,8 @@ English | [中文](README.zh.md)
 
 Choose one explicit route for Main, Subagents, Web Search, image generation, the active conversation, and Plan execution in DeepSeek Harness. Model Switch uses public DSH services and provider-owned adapters; it does not patch DSH Core or manage provider credentials.
 
+Compatibility: this release requires DeepSeek Harness `0.1.2-alpha.4` and `@deepseek-ai/cordis@4.0.2`; it is not compatible with Alpha.1–Alpha.3. Users on older runtimes must keep the last plugin tag built for that runtime.
+
 <p align="center"><img src="docs/screenshots/composer-picker.png" alt="Composer Picker with Model, Effort, Context, and Fast controls" width="314"></p>
 
 ## Routes
@@ -27,7 +29,7 @@ Changing the Main or fixed Subagent provider/model replaces the previous model's
 
 ![Model Switch settings with a fixed Subagent route](docs/screenshots/settings-subagent.png)
 
-Follow Main resolves the active parent request first, then the configured Main default. A fixed route is injected before the official Subagent descriptor is created. DSH 0.1.2-alpha.1 carries provider, model, and fixed reasoning effort in that descriptor.
+Follow Main resolves the active parent request first, then the configured Main default. A fixed route is injected before the official Subagent descriptor is created. DSH 0.1.2-alpha.4 carries provider, model, and fixed reasoning effort in that descriptor.
 
 ## How custom models appear in the Picker
 
@@ -83,12 +85,12 @@ Plan Review owns an execution-model draft separate from Main. **Confirm** first 
 
 ## Installation
 
-Install Model Switch and only the provider adapters you use. These versions are validated with DSH 0.1.2-alpha.1:
+Install Model Switch and only the provider adapters you use. These versions are validated with DSH 0.1.2-alpha.4:
 
 ```sh
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.3
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.3
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.2
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.8
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.8
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.5
 ```
 
 For routed Web Search, set the existing Web plugin's `searchProvider` to `model-switch` and preserve its current `fetchProvider`. Model Switch never replaces `web_fetch`.
@@ -99,7 +101,7 @@ Production profiles must use released GitHub tags rather than workspace-local de
 
 ## Compatibility
 
-Model Switch targets DSH 0.1.2-alpha.1 through public Cordis/client services and plugin-owned adapters. No DSH Core patch is required.
+Model Switch targets DSH 0.1.2-alpha.4 through public Cordis/client services and plugin-owned adapters. No DSH Core patch is required.
 
 ## Development
 
@@ -115,7 +117,7 @@ pnpm run check
 
 ## Release installation (Latest)
 
-Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools. The release artifact targets DeepSeek Harness 0.1.2-alpha.1 and contains built Host/Client files only; it has no sibling-repository source, workstation path, or local protocol dependency.
+Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools. The release artifact targets DeepSeek Harness 0.1.2-alpha.4 and contains built Host/Client files only; it has no sibling-repository source, workstation path, or local protocol dependency.
 
 Latest installation (the URL never contains a version):
 
@@ -148,4 +150,4 @@ Configuration: use the plugin section in Settings for Web UI plugins, or the pro
 
 Rollback: rerun the fixed v0.4.4 command, verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never put a source checkout in the production profile.
 
-Release and integrity: [v0.4.4](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.4) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.4/SHA256SUMS).
+Release and integrity: [v0.4.5](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.5) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.5/SHA256SUMS).

@@ -27,7 +27,7 @@
 
 ![Model Switch 设置中的固定 Subagent 路由](docs/screenshots/settings-subagent.png)
 
-Follow Main 先读取当前父请求，再读取配置的 Main 默认值。固定路由会在官方 Subagent descriptor 创建前注入。DSH 0.1.2-alpha.1 会在该 descriptor 中携带 provider、model 和固定 reasoning effort。
+Follow Main 先读取当前父请求，再读取配置的 Main 默认值。固定路由会在官方 Subagent descriptor 创建前注入。DSH 0.1.2-alpha.4 会在该 descriptor 中携带 provider、model 和固定 reasoning effort。
 
 ## 自定义模型如何出现在 Picker
 
@@ -83,12 +83,12 @@ Plan Review 拥有独立于 Main 的执行模型草稿。**确认执行**会先�
 
 ## 安装
 
-安装 Model Switch，以及实际使用的 Provider Adapter。以下版本已在 DSH 0.1.2-alpha.1 验证：
+安装 Model Switch，以及实际使用的 Provider Adapter。以下版本已在 DSH 0.1.2-alpha.4 验证：
 
 ```sh
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.3
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.3
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.2
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.8
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.8
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.5
 ```
 
 如需路由 Web Search，把现有 Web 插件的 `searchProvider` 设置为 `model-switch`，并保留当前 `fetchProvider`。Model Switch 不会替换 `web_fetch`。
@@ -99,7 +99,7 @@ DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#
 
 ## 兼容性
 
-Model Switch 面向 DSH 0.1.2-alpha.1，通过公开 Cordis/client 服务和插件自有 Adapter 工作。无需 DSH Core patch。
+Model Switch 面向 DSH 0.1.2-alpha.4，通过公开 Cordis/client 服务和插件自有 Adapter 工作。无需 DSH Core patch。
 
 ## 开发
 
@@ -115,7 +115,7 @@ pnpm run check
 
 ## 正式版安装（Latest）
 
-Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools. 正式成品只支持 DeepSeek Harness 0.1.2-alpha.1；发布包只包含构建后的 Host/Client 产物，不包含兄弟仓库源码、本机路径或本地协议依赖。
+Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools. 正式成品只支持 DeepSeek Harness 0.1.2-alpha.4；发布包只包含构建后的 Host/Client 产物，不包含兄弟仓库源码、本机路径或本地协议依赖。
 
 Latest 安装命令（永久不含版本号）：
 
@@ -148,4 +148,4 @@ dsh plugin --profile web remove dsh-model-switch
 
 回滚：重新执行固定版本 v0.4.4 命令，确认插件列表后只重启一次 Web 服务。失败时查看 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor，不要把源码 checkout 写入 production profile。
 
-Release 与完整性：[v0.4.4](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.4) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.4/SHA256SUMS)。
+Release 与完整性：[v0.4.5](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.5) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.5/SHA256SUMS)。

@@ -7,6 +7,7 @@ import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { type ResolvedSubagentStartRequest, type SubagentCapabilities, type SubagentProvider, type SubagentRun } from '@deepseek-ai/dsh-subagent'
 import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import profileSubagentRuntime, { ModelSwitchSubagentRuntime } from '../src/subagent-runtime.js'
@@ -71,6 +72,14 @@ const routingCapabilities: SubagentCapabilities = {
   persona: false,
 }
 
+const processWorkerCapabilities: SubagentCapabilities = {
+  agentOptions: false,
+  outputSchema: false,
+  depthLimit: false,
+  toolFilter: false,
+  persona: false,
+}
+
 describe('public profile-patched Subagent replacement', () => {
   it('routes a one-shot request before the official descriptor is created', async () => {
     const context = await loadComposition()
@@ -109,11 +118,27 @@ describe('public profile-patched Subagent replacement', () => {
     expect(observed?.agentOptions).toMatchObject({ provider: 'workflow-provider', model: 'workflow-model', maxTokens: 123 })
   })
 
+  it('does not inject a Native route into one-shot process workers', async () => {
+    const context = await loadComposition()
+    let observed: ResolvedSubagentStartRequest | undefined
+    await registerCapture(context, {
+      capabilities: processWorkerCapabilities,
+      inheritsParentContext: false,
+      start: async (request) => { observed = request; return successfulRun(request) },
+    })
+    await context.subagents.start('capture', {
+      prompt: [{ type: 'text', text: 'external worker' }],
+      parent: parentWithRoute({ provider: 'parent-provider', model: 'parent-model' }),
+    })
+    expect(observed?.agentOptions).toBeUndefined()
+  })
+
   it('routes a continuable child before official descriptor and Agent creation', async () => {
     const context = new Context()
     ctx = context
     root = await mkdtemp(join(tmpdir(), 'dsh-model-switch-continuable-'))
     await mountAgentLoopTestDependencies(context)
+    await context.plugin(SessionProjectionRegistry)
     await context.plugin(JsonlSessionPersistence, { root })
     await context.plugin(AgentLoop, { agents: [] })
     await context.plugin(TestModelSwitch)
