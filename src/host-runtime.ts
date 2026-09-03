@@ -7,6 +7,7 @@ import { RUNTIME_CAPABILITIES } from './runtime-capabilities.js'
 import { ModelSwitchAdapterRegistry } from './adapter-registry.js'
 import { installModelSwitchSearchProvider } from './search-provider.js'
 import { installGenerateImageTool } from './image-tool.js'
+import { allowDshRuntime } from './compatibility.js'
 
 declare module '@deepseek-ai/cordis' {
   interface Context { modelSwitch: ModelSwitchRuntime }
@@ -23,6 +24,7 @@ export class ModelSwitchRuntime extends Service {
   constructor(ctx: Context, entry: ModelSwitchSettings) {
     super(ctx, 'modelSwitch')
     this.source = () => entry
+    if (!allowDshRuntime(ctx.logger, 'dsh-model-switch', ['@deepseek-ai/dsh-agent'])) return
     installModelSwitchSearchProvider(ctx, this)
     const imageTool = installGenerateImageTool(ctx, this)
     const install = (settings: SettingsProvider): void => {
