@@ -13,8 +13,7 @@ import { decodeMainSettings, MAIN_SETTINGS_ID, type MainSettingsView } from '../
 import { selectPlanReview } from '../../picker/plan-review.ts'
 import { ComposerPicker } from './ComposerPicker.tsx'
 import { decodeProviderOrder, PROVIDERS_SETTINGS_NS } from 'dsh-llm-providers-ui/order'
-import { pickerDirectoryViewOrdered, type PickerDirectoryFace, type PickerDirectorySnapshot } from './PickerDirectory.ts'
-import { createExternalCatalogStore } from './external-catalog.ts'
+import { pickerDirectoryViewOrdered, type PickerDirectoryFace } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { PlanReviewCard } from './PlanReviewCard.tsx'
 import { PickerSeatBoundary } from './PickerSeatBoundary.tsx'
@@ -29,19 +28,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 const NS = 'composer-picker'
 const MODEL_PRIORITY = -10
 const PLAN_REVIEW_PRIORITY = -5
-
-function externalCatalogLoader(ctx: ClientContext): (() => Promise<PickerDirectorySnapshot['groups']>) | undefined {
-  let value: unknown
-  try { value = ctx.get('connection', false) } catch { return undefined }
-  if (value === null || typeof value !== 'object' || !('rpc' in value)) return undefined
-  const rpc = (value as { rpc: { call: (channel: string, endpoint: string, payload: unknown, extra: undefined) => Promise<{ ok: boolean; value?: { groups?: PickerDirectorySnapshot['groups'] } }> } }).rpc
-  return async () => {
-    try {
-      const result = await rpc.call('/dsh-acp-antigravity', 'catalog', {}, undefined)
-      return result.ok && Array.isArray(result.value?.groups) ? result.value.groups : []
-    } catch { return [] }
-  }
-}
 
 function interactionOperationsFrom(ctx: ClientContext): PickerInteractionOperations | undefined {
   let value: unknown
@@ -155,27 +141,19 @@ export function installComposerPicker(ctx: ClientContext): void {
     const orderStore = providerOrderStore(scope.settingsScope)
     const remoteSettings = (scope as unknown as { remote: { settings: RemoteSettingsFace } }).remote.settings
     const resolveInteractionOperations = (): PickerInteractionOperations | undefined => interactionOperationsFrom(scope)
-    const loadExternalCatalog = externalCatalogLoader(scope)
     const directoryFace = (sessionId: Parameters<typeof models.directoryFor>[0]): DirectoryFace => {
       const directory = models.directoryFor(sessionId)
-      const overlay = createExternalCatalogStore(directory.store)
       const available = sessions?.subagentAddress?.(sessionId) === undefined
       return {
         available,
-        hooks: { directory: overlay.store, providerOrder: orderStore },
-        getDirectorySnapshot: overlay.store.getSnapshot,
+        hooks: { directory: directory.store, providerOrder: orderStore },
+        getDirectorySnapshot: directory.store.getSnapshot,
         resolveInteractionOperations,
         load: () => {
           if (available) directory.load().catch(() => { /* surfaced on the store */ })
-          if (loadExternalCatalog !== undefined) void loadExternalCatalog().then(overlay.setExtra).catch(() => overlay.setExtra([]))
         },
         select: async (selection: ModelSelection) => {
           if (!available) return false
-          if (overlay.extraIds().has(selection.provider)) {
-            overlay.setCurrent(selection)
-            return true
-          }
-          overlay.setCurrent(null)
           const defaultBeforeSwitch = mainDefaults.getSnapshot()
           try {
             await directory.select(selection)
