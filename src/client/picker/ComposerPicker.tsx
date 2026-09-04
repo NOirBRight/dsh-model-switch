@@ -270,6 +270,7 @@ export function ComposerPicker({
     applySelection(selectionOf(family, member, effort))
   }
 
+  const runtimeGlyph = (provider: string): string => provider === 'antigravity' ? 'Ag' : provider.slice(0, 1).toUpperCase()
   const modelLabel = family?.name ?? member?.model.name ?? currentSelection?.model ?? t('trigger.fallback')
   const contextBit = contextLabel === undefined || contextLabel === STANDARD_CONTEXT_LABEL
     ? undefined
@@ -397,7 +398,7 @@ export function ComposerPicker({
               const headingId = `${id}-${section.provider}`
               return (
                 <section role="group" aria-labelledby={headingId} className={css.group} key={section.provider}>
-                  <div className={css.groupTitle} id={headingId}>{section.providerName}</div>
+                  <div className={css.groupTitle} id={headingId}><span className={css.runtimeMark}>{runtimeGlyph(section.provider)}</span>{section.providerName}</div>
                   {section.families.map(item => {
                     const selected = currentSelection?.provider === item.provider
                       && item.members.some(entry => entry.model.id === currentSelection.model)
@@ -540,7 +541,7 @@ export function ComposerPicker({
         onPointerDown={onTriggerPointerDown}
         onClick={onTriggerClick}
       >
-        <span className={css.triggerLabel}>{triggerLabel}</span>
+        <span className={css.triggerLabel}>{currentSelection !== null ? <span className={css.runtimeMark}>{runtimeGlyph(currentSelection.provider)}</span> : null}{triggerLabel}</span>
         <IconChevronDownOutline14 className={classNames(css.chevron, open && css.chevronOpen)} />
       </button>
       {menu !== null && (tone === 'capsule' ? menu : createPortal(menu, document.body))}
