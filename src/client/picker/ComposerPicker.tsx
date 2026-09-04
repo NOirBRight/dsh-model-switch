@@ -129,6 +129,17 @@ export function ModelPaneHeader({
   )
 }
 
+function RuntimeIcon({ provider }: { provider: string }) {
+  if (provider === 'antigravity') {
+    return (
+      <svg className={css.runtimeMark} viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+        <path fill="currentColor" d="M8 1.15c.22 0 .4.14.47.35l1.48 4.08 4.28.2c.44.02.62.58.28.86L11.3 8.8l1.18 4.2c.13.45-.38.8-.72.54L8 11.18 4.24 13.54c-.34.26-.85-.09-.72-.54l1.18-4.2-3.21-2.16c-.34-.28-.16-.84.28-.86l4.28-.2L7.53 1.5c.07-.21.25-.35.47-.35z" />
+      </svg>
+    )
+  }
+  return <span className={css.runtimeMark}>{provider.slice(0, 1).toUpperCase()}</span>
+}
+
 export function ComposerPicker({
   locked, available, directory, t, draft, onDraftChange, embedded,
   tone,
@@ -270,7 +281,6 @@ export function ComposerPicker({
     applySelection(selectionOf(family, member, effort))
   }
 
-  const runtimeGlyph = (provider: string): string => provider === 'antigravity' ? 'Ag' : provider.slice(0, 1).toUpperCase()
   const modelLabel = family?.name ?? member?.model.name ?? currentSelection?.model ?? t('trigger.fallback')
   const contextBit = contextLabel === undefined || contextLabel === STANDARD_CONTEXT_LABEL
     ? undefined
@@ -398,7 +408,7 @@ export function ComposerPicker({
               const headingId = `${id}-${section.provider}`
               return (
                 <section role="group" aria-labelledby={headingId} className={css.group} key={section.provider}>
-                  <div className={css.groupTitle} id={headingId}><span className={css.runtimeMark}>{runtimeGlyph(section.provider)}</span>{section.providerName}</div>
+                  <div className={css.groupTitle} id={headingId}><RuntimeIcon provider={section.provider} />{section.providerName}</div>
                   {section.families.map(item => {
                     const selected = currentSelection?.provider === item.provider
                       && item.members.some(entry => entry.model.id === currentSelection.model)
@@ -541,7 +551,7 @@ export function ComposerPicker({
         onPointerDown={onTriggerPointerDown}
         onClick={onTriggerClick}
       >
-        <span className={css.triggerLabel}>{currentSelection !== null ? <span className={css.runtimeMark}>{runtimeGlyph(currentSelection.provider)}</span> : null}{triggerLabel}</span>
+        <span className={css.triggerLabel}>{currentSelection !== null ? <RuntimeIcon provider={currentSelection.provider} /> : null}{triggerLabel}</span>
         <IconChevronDownOutline14 className={classNames(css.chevron, open && css.chevronOpen)} />
       </button>
       {menu !== null && (tone === 'capsule' ? menu : createPortal(menu, document.body))}
