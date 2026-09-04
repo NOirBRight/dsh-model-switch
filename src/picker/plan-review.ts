@@ -38,9 +38,15 @@ export class PlanApprovalResponseError extends Error {}
 export async function approvePlanReview(args: {
   select: (selection: ModelSelection) => Promise<boolean>
   selection: ModelSelection
+  current?: ModelSelection | null
   answer: () => Promise<void>
 }): Promise<boolean> {
-  if (!await args.select(args.selection)) return false
+  const current = args.current
+  const same = current !== undefined && current !== null
+    && current.provider === args.selection.provider
+    && current.model === args.selection.model
+    && current.reasoningEffort === args.selection.reasoningEffort
+  if (!same && !await args.select(args.selection)) return false
   await args.answer()
   return true
 }

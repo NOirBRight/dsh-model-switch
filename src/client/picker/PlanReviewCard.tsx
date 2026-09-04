@@ -137,6 +137,7 @@ function PlanReviewState({
       const committed = await approvePlanReview({
         select,
         selection: execution,
+        current: snapshot.current,
         answer: () => respondAnswer(matched, review.id, review.approve.label, t('plan.responseRejected'), true),
       })
       if (!committed) {

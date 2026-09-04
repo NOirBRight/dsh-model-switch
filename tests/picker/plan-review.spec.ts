@@ -58,6 +58,15 @@ describe('plugin-owned Plan Review', () => {
     expect(answer).not.toHaveBeenCalled()
   })
 
+  it('skips execution-model commit when the picker already matches', async () => {
+    const select = vi.fn(async () => false)
+    const answer = vi.fn(async () => undefined)
+    const selection = { provider: 'antigravity', model: 'gemini-3.8-flash', reasoningEffort: 'low' }
+    await expect(approvePlanReview({ select, selection, current: selection, answer })).resolves.toBe(true)
+    expect(select).not.toHaveBeenCalled()
+    expect(answer).toHaveBeenCalledOnce()
+  })
+
   it('shows a commit error and re-enables retry after rejection', async () => {
     const states: Array<{ busy: boolean; blocked: boolean; error: string | null }> = []
 
