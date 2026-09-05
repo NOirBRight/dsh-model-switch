@@ -22,7 +22,7 @@ export declare const zh: {
     readonly subagentFixed: "固定模型";
     readonly agentBadge: "Agent";
     readonly search: "Web 搜索";
-    readonly searchHelp: "继续使用官方 web_search；Model Switch 只在官方 Web Provider 层选择 Codex 模型。";
+    readonly searchHelp: "下拉选择的是期望使用的搜索 Adapter/模型；仅当全局 Web searchProvider=model-switch 时官方 web_search 才会使用该选择，否则保持原有路由不变。";
     readonly image: "图像生成";
     readonly imageHelp: "统一 generate_image 会调用所选 Codex 或 Grok Adapter；Provider 原有图片工具仍保留。";
     readonly unavailable: "未接入";

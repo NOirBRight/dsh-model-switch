@@ -1,8 +1,10 @@
 export type RuntimeCapabilityReason = 'central-subagent-routing' | 'packaged-preset-roots' | 'tool-owner-suppression' | 'search-provider-adapters' | 'vision-provider-adapters' | 'image-provider-adapters';
+import type { SearchProviderMetadata } from './adapter-registry.js';
 export interface RuntimeCapability {
     readonly available: boolean;
     readonly reason?: RuntimeCapabilityReason;
     readonly providers?: readonly string[];
+    readonly catalog?: readonly SearchProviderMetadata[];
 }
 export interface RuntimeCapabilities {
     readonly mainDefaults: RuntimeCapability;
@@ -33,8 +35,9 @@ export declare const RUNTIME_CAPABILITIES: Readonly<{
         reason: "tool-owner-suppression";
     }>;
     searchProviderAdapters: Readonly<{
-        available: true;
-        providers: readonly string[];
+        available: false;
+        reason: "search-provider-adapters";
+        providers: readonly never[];
     }>;
     visionProviderAdapters: Readonly<{
         available: false;

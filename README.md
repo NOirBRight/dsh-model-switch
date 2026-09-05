@@ -16,7 +16,7 @@ Compatibility: this release requires DeepSeek Harness `0.1.2-alpha.4` and `@deep
 | Subagent | Follow the active parent route, or use a fixed provider/model/effort. Workflow overrides remain authoritative. |
 | Composer Picker | Changes only the active session and submits the exact catalog model id. Main defaults are preserved. |
 | Plan Review | Chooses the execution model before the Plan approval response is sent. |
-| Web Search | Keeps the official `web_search` tool and routes it through the selected Codex search adapter. |
+| Web Search | Keeps official `web_search`; after deployment opt-in, routes through the selected, dynamically declared provider search adapter. |
 | Image generation | Provides one stable `generate_image` tool routed through a selected Codex or Grok adapter. |
 
 Invalid, unavailable, or unsupported routes fail explicitly. Model Switch never silently falls back to another provider or model.
@@ -95,7 +95,17 @@ DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3
 DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.5
 ```
 
-The bundle patch routes the existing Web plugin's `searchProvider` through `model-switch`, preserving its current `fetchProvider`. Configure a supported search provider and model in Settings before searching; an unavailable route fails explicitly. Model Switch never replaces `web_fetch`.
+### Search routing (this development branch; not yet released)
+
+Providers declare independent search adapters and model metadata on the existing Host `ModelSwitchAdapterRegistry`. The browser receives only id/name/model metadata over authenticated Connection RPC, not adapters or credentials. Registration/unload updates subscribers; in-place catalog changes are picked up by the bounded 20-second heartbeat. `ProviderDirectory` remains the client role/usage owner, not a second Host execution registry.
+
+DeepSeek uses the official public `DeepSeekSearchProvider`, the existing `web-search-deepseek` settings and credential service. Codex uses its existing ChatGPT credentials; Grok uses its existing subscription token and provider-owned Responses search. Native conversational networking alone does not create a search option. Missing credentials, invalid settings, unsupported models and unavailable adapters fail explicitly, without fallback.
+
+**Registering an adapter does not select the global Web route.** Installation leaves the deployment's existing Web configuration untouched. To opt in, set the existing Web entry's `searchProvider` to `model-switch` while retaining **every other existing config field**, especially `fetchProvider`. DSH id-targeted patches replace the entire config rather than deep-merging it: copy the complete effective config from `dsh --profile web --dump-config`, then change only searchProvider in the deployment/user patch. Do not copy an assumed `fetchProvider: http` over a custom pin.
+
+After opting in, configure the requested search provider/model in Model Switch Settings. No complete supported route means `WEB_PROVIDER_CONFIGURED_UNAVAILABLE` through the official selector; there is no automatic DeepSeek fallback. Without the global pin, the dropdown does not control `web_search`. An unpinned Web service can become ambiguous when multiple search providers are usable. Before uninstalling Model Switch, restore the deployment's prior search pin; otherwise the official selector correctly reports a missing configured provider. The official `web_search` and `web_fetch` tools are never replaced.
+
+Release-aligned search regression: `DSH_RELEASE_ANCHOR=/path/to/official/install/package.json pnpm exec vitest run --config tests/vitest.release.config.ts`. See [search audit and acceptance](docs/search-provider-audit.md) for exact baselines, dependencies and live status.
 
 If `dsh-composer-picker` is installed, remove it from the profile before enabling Model Switch. Model Switch already owns the Composer Picker and Plan Review seat; two owners produce duplicate or competing UI.
 
