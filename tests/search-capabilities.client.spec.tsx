@@ -114,6 +114,46 @@ describe('search capability metadata', () => {
 })
 
 describe('search settings UI seam', () => {
+  it.each([false, true])('recovers after three metadata failures without remount (previously loaded: %s)', async loaded => {
+    vi.useFakeTimers()
+    const host = { revision: 0, capabilities: { searchProviderAdapters: { available: true, providers: ['codex'], catalog: [{ id: 'codex', name: 'Codex', models: [{ id: 'gpt-search', name: 'GPT Search' }] }] } } }
+    const load = vi.fn(() => new Promise(() => {}))
+    if (loaded) load.mockResolvedValueOnce(host)
+    load.mockRejectedValueOnce(new Error('catalogFailed')).mockRejectedValueOnce(new Error('catalogFailed')).mockRejectedValueOnce(new Error('catalogFailed')).mockResolvedValueOnce(host)
+    let renderer!: ReactTestRenderer
+    try {
+      await act(async () => { renderer = create(<ModelSwitchSettings {...faceProps(load)} />) })
+      if (loaded) await act(async () => { openCard(renderer, 'Codex · GPT Search') })
+      await act(async () => { await vi.advanceTimersByTimeAsync(750) })
+      expect(textOf(renderer)).toContain('catalogFailed')
+      if (loaded) expect(searchOptions(renderer).disabled).toEqual([true, true])
+      await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+      expect(textOf(renderer)).not.toContain('catalogFailed')
+      if (!loaded) await act(async () => { openCard(renderer, 'Codex · GPT Search') })
+      expect(searchOptions(renderer).texts).toContain('GPT Search')
+      expect(searchOptions(renderer).disabled).toEqual([false, false])
+    } finally {
+      await act(async () => { renderer?.unmount() })
+      const pendingTimers = vi.getTimerCount()
+      vi.useRealTimers()
+      expect(pendingTimers).toBe(0)
+    }
+  })
+
+  it('accepts a changed catalog when a restarted Host reuses the numeric revision', async () => {
+    const host = { revision: 0, capabilities: { searchProviderAdapters: { available: true, providers: ['codex'], catalog: [{ id: 'codex', name: 'Codex', models: [{ id: 'gpt-search', name: 'GPT Search' }] }] } } }
+    const replacement = structuredClone(host)
+    replacement.capabilities.searchProviderAdapters.catalog[0]!.name = 'Reloaded Codex'
+    let resolveNext!: (value: unknown) => void
+    const load = vi.fn(() => new Promise(() => {})).mockResolvedValueOnce(host).mockImplementationOnce(() => new Promise(resolve => { resolveNext = resolve }))
+    let renderer!: ReactTestRenderer
+    try {
+      await act(async () => { renderer = create(<ModelSwitchSettings {...faceProps(load)} />) })
+      await act(async () => { openCard(renderer, 'Codex · GPT Search'); resolveNext(replacement) })
+      expect(searchOptions(renderer).texts).toContain('Reloaded Codex')
+    } finally { await act(async () => { renderer?.unmount() }) }
+  })
+
   it('stays fail-closed until the Host catalog loads, then tracks unload with warnings', async () => {
     const seen: unknown[][] = []
     let resolveFirst!: (value: unknown) => void

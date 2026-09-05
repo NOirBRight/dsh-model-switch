@@ -24,8 +24,8 @@ import type { ModelSwitchSearchAdapter, SearchModel } from './adapter-registry.j
 const DEFAULT_API_KEY_REF = 'DEEPSEEK_API_KEY'
 const SEARCH_BASE_URL_ENV = 'DEEPSEEK_SEARCH_BASE_URL'
 
-// Ids/names follow the official dsh-llm-deepseek catalog. Flash is also the
-// official search default, the only id with direct search-endpoint evidence.
+// Ids/names follow the official dsh-llm-deepseek catalog. Both models passed
+// the lab search endpoint checks recorded in docs/search-provider-audit.md.
 // Vision-exp excluded: no evidence it serves web_search.
 export const DEEPSEEK_SEARCH_MODELS: readonly SearchModel[] = [
   { id: DEEPSEEK_DEFAULT_MODEL, name: 'DeepSeek-V4-Flash' },

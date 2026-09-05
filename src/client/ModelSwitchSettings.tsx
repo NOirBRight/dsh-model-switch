@@ -118,18 +118,16 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
         const snapshot = await loadSearchCapabilities(revision, scope.signal)
         if (!live) return
         failures = 0
-        // ponytail: same-revision heartbeats keep polling but must not churn renders.
-        setSearchSnapshot(previous => previous !== undefined && previous.revision === snapshot.revision ? previous : snapshot)
+        // Revisions belong to an RPC owner; a restarted Host can reuse a number for new metadata.
+        setSearchSnapshot(snapshot)
         setSearchError(undefined)
         void poll(snapshot.revision)
       } catch (error) {
         if (!live || scope.signal.aborted) return
-        failures += 1
-        if (failures >= 3) {
-          setSearchError(error instanceof Error ? error.message : props.t('catalogFailed'))
-          return
-        }
-        timer = setTimeout(() => { if (live) void poll(revision) }, 250 * failures)
+        failures = Math.min(failures + 1, 8)
+        if (failures >= 3) setSearchError(error instanceof Error ? error.message : props.t('catalogFailed'))
+        // Stay fail-closed but recover without remounting; retry delay is capped at the Host heartbeat.
+        timer = setTimeout(() => { if (live) void poll(undefined) }, Math.min(250 * 2 ** (failures - 1), 20_000))
       }
     }
     void poll(undefined)
@@ -207,7 +205,7 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
           <Field label={props.t('provider')} value={searchDraft.provider} disabled={busy === 'search' || !search.writable || searchError !== undefined} choices={searchChoices.providers} onChange={provider => { const first = searchGroups.find(group => group.id === provider)?.models[0]; setSearchDraft({ provider, ...(first === undefined ? {} : { model: first.id }) }) }} />
           <Field label={props.t('model')} value={searchDraft.model} disabled={busy === 'search' || !search.writable || searchError !== undefined} choices={searchChoices.models} onChange={model => { setSearchDraft({ ...searchDraft, model }) }} />
         </div><Actions t={props.t} busy={busy === 'search'} disabled={capabilityDisabled('search', search, searchDraft) || searchError !== undefined || !searchGroups.some(group => group.id === searchDraft.provider && group.models.some(model => model.id === searchDraft.model))} {...(message?.route === 'search' ? { message: message.text } : {})} onCancel={() => { resetSearch(); setMessage(undefined) }} onSave={() => { saveCapability('search', search, searchDraft) }} /></>}
-      </RouteCard> : <RouteCard title={props.t('search')} summary={unavailable('searchProviderAdapters')} icon="search" open={false} onToggle={() => {}} disabled badge={props.t('unavailable')} badgeWarn />}
+      </RouteCard> : <RouteCard title={props.t('search')} summary={searchError ?? unavailable('searchProviderAdapters')} icon="search" open={false} onToggle={() => {}} disabled badge={props.t('unavailable')} badgeWarn />}
 
       {props.capabilities.imageProviderAdapters.available ? <RouteCard title={props.t('image')} summary={imageDraft === undefined ? props.t('loading') : routeName(groups, imageDraft)} icon="image" open={open === 'image'} onToggle={() => { toggle('image') }}>
         {imageDraft === undefined ? <p className={css.hint}>{props.t('loading')}</p> : <><p className={css.hint}>{props.t('imageHelp')}</p><div className={css.formGrid}>
