@@ -130,13 +130,6 @@ export function ModelPaneHeader({
 }
 
 function RuntimeIcon({ provider }: { provider: string }) {
-  if (provider === 'antigravity') {
-    return (
-      <svg className={css.runtimeMark} viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-        <path fill="currentColor" d="M8 1.15c.22 0 .4.14.47.35l1.48 4.08 4.28.2c.44.02.62.58.28.86L11.3 8.8l1.18 4.2c.13.45-.38.8-.72.54L8 11.18 4.24 13.54c-.34.26-.85-.09-.72-.54l1.18-4.2-3.21-2.16c-.34-.28-.16-.84.28-.86l4.28-.2L7.53 1.5c.07-.21.25-.35.47-.35z" />
-      </svg>
-    )
-  }
   return <span className={css.runtimeMark}>{provider.slice(0, 1).toUpperCase()}</span>
 }
 
