@@ -11,6 +11,7 @@ export declare class PlanApprovalResponseError extends Error {
 export declare function approvePlanReview(args: {
     select: (selection: ModelSelection) => Promise<boolean>;
     selection: ModelSelection;
+    current?: ModelSelection | null;
     answer: () => Promise<void>;
 }): Promise<boolean>;
 export interface PlanActionState {
