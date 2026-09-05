@@ -4,8 +4,6 @@ English | [中文](README.zh.md)
 
 Choose one explicit route for Main, Subagents, Web Search, image generation, the active conversation, and Plan execution in DeepSeek Harness. Model Switch uses public DSH services and provider-owned adapters; it does not patch DSH Core or manage provider credentials.
 
-Compatibility: this release requires DeepSeek Harness `0.1.2-alpha.4` and `@deepseek-ai/cordis@4.0.2`; it is not compatible with Alpha.1–Alpha.3. Users on older runtimes must keep the last plugin tag built for that runtime.
-
 <p align="center"><img src="docs/screenshots/composer-picker.png" alt="Composer Picker with Model, Effort, Context, and Fast controls" width="314"></p>
 
 ## Routes
@@ -90,9 +88,9 @@ Plan Review owns an execution-model draft separate from Main. **Confirm** first 
 Install Model Switch and only the provider adapters you use. These versions are validated with DSH 0.1.2-alpha.4:
 
 ```sh
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.8
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.8
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.5
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.9
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.9
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.6
 ```
 
 ### Search routing (this development branch; not yet released)
@@ -113,7 +111,12 @@ Production profiles must use released GitHub tags rather than workspace-local de
 
 ## Compatibility
 
-Model Switch targets DSH 0.1.2-alpha.4 through public Cordis/client services and plugin-owned adapters. No DSH Core patch is required.
+Verified runtimes are DeepSeek Harness `0.1.2-alpha.4` and `0.1.2-rc.1` on Cordis `4.0.2`; this record is evidence, not an allowlist.
+
+Unknown newer runtimes are attempted on a best-effort basis after one warning, and the plugin keeps its normal mount path.
+
+A reproduced failure is blocklisted only afterward; see the [compatibility records](package.json) for the affected version, reason, and evidence.
+
 
 ## Development
 
@@ -125,7 +128,6 @@ pnpm run check
 ```
 
 `check` builds Host and Client artifacts, runs unit and Cordis/Settings composition tests, validates the extracted package, and verifies reproducible bundles. Product scope is defined in [PRODUCT.md](PRODUCT.md); implementation constraints live in [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md).
-
 
 ## Release installation (Latest)
 
@@ -142,7 +144,7 @@ Fixed-version installation:
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.4/dsh-model-switch.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.6/dsh-model-switch.tgz
 ~~~
 
 Update, uninstall, and verify:
@@ -162,4 +164,4 @@ Configuration: use the plugin section in Settings for Web UI plugins, or the pro
 
 Rollback: rerun the fixed v0.4.4 command, verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never put a source checkout in the production profile.
 
-Release and integrity: [v0.4.5](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.5) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.5/SHA256SUMS).
+Release and integrity: [v0.4.6](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.6) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.6/SHA256SUMS).

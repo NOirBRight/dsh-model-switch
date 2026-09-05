@@ -9,6 +9,9 @@ lib/types/**/*.js.map
 lib/types/**/*.d.ts.map
 *.tgz
 !fixtures/
+!fixtures/alpha4/
+!fixtures/alpha4/tarballs/
+!fixtures/alpha4/tarballs/*.tgz
 !fixtures/alpha1/
 !fixtures/alpha1/tarballs/
 !fixtures/alpha1/tarballs/*.tgz
