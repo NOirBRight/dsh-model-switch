@@ -2,6 +2,12 @@
 # Existing rows are disabled with their original name; replacements use unique ids.
 # Do not replace agent-presets: a nested AgentPresets instance loads a second
 # @deepseek-ai/dsh-scope identity, and session.create then fails as unscoped.
+# Route the official search tool through the Settings-selected adapter.
+- id: web
+  name: '@deepseek-ai/dsh-web'
+  config:
+    searchProvider: model-switch
+
 - id: subagent
   name: '@deepseek-ai/dsh-subagent'
   disabled: true

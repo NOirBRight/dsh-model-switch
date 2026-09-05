@@ -95,7 +95,7 @@ DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3
 DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.5
 ```
 
-For routed Web Search, set the existing Web plugin's `searchProvider` to `model-switch` and preserve its current `fetchProvider`. Model Switch never replaces `web_fetch`.
+The bundle patch routes the existing Web plugin's `searchProvider` through `model-switch`, preserving its current `fetchProvider`. Configure a supported search provider and model in Settings before searching; an unavailable route fails explicitly. Model Switch never replaces `web_fetch`.
 
 If `dsh-composer-picker` is installed, remove it from the profile before enabling Model Switch. Model Switch already owns the Composer Picker and Plan Review seat; two owners produce duplicate or competing UI.
 
