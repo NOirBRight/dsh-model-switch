@@ -1,6 +1,61 @@
 # Search provider integration: pre-implementation audit
 
-Status: interface checkpoint, not feature completion. No live search acceptance claimed.
+Status: implementation delivered in isolated worktrees; live acceptance is partial because the lab cannot resolve the DeepSeek credential. Do not report all three providers as passed.
+
+## Current result (supersedes the initial interface interpretation below)
+
+The user clarified that reusing configured credentials through public services is allowed. The initial interpretation was too strict: no Core change is needed. The bridge uses the official exported DeepSeekSearchProvider and Config schema; only the provider-scoped settings/credential binding and per-call model override live in the plugin. Invalid settings and credential references fail without echoing their values. HTTP/search/authentication request implementation is not copied.
+
+Implemented: registry-owned metadata projection and lifecycle subscriptions; bounded authenticated Host capability RPC; UI consumes only Host search models (no conversational/native-network fallback), validates metadata, keeps invalid selections visible, disables stale/unsupported saves and cleans up subscriptions. Codex/Grok self-declare metadata and execute provider-owned searches. No third registry or replacement web tool. In-place model-catalog changes update the wire revision at the next 20-second heartbeat.
+
+### Actual 3082 evidence
+
+A temporary, authenticated lab-only RPC harness invoked **the official ctx.web.search selector**, which selected model-switch and then the actual provider adapter. It did not directly invoke an adapter, register a replacement tool, or modify Core. Provider/model changes used the public Settings RPC at the current revision. Search requests asked for the official deepseek-ai/deepseek-harness repository.
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| No search configuration | Explicit failure, no fallback | WEB_PROVIDER_CONFIGURED_UNAVAILABLE |
+| DeepSeek / deepseek-v4-flash | **NOT VERIFIED: credential missing** | WEB_PROVIDER_CREDENTIAL_MISSING, 10 ms; no successful search claimed |
+| Codex / gpt-5.6-luna | Success | 2,916 ms; five returned source URLs including https://github.com/deepseek-ai/deepseek-harness/ |
+| Grok / grok-4.6 | Success | 17,840 ms; source https://github.com/deepseek-ai/deepseek-harness |
+| Grok / grok-4.5, next request | Success after model switch | 10,127 ms; four sources including the repository README |
+| web_fetch on example.com, before/after | Same official safety rejection | WEB_BLOCKED_URL; no safety bypass or provider replacement |
+| web_fetch on https://1.1.1.1/cdn-cgi/trace, before/after search-route change | Success both times | HTTP 200, text body, truncated=false |
+
+Live browser verification used installed headless Chrome with an isolated profile and authenticated **only http://127.0.0.1:3082**. After page refresh, Settings > Model Switch > Web search displayed the three Host-registered providers and their matching model lists. Provider changes were exercised as unsaved drafts; no unrelated settings were saved. The temporary acceptance plugin was removed afterward.
+
+Final lab composition keeps the four test worktree links (listed below), an explicit Web searchProvider=model-switch, and the original effective fetchProvider=http. Original search provider/model settings were restored to unset, so searching requires an explicit supported selection. This is the documented no-configuration behavior, not an automatic Codex or DeepSeek default. No production home/3080/Core changes, no push, no release.
+
+Lab lockfile comparison: only the four intended dependency link entries changed; package and snapshot maps were identical. Original package/patch/lock backups and detailed live results remain private under the Model Switch worktree .scratch (not committed or packed). Development note: a Codex worker accidentally made a credential-backed non-lab probe before isolating its test; that probe is excluded from acceptance, was not repeated, and no credentials were printed. All live evidence in the table is from 3082.
+
+### Commands and results
+
+Model Switch worktree:
+
+```sh
+pnpm run build
+DSH_RELEASE_ANCHOR=/home/noirbright/.local/opt/dsh-staging/dsh-v0.1.2-rc.1-a66e470204/package.json pnpm exec vitest run --config tests/vitest.release.config.ts
+# 6 files, 14 tests passed against released public rc.1 packages
+pnpm exec vitest run --exclude tests/picker/registration.spec.ts --exclude tests/picker/plan-review-card.spec.tsx
+# 36 files, 151 tests passed
+pnpm pack --pack-destination .scratch
+# Local tarball only; no source, tests, private .scratch files or acceptance harness included
+```
+
+Final `pnpm exec vitest run`: 157 passed, eight failed (38 files; 2.38 seconds), with no worker/heap error. The eight **pre-existing** picker failures are: three registration tests and five Plan Review tests. They reproduce unchanged in a fresh detached f1895ce worktree with the same dependency resolution (`pnpm exec vitest run tests/picker/registration.spec.ts tests/picker/plan-review-card.spec.tsx`: eight failed, six passed). They were not hidden or fixed by changing unrelated picker behavior. An initial new UI test OOM was fixed at its render-unstable test snapshot root cause; final tests use the normal heap and finish normally.
+
+Codex: pnpm test => 142 passed / one skipped; pnpm run build passed. Grok: pnpm test => 143 passed; pnpm run build passed. Provider tests mock networking; they are not counted as live evidence.
+
+### Isolated branches and commits
+
+- Model Switch: agent/search-provider-unification in .worktrees/dsh-model-switch-search; preserves f1895ce plus reviewed 1bb555f as bb6ae4a. Search implementation is 4226566 (subsequent to initial audit 22e52f1); this report is committed separately.
+- Codex: agent/codex-search in .worktrees/dsh-llm-codex-search; 4ae92e8 reconciles the UI10 dependency onto 250ffa6; 38cffde implements search metadata/tests; 90deb8c documents integration.
+- Grok: agent/grok-search in .worktrees/dsh-llm-grok-search; 0a0e7ed implements search on 286e2df; da3ae5a hardens error/evidence handling; 0ce4085 documents integration.
+- ProviderDirectory: agent/providers-search-dependency in .worktrees/dsh-llm-providers-search, unchanged c79de2f. No new code commit needed.
+
+## Historical pre-implementation checkpoint
+
+The remainder records the initial read-only audit and baseline tests; statements about stopping before deployment describe that checkpoint, not the current result above.
 
 ## Baseline and dependencies
 
