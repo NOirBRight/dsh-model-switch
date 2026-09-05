@@ -125,7 +125,8 @@ function checkAlpha4Manifest(manifest, label) {
   for (const section of ['dependencies', 'optionalDependencies', 'peerDependencies', 'devDependencies']) {
     for (const [name, range] of Object.entries(manifest[section] ?? {})) {
       if (typeof range !== 'string') fail(label + ' has non-string ' + section + '.' + name)
-      if (name.startsWith('@deepseek-ai/dsh-') && range !== ALPHA4 && !(capturedOfficialWorkspace && range === 'workspace:^')) fail(label + ' has non-Alpha.4 DSH dependency ' + name + ' ' + range)
+      const rootPeerSupportsAlpha4 = (label === 'source package' || label === 'packed package') && section === 'peerDependencies' && satisfies(ALPHA4, range)
+      if (name.startsWith('@deepseek-ai/dsh-') && range !== ALPHA4 && !rootPeerSupportsAlpha4 && !(capturedOfficialWorkspace && range === 'workspace:^')) fail(label + ' has non-Alpha.4 DSH dependency ' + name + ' ' + range)
       // Cordis plugins published from the upstream monorepo retain their
       // workspace peer range; the harness packages and this plugin must pin
       // the runtime Cordis version itself.

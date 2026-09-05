@@ -10,6 +10,7 @@ import { ComposerPicker } from './ComposerPicker.tsx'
 import { pickerDirectoryViewOrdered, type PickerDirectoryFace, type PickerDirectoryView } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { RetryBoundary } from './RetryBoundary.tsx'
+import { providerSelectable, RUNTIME_LOCK_TARGET, type RuntimeProviderLock } from '../runtime-lock.ts'
 import css from './PlanReviewCard.module.css'
 
 interface PickerGuardProps {
@@ -71,6 +72,7 @@ interface PlanReviewStateProps {
   matched: PendingQuestion
   review: PlanReview
   available: boolean
+  providerLock: RuntimeProviderLock
   directory: PickerDirectoryView
   t: PlanReviewCardProps['t']
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
@@ -79,6 +81,7 @@ interface PlanReviewStateProps {
 export function PlanReviewCard(props: PlanReviewCardProps) {
   const snapshot = props.useDirectory(value => value)
   const order = props.useProviderOrder(value => value)
+  const providerLock = props.useConversation(snapshot => snapshot.views.get(RUNTIME_LOCK_TARGET) ?? null)
   const review = planReviewOf(props.matched.questions)
   if (review === undefined) {
     return (
@@ -94,6 +97,7 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
     matched={props.matched}
     review={review}
     available={props.available}
+    providerLock={providerLock}
     directory={pickerDirectoryViewOrdered(snapshot, props, order)}
     t={props.t}
     {...props.resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations: props.resolveInteractionOperations }}
@@ -101,7 +105,7 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
 }
 
 function PlanReviewState({
-  matched, review, available, directory, t, resolveInteractionOperations,
+  matched, review, available, providerLock, directory, t, resolveInteractionOperations,
 }: PlanReviewStateProps) {
   const { snapshot, getDirectorySnapshot, load, select } = directory
   const [execution, setExecution] = useState<ModelSelection | undefined>(snapshot.current ?? undefined)
@@ -129,10 +133,11 @@ function PlanReviewState({
     })
   }
 
-  const action = planActionView({ busy, blocked, error }, available, execution !== undefined)
+  const executionAllowed = execution !== undefined && providerSelectable(providerLock, execution.provider)
+  const action = planActionView({ busy, blocked, error }, available, executionAllowed)
 
   const onApprove = (): void => {
-    if (execution === undefined || !available || busy || blocked) return
+    if (execution === undefined || !executionAllowed || !available || busy || blocked) return
     settle(async () => {
       const committed = await approvePlanReview({
         select,
@@ -164,6 +169,7 @@ function PlanReviewState({
             >
             <ComposerPicker
               locked={busy || blocked}
+              providerLock={providerLock}
               available={available}
               directory={directory}
               t={t}

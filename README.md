@@ -21,6 +21,8 @@ Compatibility: this release requires DeepSeek Harness `0.1.2-alpha.4` and `@deep
 
 Invalid, unavailable, or unsupported routes fail explicitly. Model Switch never silently falls back to another provider or model.
 
+After the active session successfully opens a native Antigravity session, the Composer and Plan Review pickers disable other providers for that session while keeping Antigravity model and effort controls available. The DSH global picker lock remains authoritative.
+
 ## Configure Main and Subagents
 
 Open **Settings → Model Switch**. Main changes affect new sessions only. Subagents may follow Main or use a fixed provider, model, and effort.

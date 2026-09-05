@@ -19,6 +19,8 @@
 
 无效、不可用或不受支持的路由会明确失败。Model Switch 不会静默换到另一个 provider 或模型。
 
+当前会话成功打开 Antigravity 原生会话后，Composer 和 Plan Review Picker 会在该会话内禁用其他 provider，同时保留 Antigravity 模型与 effort 控件。DSH 全局 Picker 锁仍拥有最高优先级。
+
 ## 配置 Main 和 Subagent
 
 打开 **设置 → Model Switch**。Main 修改只影响新建会话。Subagent 可以跟随 Main，也可以使用固定 provider、model 和 effort。

@@ -34,6 +34,7 @@ import type { PickerKey } from './locales.ts'
 import type { PickerDirectoryView } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { useComposerPickerSurface } from './useComposerPickerSurface.ts'
+import { providerSelectable, type RuntimeProviderLock } from '../runtime-lock.ts'
 import css from './ComposerPicker.module.css'
 
 export type { PickerDirectoryFace, PickerDirectoryOperations, PickerDirectorySnapshot, PickerDirectoryView } from './PickerDirectory.ts'
@@ -51,6 +52,7 @@ function sameSelection(left: ModelSelection | null, right: ModelSelection | null
 
 interface ComposerPickerBaseProps {
   locked: boolean
+  providerLock?: RuntimeProviderLock
   available: boolean
   directory: PickerDirectoryView
   t: (key: PickerKey, params?: Record<string, string>) => string
@@ -134,7 +136,7 @@ function RuntimeIcon({ provider }: { provider: string }) {
 }
 
 export function ComposerPicker({
-  locked, available, directory, t, draft, onDraftChange, embedded,
+  locked, providerLock = null, available, directory, t, draft, onDraftChange, embedded,
   tone,
   resolveInteractionOperations,
 }: ComposerPickerProps) {
@@ -243,7 +245,7 @@ export function ComposerPicker({
   }
 
   const applySelection = (next: ModelSelection): void => {
-    if (lockedRef.current) return
+    if (lockedRef.current || !providerSelectable(providerLock, next.provider)) return
     if (onDraftChange !== undefined) {
       onDraftChange(next)
       returnToRoot()
@@ -416,7 +418,7 @@ export function ComposerPicker({
                         aria-checked={selected}
                         className={classNames(css.option, selected && css.selected)}
                         key={`${item.provider}:${item.base}`}
-                        disabled={locked || busy}
+                        disabled={locked || busy || !providerSelectable(providerLock, item.provider)}
                         onClick={() => {
                           if (representative === undefined) return
                           chooseMember(item, representative)

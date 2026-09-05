@@ -38,6 +38,7 @@ function props(overrides: Record<string, unknown> = {}) {
     available: true,
     useDirectory: (selector: (value: typeof baseSnapshot) => unknown) => selector(snapshot),
     useProviderOrder: (selector: (value: readonly string[]) => unknown) => selector([]),
+    useConversation: (selector: (value: { views: { get: () => null } }) => unknown) => selector({ views: { get: () => null } }),
     getDirectorySnapshot: () => snapshot,
     setSnapshot: (next: typeof baseSnapshot) => { snapshot = next },
     load: () => undefined,
@@ -81,6 +82,16 @@ describe('PlanReviewCard', () => {
     expect(card.root.findAllByType('button').some(button => button.children.includes(zh['plan.discuss']))).toBe(true)
     expect(card.root.findAllByType('button').some(button => button.children.includes(zh['plan.keep']))).toBe(true)
     expect(card.root.findAllByType('button').some(button => button.children.includes(zh['plan.approve']))).toBe(true)
+  })
+
+  it('disables approval of a non-Antigravity execution model after native session startup', async () => {
+    const fixture = props({
+      useConversation: (selector: (value: { views: { get: () => string } }) => unknown) => selector({ views: { get: () => 'antigravity' } }),
+    })
+    let card!: ReturnType<typeof create>
+    await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+
+    expect(approve(card).props.disabled).toBe(true)
   })
 
   it('keeps Approve disabled until the rendered execution picker is ready', async () => {
