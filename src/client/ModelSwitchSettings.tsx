@@ -113,14 +113,19 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
     const scope = new AbortController()
     let timer: ReturnType<typeof setTimeout> | undefined
     let failures = 0
+    let signature: string | undefined
     const poll = async (revision: number | undefined): Promise<void> => {
       try {
         const snapshot = await loadSearchCapabilities(revision, scope.signal)
         if (!live) return
+        // Revisions belong to an RPC owner; compare content to accept restarts without heartbeat renders.
+        const nextSignature = JSON.stringify(snapshot)
+        if (signature !== nextSignature || failures > 0) {
+          signature = nextSignature
+          setSearchSnapshot(snapshot)
+          setSearchError(undefined)
+        }
         failures = 0
-        // Revisions belong to an RPC owner; a restarted Host can reuse a number for new metadata.
-        setSearchSnapshot(snapshot)
-        setSearchError(undefined)
         void poll(snapshot.revision)
       } catch (error) {
         if (!live || scope.signal.aborted) return

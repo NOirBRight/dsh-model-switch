@@ -1,4 +1,5 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+import { Profiler } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { ModelSwitchSettings } from '../src/client/ModelSwitchSettings.js'
 import { decodeCapabilitiesSnapshot, searchGroupsFromCapabilities } from '../src/client/search-capabilities.js'
@@ -140,16 +141,21 @@ describe('search settings UI seam', () => {
     }
   })
 
-  it('accepts a changed catalog when a restarted Host reuses the numeric revision', async () => {
+  it('ignores identical heartbeats but accepts changed metadata with a reused revision', async () => {
     const host = { revision: 0, capabilities: { searchProviderAdapters: { available: true, providers: ['codex'], catalog: [{ id: 'codex', name: 'Codex', models: [{ id: 'gpt-search', name: 'GPT Search' }] }] } } }
     const replacement = structuredClone(host)
     replacement.capabilities.searchProviderAdapters.catalog[0]!.name = 'Reloaded Codex'
     let resolveNext!: (value: unknown) => void
-    const load = vi.fn(() => new Promise(() => {})).mockResolvedValueOnce(host).mockImplementationOnce(() => new Promise(resolve => { resolveNext = resolve }))
+    const load = vi.fn(() => new Promise(resolve => { resolveNext = resolve })).mockResolvedValueOnce(host)
+    const rendered = vi.fn()
     let renderer!: ReactTestRenderer
     try {
-      await act(async () => { renderer = create(<ModelSwitchSettings {...faceProps(load)} />) })
-      await act(async () => { openCard(renderer, 'Codex · GPT Search'); resolveNext(replacement) })
+      await act(async () => { renderer = create(<Profiler id="search" onRender={rendered}><ModelSwitchSettings {...faceProps(load)} /></Profiler>) })
+      await act(async () => { openCard(renderer, 'Codex · GPT Search') })
+      rendered.mockClear()
+      await act(async () => { resolveNext(structuredClone(host)) })
+      expect(rendered).not.toHaveBeenCalled()
+      await act(async () => { resolveNext(replacement) })
       expect(searchOptions(renderer).texts).toContain('Reloaded Codex')
     } finally { await act(async () => { renderer?.unmount() }) }
   })
