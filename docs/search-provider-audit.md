@@ -4,6 +4,8 @@ Status: all three search providers now have successful 3082 live evidence. The u
 
 ## Current result (supersedes the initial interface interpretation below)
 
+Post-integration [three-round Standards/Spec review](search-review.md) resolved metadata retry/revision-reuse defects and heartbeat render churn. Both axes finished with zero unresolved findings at implementation 98021a8; final full regression is 169/169. Lab now links Model Switch to .worktrees/dsh-model-switch-picker-tests; other provider links remain unchanged. Historical test counts and initial lab composition below are retained as evidence of their respective checkpoints.
+
 The user clarified that reusing configured credentials through public services is allowed. The initial interpretation was too strict: no Core change is needed. The bridge uses the official exported DeepSeekSearchProvider and Config schema; only the provider-scoped settings/credential binding and per-call model override live in the plugin. Invalid settings and credential references fail without echoing their values. HTTP/search/authentication request implementation is not copied.
 
 Implemented: registry-owned metadata projection and lifecycle subscriptions; bounded authenticated Host capability RPC; UI consumes only Host search models (no conversational/native-network fallback), validates metadata, keeps invalid selections visible, disables stale/unsupported saves and cleans up subscriptions. Codex/Grok self-declare metadata and execute provider-owned searches. No third registry or replacement web tool. In-place model-catalog changes update the wire revision at the next 20-second heartbeat.
@@ -48,7 +50,7 @@ pnpm run build
 DSH_RELEASE_ANCHOR=/home/noirbright/.local/opt/dsh-staging/dsh-v0.1.2-rc.1-a66e470204/package.json pnpm exec vitest run --config tests/vitest.release.config.ts
 # 6 files, 14 tests passed against released public rc.1 packages
 pnpm test
-# After picker-fixture alignment: 38 files, 166 tests passed; no exclusions or skips
+# After review fixes: 38 files, 169 tests passed; no exclusions or skips
 pnpm pack --pack-destination .scratch
 # Local tarball only; no source, tests, private .scratch files or acceptance harness included
 ```
