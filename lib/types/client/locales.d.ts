@@ -20,6 +20,7 @@ export declare const zh: {
     readonly subagentMode: "路由策略";
     readonly subagentFollowMain: "跟随主模型";
     readonly subagentFixed: "固定模型";
+    readonly agentBadge: "Agent";
     readonly search: "Web 搜索";
     readonly searchHelp: "继续使用官方 web_search；Model Switch 只在官方 Web Provider 层选择 Codex 模型。";
     readonly image: "图像生成";

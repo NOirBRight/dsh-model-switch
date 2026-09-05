@@ -19,6 +19,8 @@ export interface ModelSwitchSettingsFace {
     setCapability: (route: 'search' | 'image', field: 'provider' | 'model', value: string | undefined) => Promise<void>;
     loadCatalog: () => Promise<readonly ModelProviderGroup[]>;
     subscribeProviderOrder?: (listener: () => void) => () => void;
+    /** ProviderDirectory-owned role lookup; absent when the owner seam is unavailable. */
+    providerRoleOf?: (key: string) => string;
 }
 export type ModelSwitchSettingsProps = PropsRuntime<'settings.section'> & InjectFace<ModelSwitchSettingsFace>;
 export declare function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode;

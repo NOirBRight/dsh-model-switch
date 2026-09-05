@@ -5,6 +5,7 @@ import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { CapabilityRouteView, MainSettingsView, SubagentSettingsView } from '../client-contract.js'
 import type { RuntimeCapabilities } from '../runtime-capabilities.js'
 import type { ModelSwitchLocaleKey } from './locales.js'
+import { isAgentRole } from './antigravity-catalog.ts'
 import { deriveRouteChoices, selectRouteModel, useModelSwitchSettingsController, type Choice } from './main-row-controller.js'
 import css from './ModelSwitchSettings.module.css'
 
@@ -17,6 +18,8 @@ export interface ModelSwitchSettingsFace {
   setCapability: (route: 'search' | 'image', field: 'provider' | 'model', value: string | undefined) => Promise<void>
   loadCatalog: () => Promise<readonly ModelProviderGroup[]>
   subscribeProviderOrder?: (listener: () => void) => () => void
+  /** ProviderDirectory-owned role lookup; absent when the owner seam is unavailable. */
+  providerRoleOf?: (key: string) => string
 }
 
 export type ModelSwitchSettingsProps = PropsRuntime<'settings.section'> & InjectFace<ModelSwitchSettingsFace>
@@ -133,7 +136,8 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
     if (current.value?.model !== next.model) await props.setCapability(route, 'model', next.model)
   }) }
   const mainSummary = draft === undefined ? props.t('loading') : compact(routeName(groups, draft), mainEffectiveEffort)
-  const subagentSummary = subagentDraft?.mode === 'follow-main' ? props.t('subagentFollowMain') : compact(props.t('subagentFixed'), routeName(groups, subagentRoute), defaultEffort === undefined ? props.t('providerDefaultShort') : compact(props.t('providerDefaultShort'), defaultEffort))
+  const subagentRole = subagentDraft?.mode === 'fixed' && subagentDraft.provider !== undefined && subagentDraft.provider !== '' ? props.providerRoleOf?.(subagentDraft.provider) : undefined
+  const subagentSummary = subagentDraft?.mode === 'follow-main' ? props.t('subagentFollowMain') : compact(props.t('subagentFixed'), routeName(groups, subagentRoute), isAgentRole(subagentRole) ? props.t('agentBadge') : undefined, defaultEffort === undefined ? props.t('providerDefaultShort') : compact(props.t('providerDefaultShort'), defaultEffort))
   const subagentDisabled = subagent.status !== 'ready' || !subagent.writable || subagentDraft === undefined || busy === 'subagent' || (subagentDraft.mode === 'fixed' && ((subagentDraft.provider ?? '').trim() === '' || (subagentDraft.model ?? '').trim() === ''))
   const capabilityDisabled = (route: 'search' | 'image', snapshot: SettingsScopeSnapshot<CapabilityRouteView>, next: CapabilityRouteView | undefined): boolean => snapshot.status !== 'ready' || !snapshot.writable || next === undefined || busy === route || (next.provider ?? '').trim() === '' || (next.model ?? '').trim() === ''
 
