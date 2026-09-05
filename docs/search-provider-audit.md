@@ -37,7 +37,7 @@ The existing guarded lab RPC probe again called the official ctx.web.search sele
 
 **Fetch is not DeepSeek-dependent.** The deployed fetch provider remains official http. Neither provider repository currently registers a FetchProvider; Codex/Grok native networking/search tools are not an implementation of the official standalone web_fetch contract. No new fetch adapter is needed for the currently tested URL-fetch behavior. Adding provider-backed fetch routing would be a separate feature, not part of search unification.
 
-**Release assessment:** the search feature is functionally ready for candidate-release preparation. Do not treat this as approval to publish/promote the whole package unchanged: the full suite still has eight reproduced baseline picker failures, which need repair or an explicit release waiver with evidence; package versions (Model Switch 0.4.5, Codex 0.3.13, Grok 0.3.10) have not been advanced for this work; the coordinated dependency/baseline composition must be carried into new immutable release artifacts and verified on 3082 from those artifacts rather than link worktrees. No tag, push, release, or production installation was performed.
+**Release assessment:** the search feature is functionally ready for candidate-release preparation. Do not treat this as approval to publish/promote the whole package unchanged: the eight former baseline picker failures are resolved by the test-fixture alignment below (no waiver or weakened assertions); package versions (Model Switch 0.4.5, Codex 0.3.13, Grok 0.3.10) have not been advanced for this work; the coordinated dependency/baseline composition must be carried into new immutable release artifacts and verified on 3082 from those artifacts rather than link worktrees. No tag, push, release, or production installation was performed.
 
 ### Commands and results
 
@@ -47,15 +47,23 @@ Model Switch worktree:
 pnpm run build
 DSH_RELEASE_ANCHOR=/home/noirbright/.local/opt/dsh-staging/dsh-v0.1.2-rc.1-a66e470204/package.json pnpm exec vitest run --config tests/vitest.release.config.ts
 # 6 files, 14 tests passed against released public rc.1 packages
-pnpm exec vitest run --exclude tests/picker/registration.spec.ts --exclude tests/picker/plan-review-card.spec.tsx
-# 36 files, 151 tests passed
+pnpm test
+# After picker-fixture alignment: 38 files, 166 tests passed; no exclusions or skips
 pnpm pack --pack-destination .scratch
 # Local tarball only; no source, tests, private .scratch files or acceptance harness included
 ```
 
-Final `pnpm exec vitest run`: 157 passed, eight failed (38 files; 2.38 seconds), with no worker/heap error. The eight **pre-existing** picker failures are: three registration tests and five Plan Review tests. They reproduce unchanged in a fresh detached f1895ce worktree with the same dependency resolution (`pnpm exec vitest run tests/picker/registration.spec.ts tests/picker/plan-review-card.spec.tsx`: eight failed, six passed). They were not hidden or fixed by changing unrelated picker behavior. An initial new UI test OOM was fixed at its render-unstable test snapshot root cause; final tests use the normal heap and finish normally.
+Before picker-fixture alignment, `pnpm exec vitest run`: 157 passed, eight failed (38 files; 2.38 seconds), with no worker/heap error. The eight **pre-existing** picker failures are: three registration tests and five Plan Review tests. They reproduce unchanged in a fresh detached f1895ce worktree with the same dependency resolution (`pnpm exec vitest run tests/picker/registration.spec.ts tests/picker/plan-review-card.spec.tsx`: eight failed, six passed). They were not hidden or fixed by changing unrelated picker behavior. An initial new UI test OOM was fixed at its render-unstable test snapshot root cause; final tests use the normal heap and finish normally.
 
 Codex: pnpm test => 142 passed / one skipped; pnpm run build passed. Grok: pnpm test => 143 passed; pnpm run build passed. Provider tests mock networking; they are not counted as live evidence.
+
+### Picker test-fixture alignment follow-up
+
+Isolated branch agent/picker-test-alignment in .worktrees/dsh-model-switch-picker-tests starts at f48910c. Three registration tests lacked the uiConversation view/event registration services despite their mock inject invoking the callback. Both fixtures now provide those public services and disposer functions. Five Plan Review tests expected a model commit without changing the current selection; they now drive the rendered ComposerPicker onDraftChange callback to choose a different execution model before approval. Original failure/retry, concurrent settlement, double-click and await-ordering assertions remain; target-model assertions and a same-model/no-redundant-commit component test were added.
+
+Focused tests: 15/15 passed. Full pnpm test: 38 files, 166/166 passed, without exclusions or skips. pnpm run build passed with isolated offline frozen-lockfile dependencies; git diff --exit-code -- src lib pnpm-lock.yaml confirmed runtime sources, built artifacts and dependency resolution are unchanged. The rc.1 public-package search gate remains 14/14 passing.
+
+Negative control: temporarily removing await from the model-commit call caused three corrected component tests to fail (commit rejection, pending approval on double-click, and approval ordering). The mutation was immediately restored before the final suite/build. This demonstrates that the fixture correction did not simply turn off the safety assertions. No lab link/config changes, service restarts, push or publication were needed for this test-only follow-up.
 
 ### Isolated branches and commits
 

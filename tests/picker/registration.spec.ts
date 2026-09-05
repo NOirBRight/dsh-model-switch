@@ -28,6 +28,7 @@ function bench(strictOptionalLookup = false) {
         return () => undefined
       },
     },
+    uiConversation: { views: { register: vi.fn(() => vi.fn()) }, events: { register: vi.fn(() => vi.fn()) } },
     modelDirectories: { directoryFor: vi.fn(() => directory) },
     sessions: { subagentAddress: vi.fn(() => undefined) },
     settingsScope: { bind: vi.fn(() => ({ getSnapshot: () => ({ status: 'loading' }) })) },
@@ -82,6 +83,7 @@ describe('composer picker seat ownership', () => {
         inject: (_name: string, register: () => unknown) => register(),
         register: (spec: Record<string, unknown>) => { entries.push({ spec }); return () => undefined },
       },
+      uiConversation: { views: { register: vi.fn(() => vi.fn()) }, events: { register: vi.fn(() => vi.fn()) } },
       modelDirectories: { directoryFor: vi.fn(() => directory) },
       sessions: { subagentAddress: vi.fn(() => undefined) },
       settingsScope: { bind: vi.fn(() => ({ getSnapshot: () => mainSnapshot, subscribe: vi.fn(() => vi.fn()) })) },
