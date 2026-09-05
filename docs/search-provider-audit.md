@@ -1,6 +1,6 @@
-# Search provider integration: pre-implementation audit
+# Search provider integration: audit and live acceptance
 
-Status: implementation delivered in isolated worktrees; live acceptance is partial because the lab cannot resolve the DeepSeek credential. Do not report all three providers as passed.
+Status: all three search providers now have successful 3082 live evidence. The user authorized copying only the production DeepSeek credential to lab; both DeepSeek models passed the follow-up. This closes the missing-credential acceptance gap, not the separate release-readiness gaps below.
 
 ## Current result (supersedes the initial interface interpretation below)
 
@@ -15,7 +15,8 @@ A temporary, authenticated lab-only RPC harness invoked **the official ctx.web.s
 | Check | Result | Evidence |
 | --- | --- | --- |
 | No search configuration | Explicit failure, no fallback | WEB_PROVIDER_CONFIGURED_UNAVAILABLE |
-| DeepSeek / deepseek-v4-flash | **NOT VERIFIED: credential missing** | WEB_PROVIDER_CREDENTIAL_MISSING, 10 ms; no successful search claimed |
+| DeepSeek / deepseek-v4-flash | Success after authorized credential copy | 3,495 ms; five source URLs including the official repository README |
+| DeepSeek / deepseek-v4-pro, next request | Success after model switch | 4,445 ms; five source URLs including the official repository README |
 | Codex / gpt-5.6-luna | Success | 2,916 ms; five returned source URLs including https://github.com/deepseek-ai/deepseek-harness/ |
 | Grok / grok-4.6 | Success | 17,840 ms; source https://github.com/deepseek-ai/deepseek-harness |
 | Grok / grok-4.5, next request | Success after model switch | 10,127 ms; four sources including the repository README |
@@ -27,6 +28,16 @@ Live browser verification used installed headless Chrome with an isolated profil
 Final lab composition keeps the four test worktree links (listed below), an explicit Web searchProvider=model-switch, and the original effective fetchProvider=http. Original search provider/model settings were restored to unset, so searching requires an explicit supported selection. This is the documented no-configuration behavior, not an automatic Codex or DeepSeek default. No production home/3080/Core changes, no push, no release.
 
 Lab lockfile comparison: only the four intended dependency link entries changed; package and snapshot maps were identical. Original package/patch/lock backups and detailed live results remain private under the Model Switch worktree .scratch (not committed or packed). Development note: a Codex worker accidentally made a credential-backed non-lab probe before isolating its test; that probe is excluded from acceptance, was not repeated, and no credentials were printed. All live evidence in the table is from 3082.
+
+### DeepSeek follow-up, fetch boundary and release readiness
+
+The prior WEB_PROVIDER_CREDENTIAL_MISSING result was real and is superseded by the successful follow-up above. Only DEEPSEEK_API_KEY was read from production and copied through the released public LocalCredentialProvider.set API to the actual lab home (/home/noirbright/.dsh-rc1-canary). The source credential file was verified byte-for-byte unchanged; all other lab credential references and records were verified unchanged. Secret values were never printed, put into helper source, or committed. The copied key remains in the lab credential store as authorized.
+
+The existing guarded lab RPC probe again called the official ctx.web.search selector. Both model searches succeeded, original Model Switch search selections were restored, and the temporary probe was removed. Production was not modified or restarted. Detailed results are in the private .scratch/deepseek-followup-results.json; no helper or secret store is a release artifact.
+
+**Fetch is not DeepSeek-dependent.** The deployed fetch provider remains official http. Neither provider repository currently registers a FetchProvider; Codex/Grok native networking/search tools are not an implementation of the official standalone web_fetch contract. No new fetch adapter is needed for the currently tested URL-fetch behavior. Adding provider-backed fetch routing would be a separate feature, not part of search unification.
+
+**Release assessment:** the search feature is functionally ready for candidate-release preparation. Do not treat this as approval to publish/promote the whole package unchanged: the full suite still has eight reproduced baseline picker failures, which need repair or an explicit release waiver with evidence; package versions (Model Switch 0.4.5, Codex 0.3.13, Grok 0.3.10) have not been advanced for this work; the coordinated dependency/baseline composition must be carried into new immutable release artifacts and verified on 3082 from those artifacts rather than link worktrees. No tag, push, release, or production installation was performed.
 
 ### Commands and results
 
