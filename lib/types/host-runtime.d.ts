@@ -12,7 +12,12 @@ declare module '@deepseek-ai/cordis' {
 export declare class ModelSwitchRuntime extends Service {
     static inject: string[];
     static Config: import("@deepseek-ai/schemastery").default<Config>;
-    readonly capabilities: Readonly<{
+    get capabilities(): {
+        searchProviderAdapters: {
+            available: boolean;
+            providers: string[];
+            catalog: readonly import("./adapter-registry.js").SearchProviderMetadata[];
+        };
         mainDefaults: Readonly<{
             available: true;
         }>;
@@ -30,10 +35,6 @@ export declare class ModelSwitchRuntime extends Service {
             available: false;
             reason: "tool-owner-suppression";
         }>;
-        searchProviderAdapters: Readonly<{
-            available: true;
-            providers: readonly string[];
-        }>;
         visionProviderAdapters: Readonly<{
             available: false;
             reason: "vision-provider-adapters";
@@ -42,7 +43,7 @@ export declare class ModelSwitchRuntime extends Service {
             available: true;
             providers: readonly string[];
         }>;
-    }>;
+    };
     readonly adapters: ModelSwitchAdapterRegistry;
     private source;
     constructor(ctx: Context, entry: ModelSwitchSettings);

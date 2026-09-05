@@ -14,10 +14,12 @@
 | Subagent | 跟随当前父请求，或使用固定 provider/model/effort；Workflow 显式覆盖始终优先。 |
 | Composer Picker | 只修改当前会话，并提交 catalog 中的原始 model id；Main 默认值保持不变。 |
 | Plan Review | 在发送 Plan 审核确认前，先提交执行模型。 |
-| Web Search | 保留官方 `web_search` 工具，通过选定的 Codex Search Adapter 路由。 |
+| Web Search | 保留官方 `web_search`；部署显式启用后，通过 Provider 动态声明的独立搜索适配器路由。 |
 | 图像生成 | 提供一个稳定的 `generate_image` 工具，通过选定的 Codex 或 Grok Adapter 路由。 |
 
 无效、不可用或不受支持的路由会明确失败。Model Switch 不会静默换到另一个 provider 或模型。
+
+当前会话成功打开 Antigravity 原生会话后，Composer 和 Plan Review Picker 会在该会话内禁用其他 provider，同时保留 Antigravity 模型与 effort 控件。DSH 全局 Picker 锁仍拥有最高优先级。
 
 ## 配置 Main 和 Subagent
 
@@ -27,7 +29,7 @@
 
 ![Model Switch 设置中的固定 Subagent 路由](docs/screenshots/settings-subagent.png)
 
-Follow Main 先读取当前父请求，再读取配置的 Main 默认值。固定路由会在官方 Subagent descriptor 创建前注入。DSH 0.1.2-alpha.1 会在该 descriptor 中携带 provider、model 和固定 reasoning effort。
+Follow Main 先读取当前父请求，再读取配置的 Main 默认值。固定路由会在官方 Subagent descriptor 创建前注入。DSH 0.1.2-alpha.4 会在该 descriptor 中携带 provider、model 和固定 reasoning effort。
 
 ## 自定义模型如何出现在 Picker
 
@@ -83,15 +85,26 @@ Plan Review 拥有独立于 Main 的执行模型草稿。**确认执行**会先�
 
 ## 安装
 
-安装 Model Switch，以及实际使用的 Provider Adapter。以下版本已在 DSH 0.1.2-alpha.1 验证：
+安装 Model Switch，以及实际使用的 Provider Adapter。以下协调版本面向已验证的 DSH 0.1.2-alpha.4 和 0.1.2-rc.1 运行时：
 
 ```sh
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.3
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.3
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.2
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-providers-ui#v0.1.9
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.14
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.11
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.7
 ```
 
-如需路由 Web Search，把现有 Web 插件的 `searchProvider` 设置为 `model-switch`，并保留当前 `fetchProvider`。Model Switch 不会替换 `web_fetch`。
+### 搜索供应商统一接入（0.4.7）
+
+搜索列表来自 Host 上已有的 `ModelSwitchAdapterRegistry`，Provider 自声明名称和独立搜索模型；浏览器只收到普通元数据，不收到凭据或可执行函数。注册、卸载会通知订阅者；原地修改模型声明最迟由 20 秒心跳更新。`ProviderDirectory` 继续负责客户端 role/usage，不另造注册表。模型原生联网不等于独立 `web_search` 适配器。
+
+DeepSeek 薄适配器调用官方公开 `DeepSeekSearchProvider`，复用用户的 `web-search-deepseek` 设置和公开凭据服务；Codex 复用 ChatGPT 登录，Grok 复用已有订阅凭据。缺凭据、配置错误、模型不支持均明确失败，不静默切换。
+
+**注册不等于选中全局路由。** 安装插件不再覆盖 Web 配置。部署时先用 `dsh --profile web --dump-config` 查看完整 Web 配置，只把 `searchProvider` 改为 `model-switch`，其余字段原样保留。注意 id 定位的 patch 会整体替换 `config`，不会深度合并；不能只写 searchProvider，也不能把自定义 fetchProvider 写死成 http。
+
+然后在 Model Switch 设置中选择请求的供应商/模型。全局已选 Model Switch、但没有完整且受支持的搜索配置时，官方选择层返回 `WEB_PROVIDER_CONFIGURED_UNAVAILABLE`，不会回退 DeepSeek。全局未选 Model Switch 时，下拉框不控制官方搜索；未固定全局供应商且有多个可用 provider 时会明确报歧义。卸载前应恢复部署原来的搜索路由。官方 `web_search`、`web_fetch` 均不替换。
+
+本轮分支、测试命令及 3082 live 证据见 [搜索接入审计](docs/search-provider-audit.md)。经授权复用生产 DeepSeek 凭据后，Flash/Pro 的 3082 真实搜索均通过，三家均已有成功证据。Picker 测试夹具及审查发现的元数据恢复问题已修正，保留 v0.4.6 兼容性后全量 172 个测试通过。生产推广仍须先在 lab 安装验收同一组不可变发布产物。
 
 如果 profile 已安装 `dsh-composer-picker`，请先移除它。Model Switch 已经拥有 Composer Picker 和 Plan Review 席位；同时安装会产生重复或竞争 UI。
 
@@ -99,7 +112,12 @@ DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#
 
 ## 兼容性
 
-Model Switch 面向 DSH 0.1.2-alpha.1，通过公开 Cordis/client 服务和插件自有 Adapter 工作。无需 DSH Core patch。
+已验证运行时是 DeepSeek Harness `0.1.2-alpha.4` 与 `0.1.2-rc.1`（Cordis `4.0.2`）；这份记录只是证据，不是 allowlist。
+
+未知的新版本会先打一条 warning，再按正常挂载路径 best-effort 尝试，不会因为未验证而跳过。
+
+只有复现过的故障才会加入 blocklist；受影响版本、原因和证据见[兼容性记录](package.json)。
+
 
 ## 开发
 
@@ -112,10 +130,9 @@ pnpm run check
 
 `check` 会构建 Host/Client artifacts，运行单元测试和 Cordis/Settings 组合测试，检查提取后的发布包，并验证 bundle 可复现。产品范围见 [PRODUCT.md](PRODUCT.md)，实现约束见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)。
 
-
 ## 正式版安装（Latest）
 
-Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools. 正式成品只支持 DeepSeek Harness 0.1.2-alpha.1；发布包只包含构建后的 Host/Client 产物，不包含兄弟仓库源码、本机路径或本地协议依赖。
+Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools. 正式成品按上方兼容性记录运行；发布包只包含构建后的 Host/Client 产物，不包含兄弟仓库源码、本机路径或本地协议依赖。
 
 Latest 安装命令（永久不含版本号）：
 
@@ -128,7 +145,7 @@ dsh plugin --profile web add --force \
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.4/dsh-model-switch.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.7/dsh-model-switch.tgz
 ~~~
 
 更新、卸载与验证：
@@ -148,4 +165,4 @@ dsh plugin --profile web remove dsh-model-switch
 
 回滚：重新执行固定版本 v0.4.4 命令，确认插件列表后只重启一次 Web 服务。失败时查看 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor，不要把源码 checkout 写入 production profile。
 
-Release 与完整性：[v0.4.4](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.4) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.4/SHA256SUMS)。
+Release 与完整性：[v0.4.7](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.7) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.7/SHA256SUMS)。

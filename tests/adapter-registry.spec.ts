@@ -13,6 +13,25 @@ describe('ModelSwitchAdapterRegistry', () => {
     disposeFirst()
   })
 
+  it('publishes only executable search metadata and notifies each registration generation', () => {
+    const registry = new ModelSwitchAdapterRegistry()
+    const changed = vi.fn()
+    const stop = registry.subscribe(changed)
+    const adapter = { provider: 'example', label: 'Example Search', models: [{ id: 'search', name: 'Search' }, { id: 'chat', name: 'Chat' }], supportsModel: (model: string) => model === 'search', search: vi.fn(), token: 'must-not-leak' }
+    const dispose = registry.register({ provider: 'example', search: adapter })
+    expect(registry.searchCatalog()).toEqual([{ id: 'example', name: 'Example Search', models: [{ id: 'search', name: 'Search' }] }])
+    expect(changed).toHaveBeenCalledTimes(1)
+    dispose()
+    expect(registry.searchCatalog()).toEqual([])
+    const next = registry.register({ provider: 'example', search: adapter })
+    dispose()
+    expect(registry.searchCatalog()).toHaveLength(1)
+    expect(changed).toHaveBeenCalledTimes(3)
+    stop()
+    next()
+    expect(changed).toHaveBeenCalledTimes(3)
+  })
+
   it('rejects empty providers and mismatched adapter ownership', () => {
     const registry = new ModelSwitchAdapterRegistry()
     expect(() => registry.register({ provider: '' })).toThrow('non-empty')

@@ -2,6 +2,9 @@
 # Existing rows are disabled with their original name; replacements use unique ids.
 # Do not replace agent-presets: a nested AgentPresets instance loads a second
 # @deepseek-ai/dsh-scope identity, and session.create then fails as unscoped.
+# Web selection is a deployment opt-in: preserve the existing complete Web config.
+# An id-targeted config patch replaces (not merges) it, including fetchProvider.
+
 - id: subagent
   name: '@deepseek-ai/dsh-subagent'
   disabled: true

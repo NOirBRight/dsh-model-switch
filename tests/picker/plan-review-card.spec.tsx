@@ -17,9 +17,11 @@ vi.mock('../../src/client/picker/ComposerPicker.tsx', () => ({
 }))
 
 import { PlanReviewCard } from '../../src/client/picker/PlanReviewCard.tsx'
+import { ComposerPicker } from '../../src/client/picker/ComposerPicker.tsx'
 import { en, zh, type PickerKey } from '../../src/client/picker/locales.ts'
 
 const selection = { provider: 'codex', model: 'gpt-5.6-sol' }
+const executionSelection = { provider: 'codex', model: 'gpt-5.6-luna' }
 const baseSnapshot = { current: selection, routable: true, groups: [], failures: [], status: 'ready', error: null as string | null }
 function wait(answer = vi.fn(async () => undefined), key = 'plan-1', cancel = vi.fn(async () => undefined)) {
   return {
@@ -38,6 +40,7 @@ function props(overrides: Record<string, unknown> = {}) {
     available: true,
     useDirectory: (selector: (value: typeof baseSnapshot) => unknown) => selector(snapshot),
     useProviderOrder: (selector: (value: readonly string[]) => unknown) => selector([]),
+    useConversation: (selector: (value: { views: { get: () => null } }) => unknown) => selector({ views: { get: () => null } }),
     getDirectorySnapshot: () => snapshot,
     setSnapshot: (next: typeof baseSnapshot) => { snapshot = next },
     load: () => undefined,
@@ -46,6 +49,10 @@ function props(overrides: Record<string, unknown> = {}) {
     ...overrides,
   }
 }
+function chooseExecution(card: ReturnType<typeof create>) {
+  card.root.findByType(ComposerPicker).props.onDraftChange(executionSelection)
+}
+
 function approve(card: ReturnType<typeof create>, label = 'plan.approve') {
   return card.root.findAllByType('button').find(button => button.children.includes(label))!
 }
@@ -83,6 +90,16 @@ describe('PlanReviewCard', () => {
     expect(card.root.findAllByType('button').some(button => button.children.includes(zh['plan.approve']))).toBe(true)
   })
 
+  it('disables approval of a non-Antigravity execution model after native session startup', async () => {
+    const fixture = props({
+      useConversation: (selector: (value: { views: { get: () => string } }) => unknown) => selector({ views: { get: () => 'antigravity' } }),
+    })
+    let card!: ReturnType<typeof create>
+    await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+
+    expect(approve(card).props.disabled).toBe(true)
+  })
+
   it('keeps Approve disabled until the rendered execution picker is ready', async () => {
     const fixture = props()
     fixture.setSnapshot({ ...baseSnapshot, current: null })
@@ -105,6 +122,8 @@ describe('PlanReviewCard', () => {
     fixture.setSnapshot({ ...baseSnapshot, error: null })
     let card!: ReturnType<typeof create>
     await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+    await act(async () => { chooseExecution(card) })
+    expect(select).not.toHaveBeenCalled()
 
     await act(async () => { approve(card, zh['plan.approve']).props.onClick(); await Promise.resolve(); await Promise.resolve() })
     expect(card.root.findByProps({ 'data-plan-review-key': 'plan-1' })).toBeDefined()
@@ -115,8 +134,23 @@ describe('PlanReviewCard', () => {
     expect(answer).not.toHaveBeenCalled()
 
     await act(async () => { approve(card, zh['plan.approve']).props.onClick(); await Promise.resolve(); await Promise.resolve() })
+    expect(select).toHaveBeenNthCalledWith(1, executionSelection)
+    expect(select).toHaveBeenNthCalledWith(2, executionSelection)
     expect(select).toHaveBeenCalledTimes(2)
     expect(answer).toHaveBeenCalledTimes(1)
+  })
+
+  it('approves the unchanged execution model without a redundant commit', async () => {
+    const answer = vi.fn(async () => undefined)
+    const select = vi.fn(async () => false)
+    const fixture = props({ matched: wait(answer), select })
+    let card!: ReturnType<typeof create>
+    await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+
+    await act(async () => { approve(card).props.onClick() })
+    expect(select).not.toHaveBeenCalled()
+    expect(answer).toHaveBeenCalledOnce()
+    expect(approve(card).props.disabled).toBe(true)
   })
 
   it('uses PendingQuestion.answer as a one-way local settlement', async () => {
@@ -125,8 +159,11 @@ describe('PlanReviewCard', () => {
     const fixture = props({ matched: wait(answer), select, t: locale(en) })
     let card!: ReturnType<typeof create>
     await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+    await act(async () => { chooseExecution(card) })
+    expect(select).not.toHaveBeenCalled()
 
     await act(async () => { approve(card, en['plan.approve']).props.onClick(); await Promise.resolve(); await Promise.resolve() })
+    expect(select).toHaveBeenCalledWith(executionSelection)
     expect(select).toHaveBeenCalledOnce()
     expect(answer).toHaveBeenCalledOnce()
     expect(card.root.findAllByProps({ role: 'status' }).every(node => node.children.length === 0)).toBe(true)
@@ -139,8 +176,11 @@ describe('PlanReviewCard', () => {
     const fixture = props({ matched: wait(answer), select, t: locale(en) })
     let card!: ReturnType<typeof create>
     await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+    await act(async () => { chooseExecution(card) })
+    expect(select).not.toHaveBeenCalled()
 
     await act(async () => { approve(card, en['plan.approve']).props.onClick(); await Promise.resolve(); await Promise.resolve() })
+    expect(select).toHaveBeenCalledWith(executionSelection)
     expect(select).toHaveBeenCalledTimes(1)
     expect(answer).toHaveBeenCalledTimes(1)
     expect(approve(card, en['plan.approve']).props.disabled).toBe(true)
@@ -194,9 +234,12 @@ describe('PlanReviewCard', () => {
     const fixture = props({ matched: wait(answer), select })
     let card!: ReturnType<typeof create>
     await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+    await act(async () => { chooseExecution(card) })
+    expect(select).not.toHaveBeenCalled()
 
     const button = approve(card)
     await act(async () => { button.props.onClick(); button.props.onClick(); await Promise.resolve() })
+    expect(select).toHaveBeenCalledWith(executionSelection)
     expect(select).toHaveBeenCalledTimes(1)
     expect(answer).not.toHaveBeenCalled()
 
@@ -210,6 +253,8 @@ describe('PlanReviewCard', () => {
     const fixture = props({ matched: wait(answer), select })
     let card!: ReturnType<typeof create>
     await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+    await act(async () => { chooseExecution(card) })
+    expect(select).not.toHaveBeenCalled()
 
     await act(async () => { approve(card).props.onClick(); await Promise.resolve() })
     expect(approve(card).props.disabled).toBe(true)

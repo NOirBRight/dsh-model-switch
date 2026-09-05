@@ -20,8 +20,9 @@ export declare const zh: {
     readonly subagentMode: "路由策略";
     readonly subagentFollowMain: "跟随主模型";
     readonly subagentFixed: "固定模型";
+    readonly agentBadge: "Agent";
     readonly search: "Web 搜索";
-    readonly searchHelp: "继续使用官方 web_search；Model Switch 只在官方 Web Provider 层选择 Codex 模型。";
+    readonly searchHelp: "下拉选择的是期望使用的搜索 Adapter/模型；仅当全局 Web searchProvider=model-switch 时官方 web_search 才会使用该选择，否则保持原有路由不变。";
     readonly image: "图像生成";
     readonly imageHelp: "统一 generate_image 会调用所选 Codex 或 Grok Adapter；Provider 原有图片工具仍保留。";
     readonly unavailable: "未接入";
@@ -30,9 +31,9 @@ export declare const zh: {
     readonly requestFailed: "保存失败";
     readonly catalogFailed: "无法加载模型目录。";
     readonly conflict: "设置已在其他位置更改，请检查最新值后重试。";
-    readonly 'reason.central-subagent-routing': "alpha.1 没有全局子代理启动路由接口。";
-    readonly 'reason.packaged-preset-roots': "alpha.1 不支持插件提供额外 preset root。";
-    readonly 'reason.tool-owner-suppression': "alpha.1 没有工具所有者或来源抑制接口。";
+    readonly 'reason.central-subagent-routing': "Alpha.4 没有全局子代理启动路由接口。";
+    readonly 'reason.packaged-preset-roots': "Alpha.4 不支持插件提供额外 preset root。";
+    readonly 'reason.tool-owner-suppression': "Alpha.4 没有工具所有者或来源抑制接口。";
     readonly 'reason.search-provider-adapters': "当前公开版本没有可按模型切换的搜索 Provider Adapter。";
     readonly 'reason.vision-provider-adapters': "尚无 Provider 注册可独立路由的 Vision Adapter。";
     readonly 'reason.image-provider-adapters': "当前公开版本没有图像生成 Provider Adapter。";

@@ -24,7 +24,7 @@ Known seam constraints from alpha.1 inspection:
 - A later child model switch cannot rewrite its durable continuable descriptor; creation snapshots remain authoritative.
 - Search routing owns only provider id `model-switch`; the deployment profile pins `web.searchProvider: model-switch` while preserving its existing `fetchProvider`. The official `web_search` and `web_fetch` tools are untouched.
 - `generate_image` is unique, so existing provider-specific image tools remain enabled and require no owner suppression.
-- Codex registers Search and Image adapters; Grok registers Image only. Optional Cordis injection preserves standalone provider behavior and disposal.
+- Codex and Grok register Search and Image adapters. The DeepSeek bridge reuses the official public search implementation and existing settings/credential service. Optional Cordis injection preserves standalone provider behavior and disposal; only Host-projected search metadata reaches the UI.
 - Vision remains outside runtime delivery and must not register or shadow `read_image`.
 
 ## Milestone 3 — settings surface
@@ -33,7 +33,7 @@ Contribute the Model Switch settings section through declared client slots (alph
 
 ## Milestone 4 — provider adapters and composition
 
-Keep the launcher-pinned `agent-presets` row and official web tools. Add clean optional adapter releases to Codex and Grok without Vision or hard runtime dependency cycles. Configure Lab `web.searchProvider` to `model-switch` while preserving `fetchProvider`; removing Model Switch restores the prior provider pin. Model Switch ships no preset copies.
+Keep the launcher-pinned `agent-presets` row and official web tools. Add clean optional adapter releases to Codex and Grok without Vision or hard runtime dependency cycles. Explicitly configure Lab `web.searchProvider` to `model-switch` while preserving the complete existing Web config, including `fetchProvider`. The bundle does not modify the Web row; restore the prior deployment search pin before removing Model Switch. Model Switch ships no preset copies.
 
 ## Milestone 5 — pack/profile/lab acceptance
 

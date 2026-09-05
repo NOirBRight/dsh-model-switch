@@ -8,9 +8,11 @@ import { decodeMainSettings, decodeModelSwitchSettings, deriveImageSettings, der
 import { deriveSettingsScope } from './derived-settings-scope.js'
 import { RemoteSettingsScope, type RemoteSettingsFace } from './remote-settings-scope.js'
 import { RUNTIME_CAPABILITIES } from '../runtime-capabilities.js'
+import { decodeCapabilitiesSnapshot, type CapabilitiesSnapshot } from './search-capabilities.js'
 import { ModelSwitchSettings, type ModelSwitchSettingsFace } from './ModelSwitchSettings.js'
 import { en, zh, type ModelSwitchLocaleKey } from './locales.js'
 import { decodeProviderOrder, PROVIDERS_SETTINGS_NS, sortCatalogGroups } from 'dsh-llm-providers-ui/order'
+import { fetchAntigravityCatalogGroups, readProviderRole, withAntigravityCatalog } from './antigravity-catalog.ts'
 import { installComposerPicker } from './picker/install.tsx'
 import { installModelSwitchNavIcon } from './nav-icon.ts'
 
@@ -55,6 +57,27 @@ export function apply(ctx: ClientContext): void {
     await main.reload()
     return result.value?.revision ?? expectedRevision
   }
+  const connectionRpc = ((): { call(channel: string, endpoint: string, payload: unknown, signal?: AbortSignal): Promise<{ ok: boolean; value?: unknown }> } | undefined => {
+    try {
+      const connection = ctx.get('connection', false) as { rpc?: unknown } | undefined
+      const rpc = connection?.rpc
+      return rpc !== null && (typeof rpc === 'object' || typeof rpc === 'function') && typeof (rpc as { call?: unknown }).call === 'function'
+        ? rpc as { call(channel: string, endpoint: string, payload: unknown, signal?: AbortSignal): Promise<{ ok: boolean; value?: unknown }> }
+        : undefined
+    } catch {
+      return undefined
+    }
+  })()
+  const providerRoleOf = ((): ((key: string) => string) | undefined => {
+    let directory: unknown
+    try {
+      directory = ctx.get('providerDirectory', false)
+    } catch {
+      return undefined
+    }
+    if (directory === undefined) return undefined
+    return (key: string) => readProviderRole(directory, key) ?? 'llm'
+  })()
   let subscribeProviderOrder: ((listener: () => void) => () => void) | undefined
   try {
     const orderScope = ctx.settingsScope.bind({ namespace: PROVIDERS_SETTINGS_NS, decode: decodeProviderOrder })
@@ -64,16 +87,26 @@ export function apply(ctx: ClientContext): void {
   }
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section', id: 'model-switch', order: 9, label: () => t('nav'), locale: localeNamespace,
-    inject: (): ModelSwitchSettingsFace => ({ t, hooks: { mainSettings: main, subagentSettings: subagent, searchSettings: search, imageSettings: image }, capabilities: RUNTIME_CAPABILITIES, saveMain, setSubagent: (field, value) => value === undefined ? subagent.unset(field) : subagent.set(field, value), setCapability: (route, field, value) => { const scope = route === 'search' ? search : image; return value === undefined ? scope.unset(field) : scope.set(field, value) }, loadCatalog: async () => {
+    inject: (): ModelSwitchSettingsFace => ({ t, hooks: { mainSettings: main, subagentSettings: subagent, searchSettings: search, imageSettings: image }, capabilities: RUNTIME_CAPABILITIES, saveMain, setSubagent: (field, value) => value === undefined ? subagent.unset(field) : subagent.set(field, value), setCapability: (route, field, value) => { const scope = route === 'search' ? search : image; return value === undefined ? scope.unset(field) : scope.set(field, value) }, ...(providerRoleOf === undefined ? {} : { providerRoleOf }), loadCatalog: async () => {
       const response = await (ctx as unknown as { remote: { session: { modelCatalog(): Promise<{ ok: boolean; value?: { groups: readonly ModelProviderGroup[] }; error?: { message: string } }> } } }).remote.session.modelCatalog()
       if (!response.ok || response.value === undefined) throw new Error(t('catalogFailed'))
+      const enabled = await fetchAntigravityCatalogGroups(connectionRpc)
       let order: string[] = []
       try {
         order = ctx.settingsScope.bind({ namespace: PROVIDERS_SETTINGS_NS, decode: decodeProviderOrder }).getSnapshot().value?.order ?? []
       } catch {
         order = []
       }
-      return sortCatalogGroups(response.value.groups, order)
-    }, ...(subscribeProviderOrder === undefined ? {} : { subscribeProviderOrder }) }),
+      return sortCatalogGroups(withAntigravityCatalog(response.value.groups, enabled), order)
+        }, ...(connectionRpc === undefined ? {} : { loadCapabilities: async (revision?: number, signal?: AbortSignal): Promise<CapabilitiesSnapshot> => {
+      const rpc = connectionRpc
+      if (rpc === undefined) throw new Error(t('catalogFailed'))
+      // ponytail: literals mirror host CAPABILITIES_CHANNEL/'capabilities'; a shared import would drag host code into the client bundle.
+      const response = await rpc.call('/model-switch', 'capabilities', revision === undefined ? {} : { revision }, signal)
+      if (!response.ok || response.value === undefined) throw new Error(t('catalogFailed'))
+      const snapshot = decodeCapabilitiesSnapshot(response.value)
+      if (snapshot === undefined) throw new Error(t('catalogFailed'))
+      return snapshot
+    } }), ...(subscribeProviderOrder === undefined ? {} : { subscribeProviderOrder }) }),
   }, ModelSwitchSettings))
 }

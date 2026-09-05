@@ -4,7 +4,9 @@ import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-clie
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { CapabilityRouteView, MainSettingsView, SubagentSettingsView } from '../client-contract.js'
 import type { RuntimeCapabilities } from '../runtime-capabilities.js'
+import { searchGroupsFromCapabilities, type CapabilitiesSnapshot } from './search-capabilities.js'
 import type { ModelSwitchLocaleKey } from './locales.js'
+import { isAgentRole } from './antigravity-catalog.ts'
 import { deriveRouteChoices, selectRouteModel, useModelSwitchSettingsController, type Choice } from './main-row-controller.js'
 import css from './ModelSwitchSettings.module.css'
 
@@ -16,7 +18,11 @@ export interface ModelSwitchSettingsFace {
   setSubagent: (field: 'mode' | 'provider' | 'model' | 'effort', value: string | undefined) => Promise<void>
   setCapability: (route: 'search' | 'image', field: 'provider' | 'model', value: string | undefined) => Promise<void>
   loadCatalog: () => Promise<readonly ModelProviderGroup[]>
+  /** Host capabilities long-poll; absent in legacy faces, which keep the static-capabilities path. */
+  loadCapabilities?: (revision?: number, signal?: AbortSignal) => Promise<CapabilitiesSnapshot>
   subscribeProviderOrder?: (listener: () => void) => () => void
+  /** ProviderDirectory-owned role lookup; absent when the owner seam is unavailable. */
+  providerRoleOf?: (key: string) => string
 }
 
 export type ModelSwitchSettingsProps = PropsRuntime<'settings.section'> & InjectFace<ModelSwitchSettingsFace>
@@ -76,7 +82,7 @@ function routeDefaultEffort(groups: readonly ModelProviderGroup[], route: Capabi
   return groups.find(group => group.id === route.provider)?.models.find(model => model.id === route.model)?.reasoning?.defaultEffort
 }
 
-function capabilityChoices(groups: readonly ModelProviderGroup[], route: CapabilityRouteView | undefined, providers: readonly string[], kind: 'search' | 'image'): { providers: Choice[]; models: Choice[] } {
+function capabilityChoices(groups: readonly ModelProviderGroup[], route: CapabilityRouteView | undefined, providers: readonly string[] | undefined, kind: 'search' | 'image'): { providers: Choice[]; models: Choice[] } {
   const choices = deriveRouteChoices(groups, route, providers)
   if (kind === 'image' && route?.provider === 'grok') {
     const models: Choice[] = [{ id: 'grok-imagine-image-quality', name: 'Grok Imagine 1.0' }]
@@ -97,6 +103,41 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
   const [imageDraft, setImageDraft, resetImage] = useDraft(image)
   const [busy, setBusy] = useState<RouteId | undefined>()
   const [message, setMessage] = useState<{ route: RouteId; text: string } | undefined>()
+  const loadSearchCapabilities = props.loadCapabilities
+  const [searchSnapshot, setSearchSnapshot] = useState<CapabilitiesSnapshot | undefined>(undefined)
+  const [searchError, setSearchError] = useState<string | undefined>(undefined)
+  // ponytail: one effect owns the Host long-poll chain (initial fetch, revision follow-ups, bounded retry, abort).
+  useEffect(() => {
+    if (loadSearchCapabilities === undefined) return
+    let live = true
+    const scope = new AbortController()
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let failures = 0
+    let signature: string | undefined
+    const poll = async (revision: number | undefined): Promise<void> => {
+      try {
+        const snapshot = await loadSearchCapabilities(revision, scope.signal)
+        if (!live) return
+        // Revisions belong to an RPC owner; compare content to accept restarts without heartbeat renders.
+        const nextSignature = JSON.stringify(snapshot)
+        if (signature !== nextSignature || failures > 0) {
+          signature = nextSignature
+          setSearchSnapshot(snapshot)
+          setSearchError(undefined)
+        }
+        failures = 0
+        void poll(snapshot.revision)
+      } catch (error) {
+        if (!live || scope.signal.aborted) return
+        failures = Math.min(failures + 1, 8)
+        if (failures >= 3) setSearchError(error instanceof Error ? error.message : props.t('catalogFailed'))
+        // Stay fail-closed but recover without remounting; retry delay is capped at the Host heartbeat.
+        timer = setTimeout(() => { if (live) void poll(undefined) }, Math.min(250 * 2 ** (failures - 1), 20_000))
+      }
+    }
+    void poll(undefined)
+    return () => { live = false; scope.abort(); if (timer !== undefined) clearTimeout(timer) }
+  }, [loadSearchCapabilities])
   const unavailable = (key: keyof RuntimeCapabilities): string => { const reason = props.capabilities[key].reason; return reason === undefined ? props.t('unavailable') : props.t(('reason.' + reason) as ModelSwitchLocaleKey) }
   const toggle = (route: RouteId): void => { setOpen(current => current === route ? undefined : route); setMessage(undefined) }
   const subagentRoute = subagentDraft === undefined ? undefined : { ...(subagentDraft.provider === undefined ? {} : { provider: subagentDraft.provider }), ...(subagentDraft.model === undefined ? {} : { model: subagentDraft.model }) }
@@ -109,7 +150,10 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
   })()
   const defaultEffort = subagentDraft?.reasoningEffort ?? routeDefaultEffort(groups, subagentRoute)
   const mainEffectiveEffort = draft?.reasoningEffort ?? routeDefaultEffort(groups, draft)
-  const searchChoices = capabilityChoices(groups, searchDraft, props.capabilities.searchProviderAdapters.providers ?? [], 'search')
+  const searchLive = searchSnapshot?.capabilities
+  const searchGroups = searchGroupsFromCapabilities(searchLive)
+  const searchChoices = capabilityChoices(searchGroups, searchDraft, undefined, 'search')
+  const searchAvailable = searchLive?.searchProviderAdapters.available ?? false
   const imageChoices = capabilityChoices(groups, imageDraft, props.capabilities.imageProviderAdapters.providers ?? [], 'image')
   const synced = [main, subagent, search, image].every(snapshot => snapshot.status === 'ready')
   const run = async (route: RouteId, operation: () => Promise<void>): Promise<void> => {
@@ -133,7 +177,8 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
     if (current.value?.model !== next.model) await props.setCapability(route, 'model', next.model)
   }) }
   const mainSummary = draft === undefined ? props.t('loading') : compact(routeName(groups, draft), mainEffectiveEffort)
-  const subagentSummary = subagentDraft?.mode === 'follow-main' ? props.t('subagentFollowMain') : compact(props.t('subagentFixed'), routeName(groups, subagentRoute), defaultEffort === undefined ? props.t('providerDefaultShort') : compact(props.t('providerDefaultShort'), defaultEffort))
+  const subagentRole = subagentDraft?.mode === 'fixed' && subagentDraft.provider !== undefined && subagentDraft.provider !== '' ? props.providerRoleOf?.(subagentDraft.provider) : undefined
+  const subagentSummary = subagentDraft?.mode === 'follow-main' ? props.t('subagentFollowMain') : compact(props.t('subagentFixed'), routeName(groups, subagentRoute), isAgentRole(subagentRole) ? props.t('agentBadge') : undefined, defaultEffort === undefined ? props.t('providerDefaultShort') : compact(props.t('providerDefaultShort'), defaultEffort))
   const subagentDisabled = subagent.status !== 'ready' || !subagent.writable || subagentDraft === undefined || busy === 'subagent' || (subagentDraft.mode === 'fixed' && ((subagentDraft.provider ?? '').trim() === '' || (subagentDraft.model ?? '').trim() === ''))
   const capabilityDisabled = (route: 'search' | 'image', snapshot: SettingsScopeSnapshot<CapabilityRouteView>, next: CapabilityRouteView | undefined): boolean => snapshot.status !== 'ready' || !snapshot.writable || next === undefined || busy === route || (next.provider ?? '').trim() === '' || (next.model ?? '').trim() === ''
 
@@ -160,12 +205,12 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
     </section>
 
     <section className={css.group}><h2 className={css.groupLabel}>{props.t('capabilityRoutes')}</h2>
-      {props.capabilities.searchProviderAdapters.available ? <RouteCard title={props.t('search')} summary={searchDraft === undefined ? props.t('loading') : routeName(groups, searchDraft)} icon="search" open={open === 'search'} onToggle={() => { toggle('search') }}>
-        {searchDraft === undefined ? <p className={css.hint}>{props.t('loading')}</p> : <><p className={css.hint}>{props.t('searchHelp')}</p><div className={css.formGrid}>
-          <Field label={props.t('provider')} value={searchDraft.provider} disabled={busy === 'search' || !search.writable} choices={searchChoices.providers} onChange={provider => { const first = groups.find(group => group.id === provider)?.models[0]; setSearchDraft({ provider, ...(first === undefined ? {} : { model: first.id }) }) }} />
-          <Field label={props.t('model')} value={searchDraft.model} disabled={busy === 'search' || !search.writable} choices={searchChoices.models} onChange={model => { setSearchDraft({ ...searchDraft, model }) }} />
-        </div><Actions t={props.t} busy={busy === 'search'} disabled={capabilityDisabled('search', search, searchDraft)} {...(message?.route === 'search' ? { message: message.text } : {})} onCancel={() => { resetSearch(); setMessage(undefined) }} onSave={() => { saveCapability('search', search, searchDraft) }} /></>}
-      </RouteCard> : <RouteCard title={props.t('search')} summary={unavailable('searchProviderAdapters')} icon="search" open={false} onToggle={() => {}} disabled badge={props.t('unavailable')} badgeWarn />}
+      {searchAvailable ? <RouteCard title={props.t('search')} summary={searchDraft === undefined ? props.t('loading') : routeName(searchGroups, searchDraft)} icon="search" open={open === 'search'} onToggle={() => { toggle('search') }}>
+        {searchDraft === undefined ? <p className={css.hint}>{props.t('loading')}</p> : <><p className={css.hint}>{props.t('searchHelp')}</p>{searchError === undefined ? null : <p className={css.hint}>{searchError}</p>}<div className={css.formGrid}>
+          <Field label={props.t('provider')} value={searchDraft.provider} disabled={busy === 'search' || !search.writable || searchError !== undefined} choices={searchChoices.providers} onChange={provider => { const first = searchGroups.find(group => group.id === provider)?.models[0]; setSearchDraft({ provider, ...(first === undefined ? {} : { model: first.id }) }) }} />
+          <Field label={props.t('model')} value={searchDraft.model} disabled={busy === 'search' || !search.writable || searchError !== undefined} choices={searchChoices.models} onChange={model => { setSearchDraft({ ...searchDraft, model }) }} />
+        </div><Actions t={props.t} busy={busy === 'search'} disabled={capabilityDisabled('search', search, searchDraft) || searchError !== undefined || !searchGroups.some(group => group.id === searchDraft.provider && group.models.some(model => model.id === searchDraft.model))} {...(message?.route === 'search' ? { message: message.text } : {})} onCancel={() => { resetSearch(); setMessage(undefined) }} onSave={() => { saveCapability('search', search, searchDraft) }} /></>}
+      </RouteCard> : <RouteCard title={props.t('search')} summary={searchError ?? unavailable('searchProviderAdapters')} icon="search" open={false} onToggle={() => {}} disabled badge={props.t('unavailable')} badgeWarn />}
 
       {props.capabilities.imageProviderAdapters.available ? <RouteCard title={props.t('image')} summary={imageDraft === undefined ? props.t('loading') : routeName(groups, imageDraft)} icon="image" open={open === 'image'} onToggle={() => { toggle('image') }}>
         {imageDraft === undefined ? <p className={css.hint}>{props.t('loading')}</p> : <><p className={css.hint}>{props.t('imageHelp')}</p><div className={css.formGrid}>

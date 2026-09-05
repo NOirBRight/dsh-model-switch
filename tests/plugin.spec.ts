@@ -22,13 +22,13 @@ describe('Host runtime surface', () => {
     expect(service.saveSelection).toHaveBeenCalledOnce()
     expect(port.currentSelection().provider).toBe('codex')
   })
-  it('reports available routing and remaining alpha.1 gaps', () => {
+  it('reports available routing and remaining Alpha.4 gaps', () => {
     expect(RUNTIME_CAPABILITIES.mainDefaults.available).toBe(true)
     expect(RUNTIME_CAPABILITIES.settings.available).toBe(true)
     expect(RUNTIME_CAPABILITIES.centralSubagentRouting.available).toBe(true)
     expect(RUNTIME_CAPABILITIES.packagedPresetRoots).toEqual({ available: false, reason: 'packaged-preset-roots' })
     expect(RUNTIME_CAPABILITIES.toolOwnerSuppression.available).toBe(false)
-    expect(RUNTIME_CAPABILITIES.searchProviderAdapters).toEqual({ available: true, providers: ['codex'] })
+    expect(RUNTIME_CAPABILITIES.searchProviderAdapters).toEqual({ available: false, reason: 'search-provider-adapters', providers: [] })
     expect(RUNTIME_CAPABILITIES.imageProviderAdapters).toEqual({ available: true, providers: ['codex', 'grok'] })
     expect(RUNTIME_CAPABILITIES.visionProviderAdapters).toEqual({ available: false, reason: 'vision-provider-adapters' })
     expect(Object.isFrozen(RUNTIME_CAPABILITIES)).toBe(true)

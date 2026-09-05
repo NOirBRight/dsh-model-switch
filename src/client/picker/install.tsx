@@ -17,6 +17,7 @@ import { pickerDirectoryViewOrdered, type PickerDirectoryFace } from './PickerDi
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { PlanReviewCard } from './PlanReviewCard.tsx'
 import { PickerSeatBoundary } from './PickerSeatBoundary.tsx'
+import { installAntigravityRuntimeLock, RUNTIME_LOCK_TARGET } from '../runtime-lock.ts'
 import { en, zh, type PickerKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -109,9 +110,11 @@ function ModelSeat(
 ) {
   const directory = props.useDirectory(snapshot => snapshot)
   const order = props.useProviderOrder(value => value)
+  const providerLock = props.useConversation(snapshot => snapshot.views.get(RUNTIME_LOCK_TARGET) ?? null)
   return (
     <ComposerPicker
       locked={props.locked}
+      providerLock={providerLock}
       available={props.available}
       directory={pickerDirectoryViewOrdered(directory, props, order)}
       t={props.t}
@@ -132,6 +135,7 @@ function ModelSeatEntry(props: Parameters<typeof ModelSeat>[0]) {
 
 /** Register composer model picker and Plan Review execution picker. */
 export function installComposerPicker(ctx: ClientContext): void {
+  installAntigravityRuntimeLock(ctx)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-model-switch: composer picker dictionaries')
 
   ctx.inject(['slots', 'modelDirectories', 'settingsScope', 'remote.settings'], (scope: ClientContext) => {

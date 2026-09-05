@@ -1,6 +1,18 @@
 import type { WebSearchRequest, WebSearchResult } from '@deepseek-ai/dsh-web';
+export interface SearchModel {
+    readonly id: string;
+    readonly name: string;
+}
+export interface SearchProviderMetadata {
+    readonly id: string;
+    readonly name: string;
+    readonly models: readonly SearchModel[];
+}
 export interface ModelSwitchSearchAdapter {
     readonly provider: string;
+    readonly label?: string;
+    /** Independent web_search models, not the conversational/native-network catalog. */
+    readonly models?: readonly SearchModel[];
     supportsModel(model: string): boolean;
     search(model: string, request: WebSearchRequest, signal?: AbortSignal): Promise<WebSearchResult>;
 }
@@ -35,6 +47,11 @@ export interface ModelSwitchProviderAdapters {
 /** Lifecycle-owned registry for optional provider integrations. */
 export declare class ModelSwitchAdapterRegistry {
     private readonly entries;
+    private readonly listeners;
+    subscribe(listener: () => void): () => void;
+    private changed;
+    /** Explicit projection: never serialize an executable adapter or its extra fields. */
+    searchCatalog(): readonly SearchProviderMetadata[];
     register(adapters: ModelSwitchProviderAdapters): () => void;
     get(provider: string): ModelSwitchProviderAdapters | undefined;
     list(): readonly ModelSwitchProviderAdapters[];

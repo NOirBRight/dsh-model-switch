@@ -1,5 +1,4 @@
 import z from '@deepseek-ai/schemastery'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { MODEL_SWITCH_SETTINGS_ID } from './client-contract.js'
 
 export type SubagentMode = 'follow-main' | 'fixed'
@@ -14,7 +13,8 @@ export interface Config {
   imageModel?: string
 }
 
-export const MODEL_SWITCH_SETTINGS_NAMESPACE = settingsNamespace(MODEL_SWITCH_SETTINGS_ID)
+/** Stable lowercase namespace required by the Alpha.4 Settings provider. */
+export const MODEL_SWITCH_SETTINGS_NAMESPACE = MODEL_SWITCH_SETTINGS_ID
 export const Config: z<Config> = z.object({
   subagentMode: z.union(['follow-main', 'fixed'] as const).default('follow-main'),
   subagentProvider: z.string(),

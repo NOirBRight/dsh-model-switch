@@ -10,6 +10,7 @@ export interface Config {
     imageProvider?: string;
     imageModel?: string;
 }
-export declare const MODEL_SWITCH_SETTINGS_NAMESPACE: import("@deepseek-ai/dsh-settings").SettingsNamespace;
+/** Stable lowercase namespace required by the Alpha.4 Settings provider. */
+export declare const MODEL_SWITCH_SETTINGS_NAMESPACE = "model-switch";
 export declare const Config: z<Config>;
 export declare const DEFAULT_CONFIG: Config;
