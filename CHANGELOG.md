@@ -1,4 +1,13 @@
 # Changelog
+
+## [0.4.7] - 2026-09-06
+
+- Unify provider-owned independent Web search metadata and execution for DeepSeek, Codex and Grok through the existing adapter registry and authenticated capability RPC.
+- Reuse official DeepSeek search settings/credentials and preserve the deployment’s complete Web config, including fetchProvider. Global search routing remains an explicit opt-in with no silent fallback.
+- Recover capability polling after transient failures and Host revision resets; skip unchanged heartbeats without hiding unload warnings or enabling stale saves.
+- Preserve Antigravity session routing and released v0.4.6 runtime compatibility; correct picker test fixtures without weakening approval safety assertions.
+- Coordinate with Codex 0.3.14, Grok 0.3.11 and Provider Directory 0.1.9; install and validate immutable packages in lab before production promotion.
+
 ## [0.4.6] - 2026-09-03
 
 ### Changed

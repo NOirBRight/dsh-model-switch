@@ -2,6 +2,7 @@
 
 /* Portable Alpha.4 pack gate shared by the plugin migrations. */
 import { createHash } from 'node:crypto'
+import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { builtinModules } from 'node:module'
@@ -127,7 +128,9 @@ function checkAlpha4Manifest(manifest, label) {
   for (const section of ['dependencies', 'optionalDependencies', 'peerDependencies', 'devDependencies']) {
     for (const [name, range] of Object.entries(manifest[section] ?? {})) {
       if (typeof range !== 'string') fail(label + ' has non-string ' + section + '.' + name)
-      if (name.startsWith('@deepseek-ai/dsh-') && range !== ALPHA4 && !(satisfies(ALPHA4, range) && satisfies(RC1, range)) && !(capturedOfficialWorkspace && range === 'workspace:^')) fail(label + ' has a DSH range that excludes Alpha.4 or rc.1: ' + name + ' ' + range)
+      // Published development pins do not enter the offline runtime closure.
+      const verifiedDevPin = section === 'devDependencies' && range === RC1
+      if (name.startsWith('@deepseek-ai/dsh-') && range !== ALPHA4 && !verifiedDevPin && !(satisfies(ALPHA4, range) && satisfies(RC1, range)) && !(capturedOfficialWorkspace && range === 'workspace:^')) fail(label + ' has a DSH range that excludes Alpha.4 or rc.1: ' + name + ' ' + range)
       // Cordis plugins published from the upstream monorepo retain their
       // workspace peer range; the harness packages and this plugin must pin
       // the runtime Cordis version itself.
@@ -226,6 +229,10 @@ function smoke(consumer, root) {
   writeFileSync(file, lines.join('\n') + '\n')
   run(process.execPath, [file], { cwd: consumer })
 }
+
+assert.doesNotThrow(() => checkAlpha4Manifest({ name: 'fixture-check', devDependencies: { '@deepseek-ai/dsh-agent': RC1 } }, 'fixture check'))
+assert.throws(() => checkAlpha4Manifest({ name: 'fixture-check', peerDependencies: { '@deepseek-ai/dsh-agent': RC1 } }, 'fixture check'), /DSH range/)
+assert.throws(() => checkAlpha4Manifest({ name: 'fixture-check', devDependencies: { '@deepseek-ai/dsh-agent': '99.0.0' } }, 'fixture check'), /DSH range/)
 
 let workRoot
 try {

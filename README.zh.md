@@ -85,15 +85,16 @@ Plan Review 拥有独立于 Main 的执行模型草稿。**确认执行**会先�
 
 ## 安装
 
-安装 Model Switch，以及实际使用的 Provider Adapter。以下版本已在 DSH 0.1.2-alpha.4 验证：
+安装 Model Switch，以及实际使用的 Provider Adapter。以下协调版本面向已验证的 DSH 0.1.2-alpha.4 和 0.1.2-rc.1 运行时：
 
 ```sh
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.9
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.9
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.6
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-providers-ui#v0.1.9
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.14
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.11
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.7
 ```
 
-### 搜索供应商统一接入（开发分支，尚未发布）
+### 搜索供应商统一接入（0.4.7）
 
 搜索列表来自 Host 上已有的 `ModelSwitchAdapterRegistry`，Provider 自声明名称和独立搜索模型；浏览器只收到普通元数据，不收到凭据或可执行函数。注册、卸载会通知订阅者；原地修改模型声明最迟由 20 秒心跳更新。`ProviderDirectory` 继续负责客户端 role/usage，不另造注册表。模型原生联网不等于独立 `web_search` 适配器。
 
@@ -103,7 +104,7 @@ DeepSeek 薄适配器调用官方公开 `DeepSeekSearchProvider`，复用用户�
 
 然后在 Model Switch 设置中选择请求的供应商/模型。全局已选 Model Switch、但没有完整且受支持的搜索配置时，官方选择层返回 `WEB_PROVIDER_CONFIGURED_UNAVAILABLE`，不会回退 DeepSeek。全局未选 Model Switch 时，下拉框不控制官方搜索；未固定全局供应商且有多个可用 provider 时会明确报歧义。卸载前应恢复部署原来的搜索路由。官方 `web_search`、`web_fetch` 均不替换。
 
-本轮分支、测试命令及 3082 live 证据见 [搜索接入审计](docs/search-provider-audit.md)。经授权复用生产 DeepSeek 凭据后，Flash/Pro 的 3082 真实搜索均通过，三家均已有成功证据。Picker 测试夹具及审查发现的元数据恢复问题已修正，全量 169 个测试通过；发布前仍需协调版本并验收正式打包产物，不代表已经发布。
+本轮分支、测试命令及 3082 live 证据见 [搜索接入审计](docs/search-provider-audit.md)。经授权复用生产 DeepSeek 凭据后，Flash/Pro 的 3082 真实搜索均通过，三家均已有成功证据。Picker 测试夹具及审查发现的元数据恢复问题已修正，保留 v0.4.6 兼容性后全量 172 个测试通过。生产推广仍须先在 lab 安装验收同一组不可变发布产物。
 
 如果 profile 已安装 `dsh-composer-picker`，请先移除它。Model Switch 已经拥有 Composer Picker 和 Plan Review 席位；同时安装会产生重复或竞争 UI。
 
@@ -144,7 +145,7 @@ dsh plugin --profile web add --force \
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.6/dsh-model-switch.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.7/dsh-model-switch.tgz
 ~~~
 
 更新、卸载与验证：
@@ -164,4 +165,4 @@ dsh plugin --profile web remove dsh-model-switch
 
 回滚：重新执行固定版本 v0.4.4 命令，确认插件列表后只重启一次 Web 服务。失败时查看 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor，不要把源码 checkout 写入 production profile。
 
-Release 与完整性：[v0.4.6](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.6) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.6/SHA256SUMS)。
+Release 与完整性：[v0.4.6](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.6) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.7/SHA256SUMS)。

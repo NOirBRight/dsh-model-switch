@@ -85,15 +85,16 @@ Plan Review owns an execution-model draft separate from Main. **Confirm** first 
 
 ## Installation
 
-Install Model Switch and only the provider adapters you use. These versions are validated with DSH 0.1.2-alpha.4:
+Install Model Switch and only the provider adapters you use. The coordinated versions below target the verified DSH 0.1.2-alpha.4 and 0.1.2-rc.1 runtimes:
 
 ```sh
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.9
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.9
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.6
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-providers-ui#v0.1.9
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.14
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.11
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.7
 ```
 
-### Search routing (this development branch; not yet released)
+### Search routing (0.4.7)
 
 Providers declare independent search adapters and model metadata on the existing Host `ModelSwitchAdapterRegistry`. The browser receives only id/name/model metadata over authenticated Connection RPC, not adapters or credentials. Registration/unload updates subscribers; in-place catalog changes are picked up by the bounded 20-second heartbeat. `ProviderDirectory` remains the client role/usage owner, not a second Host execution registry.
 
@@ -131,7 +132,7 @@ pnpm run check
 
 ## Release installation (Latest)
 
-Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools. The release artifact targets DeepSeek Harness 0.1.2-alpha.4 and contains built Host/Client files only; it has no sibling-repository source, workstation path, or local protocol dependency.
+Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools. The release artifact targets the verified runtimes listed above and contains built Host/Client files only; it has no sibling-repository source, workstation path, or local protocol dependency.
 
 Latest installation (the URL never contains a version):
 
@@ -144,7 +145,7 @@ Fixed-version installation:
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.6/dsh-model-switch.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.7/dsh-model-switch.tgz
 ~~~
 
 Update, uninstall, and verify:
@@ -164,4 +165,4 @@ Configuration: use the plugin section in Settings for Web UI plugins, or the pro
 
 Rollback: rerun the fixed v0.4.4 command, verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never put a source checkout in the production profile.
 
-Release and integrity: [v0.4.6](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.6) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.6/SHA256SUMS).
+Release and integrity: [v0.4.6](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.6) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.7/SHA256SUMS).
