@@ -38,6 +38,8 @@ function PickerGuard({ children, errorLabel, retryLabel }: PickerGuardProps) {
 export interface PlanReviewFace extends PickerDirectoryFace {
   available: boolean
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
+  /** Activate the Session runtime-lock target so its snapshot becomes readable. */
+  activateProviderLock: () => void
 }
 
 export type PlanReviewCardProps = PropsRuntime<'conversation.composer'>
@@ -82,6 +84,7 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
   const snapshot = props.useDirectory(value => value)
   const order = props.useProviderOrder(value => value)
   const providerLock = props.useConversation(snapshot => snapshot.views.get(RUNTIME_LOCK_TARGET) ?? null)
+  useEffect(() => { props.activateProviderLock() }, [props.activateProviderLock])
   const review = planReviewOf(props.matched.questions)
   if (review === undefined) {
     return (

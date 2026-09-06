@@ -5,6 +5,8 @@ import type { PickerInteractionOperations } from './popup-dismissal.ts';
 export interface PlanReviewFace extends PickerDirectoryFace {
     available: boolean;
     resolveInteractionOperations?: () => PickerInteractionOperations | undefined;
+    /** Activate the Session runtime-lock target so its snapshot becomes readable. */
+    activateProviderLock: () => void;
 }
 export type PlanReviewCardProps = PropsRuntime<'conversation.composer'> & PropsLocale<'composer-picker'> & InjectFace<PlanReviewFace> & {
     matched: PendingQuestion;

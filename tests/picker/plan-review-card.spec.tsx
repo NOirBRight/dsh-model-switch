@@ -41,6 +41,7 @@ function props(overrides: Record<string, unknown> = {}) {
     useDirectory: (selector: (value: typeof baseSnapshot) => unknown) => selector(snapshot),
     useProviderOrder: (selector: (value: readonly string[]) => unknown) => selector([]),
     useConversation: (selector: (value: { views: { get: () => null } }) => unknown) => selector({ views: { get: () => null } }),
+    activateProviderLock: vi.fn(() => undefined),
     getDirectorySnapshot: () => snapshot,
     setSnapshot: (next: typeof baseSnapshot) => { snapshot = next },
     load: () => undefined,

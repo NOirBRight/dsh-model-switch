@@ -5,6 +5,7 @@ import type {
   ConversationNodeDefinition,
   ConversationViewDefinition,
   ConversationViewNode,
+  UiConversation,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { ANTIGRAVITY_PROVIDER_KEY } from './antigravity-catalog.ts'
 
@@ -28,11 +29,14 @@ function isSessionReady(event: { readonly type: string; readonly data?: unknown 
   return (event.data as { readonly provider?: unknown }).provider === ANTIGRAVITY_PROVIDER_KEY
 }
 
-/** Project the first successful native Antigravity session startup into a durable lock node. */
+/**
+ * Project each successful native Antigravity session startup into a durable lock node.
+ * The context id carries the event sequence so replayed startups fold monotonically.
+ */
 export const antigravityRuntimeLockEvent: ConversationNodeDefinition<typeof ANTIGRAVITY_PROVIDER_KEY> = {
   kind: 'model-switch.antigravity-runtime-lock',
   target: RUNTIME_LOCK_TARGET,
-  match: event => isSessionReady(event) ? { id: ANTIGRAVITY_PROVIDER_KEY, role: 'start' } : null,
+  match: event => isSessionReady(event) ? { id: `${ANTIGRAVITY_PROVIDER_KEY}:${event.seq}`, role: 'start' } : null,
   start: () => ANTIGRAVITY_PROVIDER_KEY,
   update: context => context.state,
   buildViewNode: context => context.state === undefined ? null : {
@@ -44,7 +48,10 @@ export const antigravityRuntimeLockEvent: ConversationNodeDefinition<typeof ANTI
   },
 }
 
-/** Fold runtime-lock nodes into the provider allowed for the rest of the Session. */
+/**
+ * Fold runtime-lock nodes into the provider allowed for the rest of the Session.
+ * Any number of lock nodes (one per startup) keeps the same provider locked.
+ */
 export const antigravityRuntimeLockView: ConversationViewDefinition<RuntimeLockNode, RuntimeProviderLock> = {
   target: RUNTIME_LOCK_TARGET,
   create: () => {
@@ -75,4 +82,17 @@ export function installAntigravityRuntimeLock(ctx: ClientContext): void {
     scope.effect(() => scope.uiConversation.views.register(antigravityRuntimeLockView), 'dsh-model-switch: Antigravity runtime lock view')
     scope.effect(() => scope.uiConversation.events.register(antigravityRuntimeLockEvent), 'dsh-model-switch: Antigravity runtime lock event')
   })
+}
+
+/**
+ * Activate one Session runtime-lock target so its snapshot becomes readable.
+ * Snapshot reads alone never activate; seats call this alongside their selector.
+ * Activation is monotonic for the Session lifetime; the lock value flows
+ * through the existing snapshot selector, so no extra listener is owned here.
+ */
+export function activateRuntimeLockTarget(
+  uiConversation: UiConversation,
+  sessionId: Parameters<UiConversation['binding']>[0],
+): void {
+  uiConversation.binding(sessionId).activate(RUNTIME_LOCK_TARGET)
 }

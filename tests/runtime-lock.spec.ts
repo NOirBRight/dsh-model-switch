@@ -15,8 +15,14 @@ describe('Antigravity runtime lock projection', () => {
     } as never)).toBeNull()
     expect(antigravityRuntimeLockEvent.match({
       type: ANTIGRAVITY_SESSION_READY,
+      seq: 11,
       data: { provider: 'antigravity' },
-    } as never)).toEqual({ id: 'antigravity', role: 'start' })
+    } as never)).toEqual({ id: 'antigravity:11', role: 'start' })
+    expect(antigravityRuntimeLockEvent.match({
+      type: ANTIGRAVITY_SESSION_READY,
+      seq: 27,
+      data: { provider: 'antigravity' },
+    } as never)).toEqual({ id: 'antigravity:27', role: 'start' })
   })
 
   it('keeps the projected provider lock monotonic', () => {
