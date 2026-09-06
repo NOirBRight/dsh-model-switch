@@ -21,6 +21,8 @@ Invalid, unavailable, or unsupported routes fail explicitly. Model Switch never 
 
 After the active session successfully opens a native Antigravity session, the Composer and Plan Review pickers read its plugin-owned binding and disable other providers while keeping available Antigravity model and effort controls. The DSH global picker lock remains authoritative. Binding reads refresh on mount, input-phase or catalog changes, and before selection; failed reads show a localized alert and preserve a known native lock. These reads do not start the native runtime or gate conversation history. Antigravity owns the separate execution-time guard; Model Switch does not create custom Core history events.
 
+The existing 3082 lab replay probe is `node scripts/check-lab-runtime-lock.mjs [native|runtime-absent|plugin-absent]`. It checks the dedicated QA conversation under the already-established condition; it does not disable plugins, select a model, or send a turn.
+
 ## Configure Main and Subagents
 
 Open **Settings → Model Switch**. Main changes affect new sessions only. Subagents may follow Main or use a fixed provider, model, and effort.
