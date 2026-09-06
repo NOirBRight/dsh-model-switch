@@ -59,7 +59,7 @@ function bench(strictOptionalLookup = false) {
 describe('composer picker seat ownership', () => {
   it('uses the official model-seat service gate and an unambiguous winning priority', () => {
     const { entries, injections } = bench()
-    expect(injections).toContainEqual(['slots', 'modelDirectories', 'settingsScope', 'remote.settings', 'uiConversation'])
+    expect(injections).toContainEqual(['slots', 'modelDirectories', 'settingsScope', 'remote.settings'])
     expect(entries.find(({ spec }) => spec.name === 'conversation.input.model')?.spec.priority).toBe(-10)
   })
 

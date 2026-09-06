@@ -1,100 +1,142 @@
-/** Durable provider lock projected from Antigravity session startup. */
+/** Session native-binding lock read from the Antigravity plugin RPC. */
 
-import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import type {
-  ConversationNodeDefinition,
-  ConversationViewDefinition,
-  ConversationViewNode,
-  UiConversation,
-} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { ANTIGRAVITY_PROVIDER_KEY } from './antigravity-catalog.ts'
 
-export const ANTIGRAVITY_SESSION_READY = 'antigravity/session-ready'
-export const RUNTIME_LOCK_TARGET = 'model-switch.runtime-lock'
+/**
+ * Antigravity activity RPC seam (dsh-acp-antigravity activity-contract).
+ * Kept as literals: the Antigravity plugin is not a Model Switch dependency.
+ */
+export const ANTIGRAVITY_BINDING_CHANNEL = '/dsh-acp-antigravity'
+export const ANTIGRAVITY_BINDING_ENDPOINT = 'activity/binding'
+
 export type RuntimeProviderLock = typeof ANTIGRAVITY_PROVIDER_KEY | null
 
-interface RuntimeLockNode extends ConversationViewNode {
-  readonly target: typeof RUNTIME_LOCK_TARGET
-  readonly data: typeof ANTIGRAVITY_PROVIDER_KEY
+/** Lock read result: the bound provider, plus whether the read itself failed. */
+export interface ProviderLockState {
+  readonly provider: RuntimeProviderLock
+  readonly failed: boolean
 }
 
-declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
-  interface ConversationViewSnapshotMap {
-    'model-switch.runtime-lock': RuntimeProviderLock
+interface BindingRpc {
+  call(channel: string, endpoint: string, payload: unknown, extra: undefined): Promise<{ ok: boolean; value?: unknown }>
+}
+
+function record(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : undefined
+}
+
+/**
+ * Decode one activity/binding reply. null means unbound; anything else shaped
+ * is a read error (never thrown: the picker stays authoritative on failure).
+ */
+export function decodeBindingProvider(value: unknown): RuntimeProviderLock | undefined {
+  const reply = record(value)
+  if (reply === undefined) return undefined
+  if (reply.provider === null) return null
+  return reply.provider === ANTIGRAVITY_PROVIDER_KEY ? ANTIGRAVITY_PROVIDER_KEY : undefined
+}
+
+/**
+ * Read one session native binding; undefined when the plugin is absent,
+ * unreachable, or malformed. Never throws.
+ */
+export async function fetchSessionBinding(
+  rpc: BindingRpc | undefined,
+  sessionId: string,
+): Promise<RuntimeProviderLock | undefined> {
+  if (rpc === undefined) return undefined
+  try {
+    const result = await rpc.call(ANTIGRAVITY_BINDING_CHANNEL, ANTIGRAVITY_BINDING_ENDPOINT, { sessionId }, undefined)
+    return result.ok ? decodeBindingProvider(result.value) : undefined
+  } catch {
+    return undefined
   }
 }
 
-function isSessionReady(event: { readonly type: string; readonly data?: unknown }): boolean {
-  if (event.type !== ANTIGRAVITY_SESSION_READY || event.data === null || typeof event.data !== 'object') return false
-  return (event.data as { readonly provider?: unknown }).provider === ANTIGRAVITY_PROVIDER_KEY
-}
-
-/**
- * Project each successful native Antigravity session startup into a durable lock node.
- * The context id carries the event sequence so replayed startups fold monotonically.
- */
-export const antigravityRuntimeLockEvent: ConversationNodeDefinition<typeof ANTIGRAVITY_PROVIDER_KEY> = {
-  kind: 'model-switch.antigravity-runtime-lock',
-  target: RUNTIME_LOCK_TARGET,
-  match: event => isSessionReady(event) ? { id: `${ANTIGRAVITY_PROVIDER_KEY}:${event.seq}`, role: 'start' } : null,
-  start: () => ANTIGRAVITY_PROVIDER_KEY,
-  update: context => context.state,
-  buildViewNode: context => context.state === undefined ? null : {
-    key: context.key,
-    kind: context.kind,
-    id: context.id,
-    target: RUNTIME_LOCK_TARGET,
-    data: context.state,
-  },
-}
-
-/**
- * Fold runtime-lock nodes into the provider allowed for the rest of the Session.
- * Any number of lock nodes (one per startup) keeps the same provider locked.
- */
-export const antigravityRuntimeLockView: ConversationViewDefinition<RuntimeLockNode, RuntimeProviderLock> = {
-  target: RUNTIME_LOCK_TARGET,
-  create: () => {
-    let current: RuntimeProviderLock = null
-    return {
-      empty: null,
-      replace: ({ nodes }) => {
-        current = nodes.some(node => node.data === ANTIGRAVITY_PROVIDER_KEY) ? ANTIGRAVITY_PROVIDER_KEY : null
-        return current
-      },
-      apply: ({ upserts }) => {
-        if (upserts.some(node => node.data === ANTIGRAVITY_PROVIDER_KEY)) current = ANTIGRAVITY_PROVIDER_KEY
-        return current
-      },
-    }
-  },
-  isActive: () => false,
-}
-
-/** Whether one provider remains selectable under the Session runtime lock. */
+/** Whether one provider remains selectable under a known lock read. */
 export function providerSelectable(lock: RuntimeProviderLock, provider: string): boolean {
   return lock === null || provider === lock
 }
 
-/** Register the replayable event projection when Conversation assembly is present. */
-export function installAntigravityRuntimeLock(ctx: ClientContext): void {
-  ctx.inject(['uiConversation'], (scope) => {
-    scope.effect(() => scope.uiConversation.views.register(antigravityRuntimeLockView), 'dsh-model-switch: Antigravity runtime lock view')
-    scope.effect(() => scope.uiConversation.events.register(antigravityRuntimeLockEvent), 'dsh-model-switch: Antigravity runtime lock event')
-  })
+/**
+ * Whether one provider remains selectable under a lock read that may have failed.
+ * Fail closed for native-bound sessions (known lock, or current Antigravity
+ * selection with no successful read yet): only the anchor stays selectable.
+ * Pure-LLM sessions stay fully open; log reading is never gated by this.
+ * @param state - Latest lock read for the session.
+ * @param provider - Candidate provider for the pending selection.
+ * @param currentProvider - Session current provider, if any.
+ */
+export function isProviderAllowed(
+  state: ProviderLockState,
+  provider: string,
+  currentProvider: string | undefined,
+): boolean {
+  if (!state.failed) return providerSelectable(state.provider, provider)
+  if (state.provider === ANTIGRAVITY_PROVIDER_KEY || currentProvider === ANTIGRAVITY_PROVIDER_KEY) {
+    return provider === ANTIGRAVITY_PROVIDER_KEY
+  }
+  return true
 }
 
 /**
- * Activate one Session runtime-lock target so its snapshot becomes readable.
- * Snapshot reads alone never activate; seats call this alongside their selector.
- * Activation is monotonic for the Session lifetime; the lock value flows
- * through the existing snapshot selector, so no extra listener is owned here.
- * @param uiConversation - Conversation root service from the seat scope.
- * @param sessionId - Session whose binding owns the lock target.
+ * Effective single-provider lock for pickers that only understand
+ * RuntimeProviderLock. Errors fail closed exactly as isProviderAllowed does.
  */
-export function activateRuntimeLockTarget(
-  uiConversation: UiConversation,
-  sessionId: Parameters<UiConversation['binding']>[0],
-): void {
-  uiConversation.binding(sessionId).activate(RUNTIME_LOCK_TARGET)
+export function effectiveProviderLock(
+  state: ProviderLockState,
+  currentProvider: string | undefined,
+): RuntimeProviderLock {
+  if (!state.failed) return state.provider
+  if (state.provider === ANTIGRAVITY_PROVIDER_KEY || currentProvider === ANTIGRAVITY_PROVIDER_KEY) {
+    return ANTIGRAVITY_PROVIDER_KEY
+  }
+  return null
+}
+
+/** Minimal shared lock state: one snapshot per session, refreshed on demand. */
+export interface ProviderLockStore {
+  subscribe: (listener: () => void) => () => void
+  getSnapshot: () => ProviderLockState
+  /** Re-read; concurrent reads resolve in call order, stale ones are dropped. */
+  refresh: () => Promise<ProviderLockState>
+}
+
+/**
+ * Create one session lock store over an injecting query.
+ * The query sees the previous snapshot for sticky failure mapping and never
+ * throws (failures resolve to failed reads); refresh never rejects.
+ */
+export function createProviderLockStore(query: (previous: ProviderLockState) => Promise<ProviderLockState>): ProviderLockStore {
+  let current: ProviderLockState = { provider: null, failed: false }
+  const listeners = new Set<() => void>()
+  let generation = 0
+  const emit = (): void => {
+    for (const listener of [...listeners]) listener()
+  }
+  return {
+    subscribe: (listener: () => void) => {
+      listeners.add(listener)
+      return () => {
+        listeners.delete(listener)
+      }
+    },
+    getSnapshot: () => current,
+    refresh: async () => {
+      const seen = ++generation
+      const previous = current
+      let next: ProviderLockState
+      try {
+        next = await query(previous)
+      } catch {
+        next = { provider: previous.provider, failed: true }
+      }
+      if (seen !== generation) return current
+      if (next.provider !== current.provider || next.failed !== current.failed) {
+        current = next
+        emit()
+      }
+      return current
+    },
+  }
 }

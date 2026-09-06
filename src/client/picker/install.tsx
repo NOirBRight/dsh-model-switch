@@ -9,16 +9,24 @@ import type { ComposerChainProps } from '@deepseek-ai/dsh-client-ui-conversation
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-model-selection/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { useEffect } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { decodeMainSettings, MAIN_SETTINGS_ID, type MainSettingsView } from '../../client-contract.ts'
 import { selectPlanReview } from '../../picker/plan-review.ts'
 import { ComposerPicker } from './ComposerPicker.tsx'
 import { decodeProviderOrder, PROVIDERS_SETTINGS_NS } from 'dsh-llm-providers-ui/order'
 import { pickerDirectoryViewOrdered, type PickerDirectoryFace } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
-import { PlanReviewCard } from './PlanReviewCard.tsx'
+import { PlanReviewCard, ProviderLockHint } from './PlanReviewCard.tsx'
 import { PickerSeatBoundary } from './PickerSeatBoundary.tsx'
-import { activateRuntimeLockTarget, installAntigravityRuntimeLock, RUNTIME_LOCK_TARGET } from '../runtime-lock.ts'
+import {
+  createProviderLockStore,
+  effectiveProviderLock,
+  fetchSessionBinding,
+  isProviderAllowed,
+  type ProviderLockState,
+  type ProviderLockStore,
+} from '../runtime-lock.ts'
+import { ANTIGRAVITY_PROVIDER_KEY } from '../antigravity-catalog.ts'
 import { en, zh, type PickerKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -67,8 +75,10 @@ function providerOrderStore(settingsScope: { bind(options: { namespace: string, 
 interface DirectoryFace extends PickerDirectoryFace {
   available: boolean
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
-  /** Activate the Session runtime-lock target so its snapshot becomes readable. */
-  activateProviderLock: () => void
+  /** Shared native-binding lock state for the seat session. */
+  providerLockStore: ProviderLockStore
+  /** Re-read the native binding now (mount, turn transitions, pre-selection). */
+  refreshProviderLock: () => void
 }
 
 function mainDefaultOps(selection: MainSettingsView) {
@@ -113,9 +123,13 @@ function ModelSeat(
 ) {
   const directory = props.useDirectory(snapshot => snapshot)
   const order = props.useProviderOrder(value => value)
-  const providerLock = props.useConversation(snapshot => snapshot.views.get(RUNTIME_LOCK_TARGET) ?? null)
-  useEffect(() => { props.activateProviderLock() }, [props.activateProviderLock])
+  const lock = useSyncExternalStore(props.providerLockStore.subscribe, props.providerLockStore.getSnapshot)
+  const phase = props.useInput(input => input.phase)
+  useEffect(() => { props.refreshProviderLock() }, [props.refreshProviderLock, phase, directory])
+  const providerLock = effectiveProviderLock(lock, directory.current?.provider)
   return (
+    <>
+    {lock.failed && <ProviderLockHint t={props.t} />}
     <ComposerPicker
       locked={props.locked}
       providerLock={providerLock}
@@ -126,6 +140,7 @@ function ModelSeat(
         ? {}
         : { resolveInteractionOperations: props.resolveInteractionOperations }}
     />
+    </>
   )
 }
 
@@ -139,22 +154,43 @@ function ModelSeatEntry(props: Parameters<typeof ModelSeat>[0]) {
 
 /** Register composer model picker and Plan Review execution picker. */
 export function installComposerPicker(ctx: ClientContext): void {
-  installAntigravityRuntimeLock(ctx)
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-model-switch: composer picker dictionaries')
 
-  ctx.inject(['slots', 'modelDirectories', 'settingsScope', 'remote.settings', 'uiConversation'], (scope: ClientContext) => {
+  ctx.inject(['slots', 'modelDirectories', 'settingsScope', 'remote.settings'], (scope: ClientContext) => {
     const models = scope.modelDirectories
     const sessions = scope.sessions as { subagentAddress?: (id: unknown) => unknown } | undefined
     const mainDefaults = scope.settingsScope.bind({ namespace: MAIN_SETTINGS_ID, decode: decodeMainSettings })
     const orderStore = providerOrderStore(scope.settingsScope)
     const remoteSettings = (scope as unknown as { remote: { settings: RemoteSettingsFace } }).remote.settings
     const resolveInteractionOperations = (): PickerInteractionOperations | undefined => interactionOperationsFrom(scope)
+    type SessionRpc = Parameters<typeof fetchSessionBinding>[0]
+    const rpcOf = (): SessionRpc => {
+      const connection = scope.get('connection', false) as { rpc?: SessionRpc } | undefined
+      return connection?.rpc
+    }
     const directoryFace = (sessionId: Parameters<typeof models.directoryFor>[0]): DirectoryFace => {
       const directory = models.directoryFor(sessionId)
       const available = sessions?.subagentAddress?.(sessionId) === undefined
+      const antigravityPresent = (): boolean => {
+        const declarations = scope.get('providerDirectory', false) as
+          | { reader?: (key: string) => unknown }
+          | undefined
+        return typeof declarations?.reader === 'function'
+          && declarations.reader(ANTIGRAVITY_PROVIDER_KEY) !== undefined
+      }
+      const readLock = async (previous: ProviderLockState): Promise<ProviderLockState> => {
+        if (!antigravityPresent()) return { provider: null, failed: false }
+        const provider = await fetchSessionBinding(rpcOf(), sessionId)
+        if (provider !== undefined) return { provider, failed: false }
+        return { provider: previous.provider, failed: true }
+      }
+      const providerLockStore = createProviderLockStore(readLock)
       return {
         available,
-        activateProviderLock: () => activateRuntimeLockTarget(scope.uiConversation, sessionId),
+        providerLockStore,
+        refreshProviderLock: () => {
+          void providerLockStore.refresh()
+        },
         hooks: { directory: directory.store, providerOrder: orderStore },
         getDirectorySnapshot: directory.store.getSnapshot,
         resolveInteractionOperations,
@@ -163,6 +199,11 @@ export function installComposerPicker(ctx: ClientContext): void {
         },
         select: async (selection: ModelSelection) => {
           if (!available) return false
+          if (antigravityPresent()) {
+            const state = await providerLockStore.refresh()
+            const currentProvider = directory.store.getSnapshot().current?.provider
+            if (!isProviderAllowed(state, selection.provider, currentProvider)) return false
+          }
           const defaultBeforeSwitch = mainDefaults.getSnapshot()
           try {
             await directory.select(selection)

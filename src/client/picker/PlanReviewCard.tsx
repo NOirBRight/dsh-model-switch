@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import type { ModelSelection } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { PendingQuestion, PlanReview } from '@deepseek-ai/dsh-client-ui-user-questions/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -10,7 +10,7 @@ import { ComposerPicker } from './ComposerPicker.tsx'
 import { pickerDirectoryViewOrdered, type PickerDirectoryFace, type PickerDirectoryView } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { RetryBoundary } from './RetryBoundary.tsx'
-import { providerSelectable, RUNTIME_LOCK_TARGET, type RuntimeProviderLock } from '../runtime-lock.ts'
+import { effectiveProviderLock, providerSelectable, type RuntimeProviderLock } from '../runtime-lock.ts'
 import css from './PlanReviewCard.module.css'
 
 interface PickerGuardProps {
@@ -38,8 +38,10 @@ function PickerGuard({ children, errorLabel, retryLabel }: PickerGuardProps) {
 export interface PlanReviewFace extends PickerDirectoryFace {
   available: boolean
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
-  /** Activate the Session runtime-lock target so its snapshot becomes readable. */
-  activateProviderLock: () => void
+  /** Shared native-binding lock state for the seat session. */
+  providerLockStore: { subscribe: (listener: () => void) => () => void; getSnapshot: () => { provider: RuntimeProviderLock; failed: boolean } }
+  /** Re-read the native binding now (mount, turn transitions, pre-selection). */
+  refreshProviderLock: () => void
 }
 
 export type PlanReviewCardProps = PropsRuntime<'conversation.composer'>
@@ -75,22 +77,36 @@ interface PlanReviewStateProps {
   review: PlanReview
   available: boolean
   providerLock: RuntimeProviderLock
+  lockFailed: boolean
   directory: PickerDirectoryView
   t: PlanReviewCardProps['t']
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
 }
 
+/** Inline failed lock-read status; history and log reading stay unaffected. */
+export function ProviderLockHint(props: { t: PlanReviewCardProps['t'] }) {
+  return (
+    <div role="alert" className={css.strip} data-provider-lock-failed>
+      <span className={css.dot} />
+      <span className={css.stripTitle}>{props.t('lock.readFailed')}</span>
+    </div>
+  )
+}
+
 export function PlanReviewCard(props: PlanReviewCardProps) {
   const snapshot = props.useDirectory(value => value)
   const order = props.useProviderOrder(value => value)
-  const providerLock = props.useConversation(snapshot => snapshot.views.get(RUNTIME_LOCK_TARGET) ?? null)
-  useEffect(() => { props.activateProviderLock() }, [props.activateProviderLock])
+  const lock = useSyncExternalStore(props.providerLockStore.subscribe, props.providerLockStore.getSnapshot)
+  const phase = props.useInput(input => input.phase)
+  useEffect(() => { props.refreshProviderLock() }, [props.refreshProviderLock, phase, snapshot])
+  const providerLock = effectiveProviderLock(lock, snapshot.current?.provider)
   const review = planReviewOf(props.matched.questions)
   if (review === undefined) {
     return (
       <div className={css.frame} data-plan-review-key={props.matched.key}>
         <section className={css.card} aria-label={props.t('plan.header')}>
           <div className={css.strip}><span className={css.dot} />{props.t('plan.header')}</div>
+          {lock.failed && <ProviderLockHint t={props.t} />}
         </section>
       </div>
     )
@@ -101,6 +117,7 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
     review={review}
     available={props.available}
     providerLock={providerLock}
+    lockFailed={lock.failed}
     directory={pickerDirectoryViewOrdered(snapshot, props, order)}
     t={props.t}
     {...props.resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations: props.resolveInteractionOperations }}
@@ -108,7 +125,7 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
 }
 
 function PlanReviewState({
-  matched, review, available, providerLock, directory, t, resolveInteractionOperations,
+  matched, review, available, providerLock, lockFailed, directory, t, resolveInteractionOperations,
 }: PlanReviewStateProps) {
   const { snapshot, getDirectorySnapshot, load, select } = directory
   const [execution, setExecution] = useState<ModelSelection | undefined>(snapshot.current ?? undefined)
@@ -158,6 +175,7 @@ function PlanReviewState({
   return (
     <div className={css.frame} data-plan-review-key={matched.key}>
       <section className={css.card} aria-label={review.question}>
+        {lockFailed && <ProviderLockHint t={t} />}
         <div className={css.strip}>
           <span className={css.dot} />
           <span className={css.stripTitle}>{t('plan.header')}</span>

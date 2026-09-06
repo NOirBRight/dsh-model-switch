@@ -2,13 +2,26 @@ import type { PendingQuestion } from '@deepseek-ai/dsh-client-ui-user-questions/
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
 import { type PickerDirectoryFace } from './PickerDirectory.ts';
 import type { PickerInteractionOperations } from './popup-dismissal.ts';
+import { type RuntimeProviderLock } from '../runtime-lock.ts';
 export interface PlanReviewFace extends PickerDirectoryFace {
     available: boolean;
     resolveInteractionOperations?: () => PickerInteractionOperations | undefined;
-    /** Activate the Session runtime-lock target so its snapshot becomes readable. */
-    activateProviderLock: () => void;
+    /** Shared native-binding lock state for the seat session. */
+    providerLockStore: {
+        subscribe: (listener: () => void) => () => void;
+        getSnapshot: () => {
+            provider: RuntimeProviderLock;
+            failed: boolean;
+        };
+    };
+    /** Re-read the native binding now (mount, turn transitions, pre-selection). */
+    refreshProviderLock: () => void;
 }
 export type PlanReviewCardProps = PropsRuntime<'conversation.composer'> & PropsLocale<'composer-picker'> & InjectFace<PlanReviewFace> & {
     matched: PendingQuestion;
 };
+/** Inline failed lock-read status; history and log reading stay unaffected. */
+export declare function ProviderLockHint(props: {
+    t: PlanReviewCardProps['t'];
+}): import("react").JSX.Element;
 export declare function PlanReviewCard(props: PlanReviewCardProps): import("react").JSX.Element;

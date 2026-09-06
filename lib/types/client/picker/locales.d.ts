@@ -27,6 +27,7 @@ export declare const zh: {
     'warning.groupLoad': string;
     'empty.models': string;
     'empty.efforts': string;
+    'lock.readFailed': string;
     'plan.kicker': string;
     'plan.header': string;
     'plan.execution': string;
@@ -70,6 +71,7 @@ export declare const en: {
     'warning.groupLoad': string;
     'empty.models': string;
     'empty.efforts': string;
+    'lock.readFailed': string;
     'plan.kicker': string;
     'plan.header': string;
     'plan.execution': string;

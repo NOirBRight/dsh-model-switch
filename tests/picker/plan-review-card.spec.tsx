@@ -33,6 +33,9 @@ function wait(answer = vi.fn(async () => undefined), key = 'plan-1', cancel = vi
     }],
   }
 }
+const unlockedLockSnapshot = { provider: null, failed: false }
+const lockedLockSnapshot = { provider: 'antigravity', failed: false }
+const failedLockSnapshot = { provider: null, failed: true }
 function props(overrides: Record<string, unknown> = {}) {
   let snapshot = baseSnapshot
   return {
@@ -40,8 +43,12 @@ function props(overrides: Record<string, unknown> = {}) {
     available: true,
     useDirectory: (selector: (value: typeof baseSnapshot) => unknown) => selector(snapshot),
     useProviderOrder: (selector: (value: readonly string[]) => unknown) => selector([]),
-    useConversation: (selector: (value: { views: { get: () => null } }) => unknown) => selector({ views: { get: () => null } }),
-    activateProviderLock: vi.fn(() => undefined),
+    useInput: (selector: (value: { phase: string }) => unknown) => selector({ phase: 'plain' }),
+    providerLockStore: {
+      subscribe: () => () => undefined,
+      getSnapshot: () => unlockedLockSnapshot,
+    },
+    refreshProviderLock: vi.fn(() => undefined),
     getDirectorySnapshot: () => snapshot,
     setSnapshot: (next: typeof baseSnapshot) => { snapshot = next },
     load: () => undefined,
@@ -91,9 +98,36 @@ describe('PlanReviewCard', () => {
     expect(card.root.findAllByType('button').some(button => button.children.includes(zh['plan.approve']))).toBe(true)
   })
 
+  it('refreshes the native binding on mount', async () => {
+    const fixture = props({ t: locale(zh) })
+    let card!: ReturnType<typeof create>
+    await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+    expect(card).toBeDefined()
+    expect(fixture.refreshProviderLock).toHaveBeenCalled()
+  })
+
+  it('shows a failed lock-read status without blocking history', async () => {
+    const fixture = props({
+      t: locale(zh),
+      providerLockStore: {
+        subscribe: () => () => undefined,
+        getSnapshot: () => failedLockSnapshot,
+      },
+    })
+    let card!: ReturnType<typeof create>
+    await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+    const alert = card.root.findByProps({ 'data-provider-lock-failed': true })
+    expect(alert.props.role).toBe('alert')
+    const copy = alert.findAllByType('span').map(span => span.children.join('')).join('')
+    expect(copy).toContain(zh['lock.readFailed'])
+  })
+
   it('disables approval of a non-Antigravity execution model after native session startup', async () => {
     const fixture = props({
-      useConversation: (selector: (value: { views: { get: () => string } }) => unknown) => selector({ views: { get: () => 'antigravity' } }),
+      providerLockStore: {
+        subscribe: () => () => undefined,
+        getSnapshot: () => lockedLockSnapshot,
+      },
     })
     let card!: ReturnType<typeof create>
     await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })

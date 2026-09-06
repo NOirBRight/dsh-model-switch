@@ -19,7 +19,7 @@ Choose one explicit route for Main, Subagents, Web Search, image generation, the
 
 Invalid, unavailable, or unsupported routes fail explicitly. Model Switch never silently falls back to another provider or model.
 
-After the active session successfully opens a native Antigravity session, the Composer and Plan Review pickers disable other providers for that session while keeping Antigravity model and effort controls available. The DSH global picker lock remains authoritative. The seats activate the lock target on mount, so replayed startups (one per turn) keep the session locked.
+After the active session successfully opens a native Antigravity session, the Composer and Plan Review pickers read its plugin-owned binding and disable other providers while keeping available Antigravity model and effort controls. The DSH global picker lock remains authoritative. Binding reads refresh on mount, input-phase or catalog changes, and before selection; failed reads show a localized alert and preserve a known native lock. These reads do not start the native runtime or gate conversation history. Antigravity owns the separate execution-time guard; Model Switch does not create custom Core history events.
 
 ## Configure Main and Subagents
 
