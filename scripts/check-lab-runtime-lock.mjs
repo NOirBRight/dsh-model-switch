@@ -68,4 +68,8 @@ try {
     assert.ok(native.every(row => !row.disabled), 'Native model choices must remain usable')
     console.log('PASS replayed native session locks LLM choices and preserves Antigravity model controls; no turn or model selection sent')
   }
-} finally { ws.close() }
+} finally {
+  try {
+    await evaluate('(()=>{if(document.querySelector("button[role=menuitemradio]"))[...document.querySelectorAll("button")].find(b=>(b.getAttribute("aria-label")??"").startsWith("Select model"))?.click()})()')
+  } finally { ws.close() }
+}
