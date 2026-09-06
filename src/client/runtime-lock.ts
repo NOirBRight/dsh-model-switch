@@ -89,6 +89,8 @@ export function installAntigravityRuntimeLock(ctx: ClientContext): void {
  * Snapshot reads alone never activate; seats call this alongside their selector.
  * Activation is monotonic for the Session lifetime; the lock value flows
  * through the existing snapshot selector, so no extra listener is owned here.
+ * @param uiConversation - Conversation root service from the seat scope.
+ * @param sessionId - Session whose binding owns the lock target.
  */
 export function activateRuntimeLockTarget(
   uiConversation: UiConversation,
