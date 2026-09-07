@@ -40,6 +40,11 @@ describe('composer picker mobile sizing', () => {
     },
   )
 
+  it('renders the runtime whale in primary foreground, not caption gray', () => {
+    expect(block('.runtimeMark')).toContain('color: var(--dsw-alias-label-primary)')
+    expect(block('.runtimeMark')).not.toContain('opacity')
+  })
+
   it('keeps root summary rows on one line and ellipsizes only the value', () => {
     expect(block('.cell')).toContain('height: 40px')
     expect(block('.cellLabel')).toContain('white-space: nowrap')

@@ -6,6 +6,8 @@ import { type RuntimeProviderLock } from '../runtime-lock.ts';
 export interface PlanReviewFace extends PickerDirectoryFace {
     available: boolean;
     resolveInteractionOperations?: () => PickerInteractionOperations | undefined;
+    /** Resolve a provider key to its ProviderDirectory role for runtime icons. */
+    roleOf?: (providerKey: string) => string | undefined;
     /** Shared native-binding lock state for the seat session. */
     providerLockStore: {
         subscribe: (listener: () => void) => () => void;

@@ -239,8 +239,14 @@
   align-items: center;
   justify-content: center;
   min-width: 14px;
+  color: var(--dsw-alias-label-primary);
   font: var(--dsw-font-xxs-strong-12);
-  opacity: 0.75;
+}
+
+.runtimeMark svg {
+  display: block;
+  width: 14px;
+  height: 14px;
 }
 
 .option {

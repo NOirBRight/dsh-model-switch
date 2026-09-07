@@ -16,6 +16,8 @@ interface ComposerPickerBaseProps {
     embedded?: boolean;
     tone?: 'capsule';
     resolveInteractionOperations?: () => PickerInteractionOperations | undefined;
+    /** Resolve a provider key to its ProviderDirectory role; absent means DSH-owned LLM (whale). */
+    roleOf?: (providerKey: string) => string | undefined;
 }
 export type ComposerPickerProps = ComposerPickerBaseProps & ({
     draft?: never;
@@ -38,4 +40,4 @@ export interface ModelPaneHeaderProps {
     onQueryChange: (query: string) => void;
 }
 export declare function ModelPaneHeader({ title, backLabel, searchLabel, closeSearchLabel, searchable, searching, query, onBack, onStartSearch, onCloseSearch, onQueryChange, }: ModelPaneHeaderProps): import("react").JSX.Element;
-export declare function ComposerPicker({ locked, providerLock, available, directory, t, draft, onDraftChange, embedded, tone, resolveInteractionOperations, }: ComposerPickerProps): import("react").JSX.Element | null;
+export declare function ComposerPicker({ locked, providerLock, available, directory, t, draft, onDraftChange, embedded, tone, resolveInteractionOperations, roleOf, }: ComposerPickerProps): import("react").JSX.Element | null;

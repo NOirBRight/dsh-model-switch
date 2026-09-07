@@ -34,7 +34,9 @@ import type { PickerKey } from './locales.ts'
 import type { PickerDirectoryView } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { useComposerPickerSurface } from './useComposerPickerSurface.ts'
+import { ProviderMark } from 'dsh-llm-providers-ui/provider-ui'
 import { providerSelectable, type RuntimeProviderLock } from '../runtime-lock.ts'
+import { isAgentRole } from '../antigravity-catalog.ts'
 import css from './ComposerPicker.module.css'
 
 export type { PickerDirectoryFace, PickerDirectoryOperations, PickerDirectorySnapshot, PickerDirectoryView } from './PickerDirectory.ts'
@@ -59,6 +61,8 @@ interface ComposerPickerBaseProps {
   embedded?: boolean
   tone?: 'capsule'
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
+  /** Resolve a provider key to its ProviderDirectory role; absent means DSH-owned LLM (whale). */
+  roleOf?: (providerKey: string) => string | undefined
 }
 
 export type ComposerPickerProps = ComposerPickerBaseProps & (
@@ -131,14 +135,20 @@ export function ModelPaneHeader({
   )
 }
 
-function RuntimeIcon({ provider }: { provider: string }) {
-  return <span className={css.runtimeMark}>{provider.slice(0, 1).toUpperCase()}</span>
+function RuntimeIcon({ provider, roleOf }: { provider: string, roleOf?: (providerKey: string) => string | undefined }) {
+  // Runtime icon, not provider icon: every DSH-owned LLM family shows the DSH whale;
+  // only native/external Agent families show their own provider mark.
+  const mark = isAgentRole(roleOf?.(provider))
+    ? <ProviderMark providerKey={provider} />
+    : <ProviderMark providerKey="deepseek-official" />
+  return <span className={css.runtimeMark}>{mark}</span>
 }
 
 export function ComposerPicker({
   locked, providerLock = null, available, directory, t, draft, onDraftChange, embedded,
   tone,
   resolveInteractionOperations,
+  roleOf,
 }: ComposerPickerProps) {
   const { snapshot: state, getDirectorySnapshot, load, select } = directory
   const [pane, setPane] = useState<Pane>('root')
@@ -403,7 +413,7 @@ export function ComposerPicker({
               const headingId = `${id}-${section.provider}`
               return (
                 <section role="group" aria-labelledby={headingId} className={css.group} key={section.provider}>
-                  <div className={css.groupTitle} id={headingId}><RuntimeIcon provider={section.provider} />{section.providerName}</div>
+                  <div className={css.groupTitle} id={headingId}><RuntimeIcon provider={section.provider} {...(roleOf === undefined ? {} : { roleOf })} />{section.providerName}</div>
                   {section.families.map(item => {
                     const selected = currentSelection?.provider === item.provider
                       && item.members.some(entry => entry.model.id === currentSelection.model)
@@ -546,7 +556,7 @@ export function ComposerPicker({
         onPointerDown={onTriggerPointerDown}
         onClick={onTriggerClick}
       >
-        <span className={css.triggerLabel}>{currentSelection !== null ? <RuntimeIcon provider={currentSelection.provider} /> : null}{triggerLabel}</span>
+        <span className={css.triggerLabel}>{currentSelection !== null ? <RuntimeIcon provider={currentSelection.provider} {...(roleOf === undefined ? {} : { roleOf })} /> : null}{triggerLabel}</span>
         <IconChevronDownOutline14 className={classNames(css.chevron, open && css.chevronOpen)} />
       </button>
       {menu !== null && (tone === 'capsule' ? menu : createPortal(menu, document.body))}

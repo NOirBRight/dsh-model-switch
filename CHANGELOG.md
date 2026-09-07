@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.4.8] - 2026-09-07
+
+- Development dependency now points at the final `dsh-llm-providers-ui` 0.1.10 release URL with pinned integrity; Alpha.4 fixtures updated coherently (roots + provider identity + fresh self-root tarball).
+
 ## [0.4.7] - 2026-09-06
 
 - Unify provider-owned independent Web search metadata and execution for DeepSeek, Codex and Grok through the existing adapter registry and authenticated capability RPC.

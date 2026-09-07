@@ -38,6 +38,8 @@ function PickerGuard({ children, errorLabel, retryLabel }: PickerGuardProps) {
 export interface PlanReviewFace extends PickerDirectoryFace {
   available: boolean
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
+  /** Resolve a provider key to its ProviderDirectory role for runtime icons. */
+  roleOf?: (providerKey: string) => string | undefined
   /** Shared native-binding lock state for the seat session. */
   providerLockStore: { subscribe: (listener: () => void) => () => void; getSnapshot: () => { provider: RuntimeProviderLock; failed: boolean } }
   /** Re-read the native binding now (mount, turn transitions, pre-selection). */
@@ -81,6 +83,8 @@ interface PlanReviewStateProps {
   directory: PickerDirectoryView
   t: PlanReviewCardProps['t']
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
+  /** Resolve a provider key to its ProviderDirectory role for runtime icons. */
+  roleOf?: (providerKey: string) => string | undefined
 }
 
 /** Inline failed lock-read status; history and log reading stay unaffected. */
@@ -121,11 +125,12 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
     directory={pickerDirectoryViewOrdered(snapshot, props, order)}
     t={props.t}
     {...props.resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations: props.resolveInteractionOperations }}
+    {...props.roleOf === undefined ? {} : { roleOf: props.roleOf }}
   />
 }
 
 function PlanReviewState({
-  matched, review, available, providerLock, lockFailed, directory, t, resolveInteractionOperations,
+  matched, review, available, providerLock, lockFailed, directory, t, resolveInteractionOperations, roleOf,
 }: PlanReviewStateProps) {
   const { snapshot, getDirectorySnapshot, load, select } = directory
   const [execution, setExecution] = useState<ModelSelection | undefined>(snapshot.current ?? undefined)
@@ -191,6 +196,7 @@ function PlanReviewState({
             <ComposerPicker
               locked={busy || blocked}
               providerLock={providerLock}
+              {...(roleOf === undefined ? {} : { roleOf })}
               available={available}
               directory={directory}
               t={t}

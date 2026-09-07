@@ -17,7 +17,7 @@ Choose one explicit route for Main, Subagents, Web Search, image generation, the
 | Web Search | Keeps official `web_search`; after deployment opt-in, routes through the selected, dynamically declared provider search adapter. |
 | Image generation | Provides one stable `generate_image` tool routed through a selected Codex or Grok adapter. |
 
-Invalid, unavailable, or unsupported routes fail explicitly. Model Switch never silently falls back to another provider or model.
+Invalid, unavailable, or unsupported routes fail explicitly. Model Switch never silently falls back to another provider or model. Composer icons identify the execution runtime: DSH-owned LLM routes use the theme-adaptive DSH whale; providers declaring the Agent role use their own mark. Sidebar quota icons remain provider-specific.
 
 After the active session successfully opens a native Antigravity session, the Composer and Plan Review pickers read its plugin-owned binding and disable other providers while keeping available Antigravity model and effort controls. The DSH global picker lock remains authoritative. Binding reads refresh on mount, input-phase or catalog changes, and before selection; failed reads show a localized alert and preserve a known native lock. These reads do not start the native runtime or gate conversation history. Antigravity owns the separate execution-time guard; Model Switch does not create custom Core history events.
 
@@ -90,7 +90,7 @@ Plan Review owns an execution-model draft separate from Main. **Confirm** first 
 Install Model Switch and only the provider adapters you use. The coordinated versions below target the verified DSH 0.1.2-alpha.4 and 0.1.2-rc.1 runtimes:
 
 ```sh
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-providers-ui#v0.1.9
+DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-providers-ui#v0.1.10
 DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.14
 DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.11
 DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.7
@@ -147,7 +147,7 @@ Fixed-version installation:
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.7/dsh-model-switch.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.8/dsh-model-switch.tgz
 ~~~
 
 Update, uninstall, and verify:
@@ -167,4 +167,4 @@ Configuration: use the plugin section in Settings for Web UI plugins, or the pro
 
 Rollback: rerun the fixed v0.4.4 command, verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never put a source checkout in the production profile.
 
-Release and integrity: [v0.4.7](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.7) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.7/SHA256SUMS).
+Release and integrity: [v0.4.8](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.8) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.8/SHA256SUMS).

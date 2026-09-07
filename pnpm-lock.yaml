@@ -292,8 +292,8 @@ importers:
         specifier: 18.3.1
         version: 18.3.1
       dsh-llm-providers-ui:
-        specifier: https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.9/dsh-llm-providers-ui-0.1.9.tgz
-        version: https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.9/dsh-llm-providers-ui-0.1.9.tgz(462103270184ff59992e9c400360faf3)
+        specifier: https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.10/dsh-llm-providers-ui-0.1.10.tgz
+        version: https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.10/dsh-llm-providers-ui-0.1.10.tgz(462103270184ff59992e9c400360faf3)
       js-yaml:
         specifier: ^4.1.1
         version: 4.3.1
@@ -1725,9 +1725,9 @@ packages:
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
 
-  dsh-llm-providers-ui@https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.9/dsh-llm-providers-ui-0.1.9.tgz:
-    resolution: {tarball: https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.9/dsh-llm-providers-ui-0.1.9.tgz}
-    version: 0.1.9
+  dsh-llm-providers-ui@https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.10/dsh-llm-providers-ui-0.1.10.tgz:
+    resolution: {integrity: sha512-8P6vR6fua5QWf0pVx4TqrT82Kh81po8rrbwT7uxfKOISfZ+5KstTnUYAcxSPRvMC/l9Mgc3aguthHtA/hcZj6Q==, tarball: https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.10/dsh-llm-providers-ui-0.1.10.tgz}
+    version: 0.1.10
     engines: {node: ^22.19.0 || >=24.0.0}
     peerDependencies:
       '@deepseek-ai/cordis': '>=4.0.2 <5.0.0'
@@ -3704,7 +3704,7 @@ snapshots:
     dependencies:
       dequal: 2.0.3
 
-  dsh-llm-providers-ui@https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.9/dsh-llm-providers-ui-0.1.9.tgz(462103270184ff59992e9c400360faf3):
+  dsh-llm-providers-ui@https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.10/dsh-llm-providers-ui-0.1.10.tgz(462103270184ff59992e9c400360faf3):
     dependencies:
       '@deepseek-ai/cordis': 4.0.2(@deepseek-ai/cordis-plugin-include@1.0.7)(@deepseek-ai/cordis-plugin-loader@1.0.3)
       '@deepseek-ai/dsh-client-locale': 0.1.2-alpha.4(@deepseek-ai/cordis@4.0.2)

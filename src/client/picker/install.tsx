@@ -26,7 +26,7 @@ import {
   type ProviderLockState,
   type ProviderLockStore,
 } from '../runtime-lock.ts'
-import { ANTIGRAVITY_PROVIDER_KEY } from '../antigravity-catalog.ts'
+import { ANTIGRAVITY_PROVIDER_KEY, readProviderRole } from '../antigravity-catalog.ts'
 import { en, zh, type PickerKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -79,6 +79,8 @@ interface DirectoryFace extends PickerDirectoryFace {
   providerLockStore: ProviderLockStore
   /** Re-read the native binding now (mount, turn transitions, pre-selection). */
   refreshProviderLock: () => void
+  /** Resolve a provider key to its ProviderDirectory role for runtime icons. */
+  roleOf?: (key: string) => string | undefined
 }
 
 function mainDefaultOps(selection: MainSettingsView) {
@@ -133,6 +135,7 @@ function ModelSeat(
     <ComposerPicker
       locked={props.locked}
       providerLock={providerLock}
+      {...(props.roleOf === undefined ? {} : { roleOf: props.roleOf })}
       available={props.available}
       directory={pickerDirectoryViewOrdered(directory, props, order)}
       t={props.t}
@@ -184,9 +187,12 @@ export function installComposerPicker(ctx: ClientContext): void {
         if (provider !== undefined) return { provider, failed: false }
         return { provider: previous.provider, failed: true }
       }
+      const roleOf = (key: string): string | undefined =>
+        readProviderRole(scope.get('providerDirectory', false), key)
       const providerLockStore = createProviderLockStore(readLock)
       return {
         available,
+        roleOf,
         providerLockStore,
         refreshProviderLock: () => {
           void providerLockStore.refresh()
