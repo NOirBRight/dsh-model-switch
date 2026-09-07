@@ -6,7 +6,7 @@ import type { CapabilityRouteView, MainSettingsView, SubagentSettingsView } from
 import type { RuntimeCapabilities } from '../runtime-capabilities.js'
 import { searchGroupsFromCapabilities, type CapabilitiesSnapshot } from './search-capabilities.js'
 import type { ModelSwitchLocaleKey } from './locales.js'
-import { isAgentRole } from './antigravity-catalog.ts'
+import { isAgentRole, matchCatalogModel } from './antigravity-catalog.ts'
 import { deriveRouteChoices, selectRouteModel, useModelSwitchSettingsController, type Choice } from './main-row-controller.js'
 import css from './ModelSwitchSettings.module.css'
 
@@ -73,13 +73,14 @@ function useDraft<T>(snapshot: SettingsScopeSnapshot<T>): [T | undefined, (value
 function routeName(groups: readonly ModelProviderGroup[], route: CapabilityRouteView | undefined): string {
   if (route === undefined) return ''
   const provider = groups.find(group => group.id === route.provider)
-  const model = provider?.models.find(item => item.id === route.model)
+  const model = matchCatalogModel(provider?.models ?? [], route.model)?.model
   return compact(provider?.name ?? route.provider, model?.name ?? route.model)
 }
 
 function routeDefaultEffort(groups: readonly ModelProviderGroup[], route: CapabilityRouteView | undefined): string | undefined {
   if (route === undefined) return undefined
-  return groups.find(group => group.id === route.provider)?.models.find(model => model.id === route.model)?.reasoning?.defaultEffort
+  const matched = matchCatalogModel(groups.find(group => group.id === route.provider)?.models ?? [], route.model)
+  return matched?.effort ?? matched?.model.reasoning?.defaultEffort
 }
 
 function capabilityChoices(groups: readonly ModelProviderGroup[], route: CapabilityRouteView | undefined, providers: readonly string[] | undefined, kind: 'search' | 'image'): { providers: Choice[]; models: Choice[] } {
@@ -141,10 +142,11 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
   const unavailable = (key: keyof RuntimeCapabilities): string => { const reason = props.capabilities[key].reason; return reason === undefined ? props.t('unavailable') : props.t(('reason.' + reason) as ModelSwitchLocaleKey) }
   const toggle = (route: RouteId): void => { setOpen(current => current === route ? undefined : route); setMessage(undefined) }
   const subagentRoute = subagentDraft === undefined ? undefined : { ...(subagentDraft.provider === undefined ? {} : { provider: subagentDraft.provider }), ...(subagentDraft.model === undefined ? {} : { model: subagentDraft.model }) }
-  const subagentChoices = deriveRouteChoices(groups, subagentRoute)
+  const subagentCatalogModel = matchCatalogModel(groups.find(group => group.id === subagentDraft?.provider)?.models ?? [], subagentDraft?.model)
+  const subagentChoices = deriveRouteChoices(groups, subagentCatalogModel === undefined ? subagentRoute : { ...subagentRoute, model: subagentCatalogModel.model.id })
   const subagentEfforts = ((): Choice[] => {
-    const group = groups.find(item => item.id === subagentRoute?.provider)
-    const efforts = (group?.models.find(item => item.id === subagentRoute?.model)?.reasoning?.efforts ?? []).map(effort => ({ id: effort.id, name: effort.name }))
+    const matched = subagentCatalogModel
+    const efforts = (matched?.model.reasoning?.efforts ?? []).map(effort => ({ id: effort.id, name: effort.name }))
     if (subagentDraft?.reasoningEffort !== undefined && !efforts.some(option => option.id === subagentDraft.reasoningEffort)) efforts.push({ id: subagentDraft.reasoningEffort, name: subagentDraft.reasoningEffort })
     return efforts
   })()
@@ -167,8 +169,10 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
     if (subagent.value?.mode !== subagentDraft.mode) await props.setSubagent('mode', subagentDraft.mode)
     if (subagentDraft.mode === 'fixed') {
       if (subagent.value?.provider !== subagentDraft.provider) await props.setSubagent('provider', subagentDraft.provider)
-      if (subagent.value?.model !== subagentDraft.model) await props.setSubagent('model', subagentDraft.model)
-      const nextEffort = subagentDraft.reasoningEffort === '' ? undefined : subagentDraft.reasoningEffort
+      const matched = subagentCatalogModel
+      const nextModel = matched?.model.id ?? subagentDraft.model
+      const nextEffort = subagentDraft.reasoningEffort === '' ? undefined : subagentDraft.reasoningEffort || matched?.effort
+      if (subagent.value?.model !== nextModel) await props.setSubagent('model', nextModel)
       if (subagent.value?.reasoningEffort !== nextEffort) await props.setSubagent('effort', nextEffort)
     }
   }) }
@@ -199,7 +203,7 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
       {props.capabilities.centralSubagentRouting.available ? <RouteCard title={props.t('subagent')} summary={subagentSummary} icon="subagent" open={open === 'subagent'} onToggle={() => { toggle('subagent') }}>
         {subagentDraft === undefined ? <p className={css.hint}>{props.t('loading')}</p> : <><div className={css.formGrid}>
           <label className={cx(css.field, css.fieldFull)}><span className={css.fieldLabel}>{props.t('subagentMode')}</span><select className={css.input} disabled={busy === 'subagent' || !subagent.writable} value={subagentDraft.mode} onChange={event => { setSubagentDraft({ ...subagentDraft, mode: event.target.value as SubagentSettingsView['mode'] }) }}><option value="fixed">{props.t('subagentFixed')}</option><option value="follow-main">{props.t('subagentFollowMain')}</option></select></label>
-          {subagentDraft.mode === 'fixed' ? <><Field label={props.t('provider')} value={subagentDraft.provider ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.providers} onChange={provider => { const first = groups.find(group => group.id === provider)?.models[0]; setSubagentDraft({ mode: subagentDraft.mode, ...selectRouteModel(groups, provider, first?.id ?? subagentDraft.model ?? '') }) }} /><Field label={props.t('model')} value={subagentDraft.model ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.models} onChange={model => { setSubagentDraft({ mode: subagentDraft.mode, ...selectRouteModel(groups, subagentDraft.provider ?? '', model) }) }} /><Field label={props.t('effort')} value={subagentDraft.reasoningEffort ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentEfforts} onChange={effort => { setSubagentDraft({ ...subagentDraft, reasoningEffort: effort }) }} /></> : null}
+          {subagentDraft.mode === 'fixed' ? <><Field label={props.t('provider')} value={subagentDraft.provider ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.providers} onChange={provider => { const first = groups.find(group => group.id === provider)?.models[0]; setSubagentDraft({ mode: subagentDraft.mode, ...selectRouteModel(groups, provider, first?.id ?? subagentDraft.model ?? '') }) }} /><Field label={props.t('model')} value={subagentCatalogModel?.model.id ?? subagentDraft.model ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.models} onChange={model => { setSubagentDraft({ mode: subagentDraft.mode, ...selectRouteModel(groups, subagentDraft.provider ?? '', model) }) }} /><Field label={props.t('effort')} value={subagentDraft.reasoningEffort || subagentCatalogModel?.effort || ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentEfforts} onChange={effort => { const matched = subagentCatalogModel; setSubagentDraft({ ...subagentDraft, ...(matched?.model.id === undefined ? {} : { model: matched.model.id }), reasoningEffort: effort }) }} /></> : null}
         </div><Actions t={props.t} busy={busy === 'subagent'} disabled={subagentDisabled} {...(message?.route === 'subagent' ? { message: message.text } : {})} onCancel={() => { resetSubagent(); setMessage(undefined) }} onSave={saveSubagent} /></>}
       </RouteCard> : <RouteCard title={props.t('subagent')} summary={unavailable('centralSubagentRouting')} icon="subagent" open={false} onToggle={() => {}} disabled badge={props.t('unavailable')} badgeWarn />}
     </section>

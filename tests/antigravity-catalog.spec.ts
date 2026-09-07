@@ -5,6 +5,7 @@ import {
   decodeAntigravityCatalogGroups,
   fetchAntigravityCatalogGroups,
   isAgentRole,
+  matchCatalogModel,
   readProviderRole,
   withAntigravityCatalog,
 } from '../src/client/antigravity-catalog.ts'
@@ -23,6 +24,25 @@ describe('Antigravity enabled catalog', () => {
     expect(decodeAntigravityCatalogGroups({ groups: [agy, { id: 'bad' }, { id: 'empty', name: 'Empty', models: [] }] })).toEqual([agy])
     expect(decodeAntigravityCatalogGroups({ groups: 'nope' })).toEqual([])
     expect(decodeAntigravityCatalogGroups(null)).toEqual([])
+  })
+
+  it('keeps published reasoning and collapses native high/medium/low rows', () => {
+    const collapsed = decodeAntigravityCatalogGroups({ groups: [{ id: 'antigravity', name: 'Antigravity', models: [
+      { id: 'gemini-3.8-flash-high', name: 'Gemini 3.8 Flash (High)' },
+      { id: 'gemini-3.8-flash-medium', name: 'Gemini 3.8 Flash (Medium)' },
+      { id: 'gemini-3.8-flash-low', name: 'Gemini 3.8 Flash (Low)' },
+    ] }] })
+    expect(collapsed[0]?.models).toEqual([{ id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', reasoning: { efforts: [{ id: 'high', name: 'High' }, { id: 'medium', name: 'Medium' }, { id: 'low', name: 'Low' }], defaultEffort: 'high' } }])
+    expect(matchCatalogModel(collapsed[0]!.models, 'gemini-3.8-flash-high')).toEqual({ model: collapsed[0]!.models[0], effort: 'high' })
+    const published = decodeAntigravityCatalogGroups({ groups: [{ id: 'antigravity', name: 'Antigravity', models: [{ id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', reasoning: { efforts: [{ id: 'high', name: 'High' }], defaultEffort: 'high' } }] }] })
+    expect(published[0]?.models[0]?.reasoning?.defaultEffort).toBe('high')
+  })
+
+  it('does not normalize an unsupported stored native effort into a routable combination', () => {
+    const models = [{ id: 'x', name: 'X', reasoning: { efforts: [{ id: 'low', name: 'Low' }], defaultEffort: 'low' } }]
+    expect(matchCatalogModel(models, 'x-high')).toBeUndefined()
+    expect(matchCatalogModel(models, 'x-low')).toEqual({ model: models[0], effort: 'low' })
+    expect(matchCatalogModel([{ id: 'x', name: 'X' }], 'x-high')).toBeUndefined()
   })
 
   it('fetches the catalog and fails open when the seam is absent', async () => {

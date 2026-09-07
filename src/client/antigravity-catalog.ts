@@ -24,18 +24,66 @@ function record(value: unknown): Record<string, unknown> | undefined {
   return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : undefined
 }
 
+/** Retain supported effort choices from the remote catalog. */
+function decodeReasoning(value: unknown): { efforts: { id: string; name: string }[]; defaultEffort: string } | undefined {
+  const item = record(value)
+  if (item === undefined || !Array.isArray(item.efforts)) return undefined
+  const efforts: { id: string; name: string }[] = []
+  for (const entry of item.efforts) {
+    const effort = record(entry)
+    if (effort === undefined || typeof effort.id !== 'string' || typeof effort.name !== 'string') continue
+    efforts.push({ id: effort.id, name: effort.name })
+  }
+  if (efforts.length === 0) return undefined
+  const defaultEffort = typeof item.defaultEffort === 'string' && efforts.some(effort => effort.id === item.defaultEffort) ? item.defaultEffort : efforts[0]!.id
+  return { efforts, defaultEffort }
+}
+
+const NATIVE_EFFORTS = ['high', 'medium', 'low'] as const
+
+// Native suffix rules mirror dsh-acp-antigravity/src/catalog.ts; update both together.
+function collapseNativeEfforts(models: ModelProviderGroup['models'][number][]): ModelProviderGroup['models'][number][] {
+  if (models.some(model => model.reasoning !== undefined)) return models
+  const groups = new Map<string, { name: string; efforts: string[] }>()
+  const order: string[] = []
+  for (const model of models) {
+    let logical = model.id
+    let effort: string | undefined
+    for (const item of NATIVE_EFFORTS) {
+      const suffix = '-' + item
+      if (model.id.endsWith(suffix) && model.id.length > suffix.length) { logical = model.id.slice(0, -suffix.length); effort = item; break }
+    }
+    let group = groups.get(logical)
+    if (group === undefined) {
+      let name = model.name
+      for (const label of [' (High)', ' (Medium)', ' (Low)']) if (name.endsWith(label)) name = name.slice(0, -label.length)
+      group = { name, efforts: [] }
+      groups.set(logical, group)
+      order.push(logical)
+    }
+    if (effort !== undefined && !group.efforts.includes(effort)) group.efforts.push(effort)
+    if (effort === undefined) group.name = model.name
+  }
+  return order.map(id => {
+    const group = groups.get(id)!
+    const efforts = NATIVE_EFFORTS.filter(item => group.efforts.includes(item)).map(item => ({ id: item, name: item[0]!.toUpperCase() + item.slice(1) }))
+    return { id, name: group.name, ...(efforts.length === 0 ? {} : { reasoning: { efforts, defaultEffort: group.efforts.includes('high') ? 'high' : efforts[0]!.id } }) }
+  })
+}
+
 /** Strictly decode one Enabled-catalog group; malformed groups are dropped, never thrown. */
 function decodeGroup(value: unknown): ModelProviderGroup | undefined {
   const group = record(value)
   if (group === undefined || typeof group.id !== 'string' || typeof group.name !== 'string' || !Array.isArray(group.models)) return undefined
-  const models: { id: string; name: string }[] = []
+  const models: ModelProviderGroup['models'][number][] = []
   for (const item of group.models) {
     const model = record(item)
     if (model === undefined || typeof model.id !== 'string' || typeof model.name !== 'string') continue
-    models.push({ id: model.id, name: model.name })
+    const reasoning = decodeReasoning(model.reasoning)
+    models.push({ id: model.id, name: model.name, ...(reasoning === undefined ? {} : { reasoning }) })
   }
   if (models.length === 0) return undefined
-  return { id: group.id, name: group.name, models }
+  return { id: group.id, name: group.name, models: collapseNativeEfforts(models) }
 }
 
 /** Decode the Enabled-catalog payload; anything malformed decodes to no groups. */
@@ -85,4 +133,18 @@ export function readProviderRole(directory: unknown, key: string): string | unde
 /** Whether a ProviderDirectory-owned role marks an Agent provider. */
 export function isAgentRole(role: string | undefined): boolean {
   return role === AGENT_ROLE
+}
+
+/** Resolve a stored native `…-high|medium|low` id to the collapsed catalog row. */
+export function matchCatalogModel(models: readonly ModelProviderGroup['models'][number][], modelId: string | undefined): { model: ModelProviderGroup['models'][number]; effort?: string } | undefined {
+  if (modelId === undefined) return undefined
+  const exact = models.find(model => model.id === modelId)
+  if (exact !== undefined) return { model: exact }
+  for (const effort of NATIVE_EFFORTS) {
+    const suffix = '-' + effort
+    if (!modelId.endsWith(suffix) || modelId.length <= suffix.length) continue
+    const logical = models.find(model => model.id === modelId.slice(0, -suffix.length))
+    if (logical?.reasoning?.efforts.some(option => option.id === effort)) return { model: logical, effort }
+  }
+  return undefined
 }

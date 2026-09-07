@@ -29,4 +29,9 @@ export declare function withAntigravityCatalog(base: readonly ModelProviderGroup
 export declare function readProviderRole(directory: unknown, key: string): string | undefined;
 /** Whether a ProviderDirectory-owned role marks an Agent provider. */
 export declare function isAgentRole(role: string | undefined): boolean;
+/** Resolve a stored native `…-high|medium|low` id to the collapsed catalog row. */
+export declare function matchCatalogModel(models: readonly ModelProviderGroup['models'][number][], modelId: string | undefined): {
+    model: ModelProviderGroup['models'][number];
+    effort?: string;
+} | undefined;
 export {};
