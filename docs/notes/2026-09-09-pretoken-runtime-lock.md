@@ -1,0 +1,7 @@
+# Runtime selection before the first token
+
+A submitted prompt reserves its selected execution runtime before native startup or response text. The composer’s input phase describes input handling, not model execution. Picker policy reads the session’s `running` and `awaitingFirstTurn` flags as well as the submitting phase. Native binding remains the durable lock after a native session opens.
+
+During a native Antigravity request, its models and effort remain selectable but DSH providers do not. During a DSH request, LLM providers remain selectable but new Agent providers do not. A cancelled or failed submission without a native binding releases the activity reservation; existing-history restrictions still apply. Plan Review uses the same policy. Selection re-reads session activity after its asynchronous binding query so an already-open menu cannot bypass the updated state. That re-read includes pending local submissions, which cover the composer submitting window before `running` or `awaitingFirstTurn` flip.
+
+The keyless assembled GUI replay lives in the paired Antigravity checkout: `scripts/check-user-question-gui.mjs --runtime-lock`. Its fixture holds a native prompt without response tokens until cancellation. The picker must disable foreign-runtime rows while keeping current-runtime rows enabled. Policy and registration tests also cover pending-first-turn state, both switching directions, and activity release.

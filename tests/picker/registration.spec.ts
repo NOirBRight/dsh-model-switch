@@ -53,10 +53,34 @@ function bench(strictOptionalLookup = false) {
     return register(ctx)
   }
   installComposerPicker(ctx as never)
-  return { entries, injections, directInteractionReads: () => directInteractionReads }
+  return { entries, injections, raw, directory, directInteractionReads: () => directInteractionReads }
 }
 
 describe('composer picker seat ownership', () => {
+  it.each([['antigravity', 'codex'], ['codex', 'antigravity']])('rechecks pending first-turn state before %s to %s selection', async (current, target) => {
+    const { entries, raw, directory } = bench()
+    let session = { blank: true, running: false, awaitingFirstTurn: false }
+    Object.assign(raw.sessions as object, { get: () => ({ getSnapshot: () => session }) })
+    raw.get = (name: string) => name === 'connection'
+      ? { rpc: { call: async () => ({ ok: true, value: { provider: null } }) } }
+      : name === 'providerDirectory' ? { reader: () => ({}), roleOf: (key: string) => key === 'antigravity' ? 'agent' : 'llm' } : undefined
+    directory.store.getSnapshot.mockReturnValue({ current: { provider: current, model: 'first' } })
+    const model = entries.find(({ spec }) => spec.name === 'conversation.input.model')!
+    const face = (model.spec.inject as (id: string) => { select(selection: { provider: string; model: string }): Promise<boolean> })('session-1')
+    const choice = { provider: target, model: 'second' }
+    await expect(face.select(choice)).resolves.toBe(true)
+    directory.select.mockClear()
+    session = { blank: true, running: false, awaitingFirstTurn: true }
+    await expect(face.select(choice)).resolves.toBe(false)
+    session = { blank: true, running: true, awaitingFirstTurn: false }
+    await expect(face.select(choice)).resolves.toBe(false)
+    session = { blank: true, running: false, awaitingFirstTurn: false, pendingSubmissions: [{ requestId: 'p1' }] }
+    await expect(face.select(choice)).resolves.toBe(false)
+    expect(directory.select).not.toHaveBeenCalled()
+    session = { blank: true, running: false, awaitingFirstTurn: false, pendingSubmissions: [] }
+    await expect(face.select(choice)).resolves.toBe(true)
+  })
+
   it('uses the official model-seat service gate and an unambiguous winning priority', () => {
     const { entries, injections } = bench()
     expect(injections).toContainEqual(['slots', 'modelDirectories', 'settingsScope', 'remote.settings'])

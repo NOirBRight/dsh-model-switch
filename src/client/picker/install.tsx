@@ -19,6 +19,7 @@ import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { PlanReviewCard, ProviderLockHint } from './PlanReviewCard.tsx'
 import { PickerSeatBoundary } from './PickerSeatBoundary.tsx'
 import {
+  agentProviderLocked,
   createProviderLockStore,
   effectiveProviderLock,
   fetchSessionBinding,
@@ -26,7 +27,7 @@ import {
   type ProviderLockState,
   type ProviderLockStore,
 } from '../runtime-lock.ts'
-import { ANTIGRAVITY_PROVIDER_KEY, readProviderRole } from '../antigravity-catalog.ts'
+import { ANTIGRAVITY_PROVIDER_KEY, isAgentRole, readProviderRole } from '../antigravity-catalog.ts'
 import { en, zh, type PickerKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -120,6 +121,23 @@ async function restoreMainDefault(
   }
 }
 
+function readSessionState(sessions: unknown, sessionId: unknown): { blank?: boolean; active: boolean } | undefined {
+  if (sessions === null || typeof sessions !== 'object') return undefined
+  const get = (sessions as { get?: (id: unknown) => { getSnapshot?: () => { blank?: boolean; running?: boolean; awaitingFirstTurn?: boolean; pendingSubmissions?: readonly unknown[] } } }).get
+  if (typeof get !== 'function') return undefined
+  try {
+    const snapshot = get.call(sessions, sessionId)?.getSnapshot?.()
+    if (snapshot === undefined) return undefined
+    return {
+      ...(typeof snapshot.blank === 'boolean' ? { blank: snapshot.blank } : {}),
+      active: snapshot.running === true || snapshot.awaitingFirstTurn === true || (snapshot.pendingSubmissions?.length ?? 0) > 0,
+    }
+  } catch {
+    // Public Session snapshot threw; fail closed so Agent conversion cannot proceed.
+    return { blank: false, active: true }
+  }
+}
+
 function ModelSeat(
   props: PropsRuntime<'conversation.input.model'> & PropsLocale<'composer-picker'> & InjectFace<DirectoryFace>,
 ) {
@@ -127,14 +145,17 @@ function ModelSeat(
   const order = props.useProviderOrder(value => value)
   const lock = useSyncExternalStore(props.providerLockStore.subscribe, props.providerLockStore.getSnapshot)
   const phase = props.useInput(input => input.phase)
-  useEffect(() => { props.refreshProviderLock() }, [props.refreshProviderLock, phase, directory])
-  const providerLock = effectiveProviderLock(lock, directory.current?.provider)
+  const blank = props.useSession(session => session.blank)
+  const active = props.useSession(session => session.running || session.awaitingFirstTurn) || phase === 'submitting'
+  useEffect(() => { props.refreshProviderLock() }, [props.refreshProviderLock, phase, active, directory])
+  const providerLock = effectiveProviderLock(lock, directory.current?.provider, active)
   return (
     <>
     {lock.failed && <ProviderLockHint t={props.t} />}
     <ComposerPicker
       locked={props.locked}
       providerLock={providerLock}
+      agentLocked={agentProviderLocked(blank, providerLock, active)}
       {...(props.roleOf === undefined ? {} : { roleOf: props.roleOf })}
       available={props.available}
       directory={pickerDirectoryViewOrdered(directory, props, order)}
@@ -161,7 +182,10 @@ export function installComposerPicker(ctx: ClientContext): void {
 
   ctx.inject(['slots', 'modelDirectories', 'settingsScope', 'remote.settings'], (scope: ClientContext) => {
     const models = scope.modelDirectories
-    const sessions = scope.sessions as { subagentAddress?: (id: unknown) => unknown } | undefined
+    const sessions = scope.sessions as {
+      subagentAddress?: (id: unknown) => unknown
+      get?: (id: unknown) => { getSnapshot?: () => { blank?: boolean } }
+    } | undefined
     const mainDefaults = scope.settingsScope.bind({ namespace: MAIN_SETTINGS_ID, decode: decodeMainSettings })
     const orderStore = providerOrderStore(scope.settingsScope)
     const remoteSettings = (scope as unknown as { remote: { settings: RemoteSettingsFace } }).remote.settings
@@ -208,7 +232,10 @@ export function installComposerPicker(ctx: ClientContext): void {
           if (antigravityPresent()) {
             const state = await providerLockStore.refresh()
             const currentProvider = directory.store.getSnapshot().current?.provider
-            if (!isProviderAllowed(state, selection.provider, currentProvider)) return false
+            if (!isProviderAllowed(state, selection.provider, currentProvider, {
+              ...readSessionState(sessions, sessionId),
+              agent: isAgentRole(roleOf(selection.provider)),
+            })) return false
           }
           const defaultBeforeSwitch = mainDefaults.getSnapshot()
           try {

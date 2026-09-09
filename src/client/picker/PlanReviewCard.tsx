@@ -10,7 +10,8 @@ import { ComposerPicker } from './ComposerPicker.tsx'
 import { pickerDirectoryViewOrdered, type PickerDirectoryFace, type PickerDirectoryView } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { RetryBoundary } from './RetryBoundary.tsx'
-import { effectiveProviderLock, providerSelectable, type RuntimeProviderLock } from '../runtime-lock.ts'
+import { agentProviderLocked, effectiveProviderLock, providerSelectable, type RuntimeProviderLock } from '../runtime-lock.ts'
+import { isAgentRole } from '../antigravity-catalog.ts'
 import css from './PlanReviewCard.module.css'
 
 interface PickerGuardProps {
@@ -79,6 +80,7 @@ interface PlanReviewStateProps {
   review: PlanReview
   available: boolean
   providerLock: RuntimeProviderLock
+  agentLocked: boolean
   lockFailed: boolean
   directory: PickerDirectoryView
   t: PlanReviewCardProps['t']
@@ -102,8 +104,11 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
   const order = props.useProviderOrder(value => value)
   const lock = useSyncExternalStore(props.providerLockStore.subscribe, props.providerLockStore.getSnapshot)
   const phase = props.useInput(input => input.phase)
-  useEffect(() => { props.refreshProviderLock() }, [props.refreshProviderLock, phase, snapshot])
-  const providerLock = effectiveProviderLock(lock, snapshot.current?.provider)
+  const blank = props.useSession(session => session.blank)
+  const active = props.useSession(session => session.running || session.awaitingFirstTurn) || phase === 'submitting'
+  useEffect(() => { props.refreshProviderLock() }, [props.refreshProviderLock, phase, active, snapshot])
+  const providerLock = effectiveProviderLock(lock, snapshot.current?.provider, active)
+  const agentLocked = agentProviderLocked(blank, providerLock, active)
   const review = planReviewOf(props.matched.questions)
   if (review === undefined) {
     return (
@@ -121,6 +126,7 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
     review={review}
     available={props.available}
     providerLock={providerLock}
+    agentLocked={agentLocked}
     lockFailed={lock.failed}
     directory={pickerDirectoryViewOrdered(snapshot, props, order)}
     t={props.t}
@@ -130,7 +136,7 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
 }
 
 function PlanReviewState({
-  matched, review, available, providerLock, lockFailed, directory, t, resolveInteractionOperations, roleOf,
+  matched, review, available, providerLock, agentLocked, lockFailed, directory, t, resolveInteractionOperations, roleOf,
 }: PlanReviewStateProps) {
   const { snapshot, getDirectorySnapshot, load, select } = directory
   const [execution, setExecution] = useState<ModelSelection | undefined>(snapshot.current ?? undefined)
@@ -158,7 +164,9 @@ function PlanReviewState({
     })
   }
 
-  const executionAllowed = execution !== undefined && providerSelectable(providerLock, execution.provider)
+  const executionAllowed = execution !== undefined
+    && providerSelectable(providerLock, execution.provider)
+    && !(agentLocked && isAgentRole(roleOf?.(execution.provider)))
   const action = planActionView({ busy, blocked, error }, available, executionAllowed)
 
   const onApprove = (): void => {
@@ -196,6 +204,7 @@ function PlanReviewState({
             <ComposerPicker
               locked={busy || blocked}
               providerLock={providerLock}
+              agentLocked={agentLocked}
               {...(roleOf === undefined ? {} : { roleOf })}
               available={available}
               directory={directory}

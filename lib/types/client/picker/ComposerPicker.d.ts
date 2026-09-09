@@ -10,6 +10,8 @@ export type { PickerDirectoryFace, PickerDirectoryOperations, PickerDirectorySna
 interface ComposerPickerBaseProps {
     locked: boolean;
     providerLock?: RuntimeProviderLock;
+    /** Hide/disable Agent-role groups on existing DSH sessions that are not native-bound. */
+    agentLocked?: boolean;
     available: boolean;
     directory: PickerDirectoryView;
     t: (key: PickerKey, params?: Record<string, string>) => string;
@@ -40,4 +42,4 @@ export interface ModelPaneHeaderProps {
     onQueryChange: (query: string) => void;
 }
 export declare function ModelPaneHeader({ title, backLabel, searchLabel, closeSearchLabel, searchable, searching, query, onBack, onStartSearch, onCloseSearch, onQueryChange, }: ModelPaneHeaderProps): import("react").JSX.Element;
-export declare function ComposerPicker({ locked, providerLock, available, directory, t, draft, onDraftChange, embedded, tone, resolveInteractionOperations, roleOf, }: ComposerPickerProps): import("react").JSX.Element | null;
+export declare function ComposerPicker({ locked, providerLock, agentLocked, available, directory, t, draft, onDraftChange, embedded, tone, resolveInteractionOperations, roleOf, }: ComposerPickerProps): import("react").JSX.Element | null;

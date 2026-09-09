@@ -1,4 +1,4 @@
-/** Session native-binding lock read from the Antigravity plugin RPC. */
+/** Session execution-runtime lock from native binding and request activity. */
 
 import { ANTIGRAVITY_PROVIDER_KEY } from './antigravity-catalog.ts'
 
@@ -58,24 +58,44 @@ export function providerSelectable(lock: RuntimeProviderLock, provider: string):
   return lock === null || provider === lock
 }
 
+/** Extra facts for Agent-role selection on blank vs existing DSH sessions. */
+export interface ProviderAllowContext {
+  /** Empty-log bit from the conversation snapshot; omit when unknown. */
+  blank?: boolean
+  /** A prompt is being submitted, awaits its first turn, or is running. */
+  active?: boolean
+  /** Whether the candidate provider is an Agent-role External Agent. */
+  agent?: boolean
+}
+
+/**
+ * Existing DSH history cannot convert to an External Agent. Blank sessions
+ * and already-bound native sessions keep their current Agent choice.
+ */
+export function agentProviderLocked(blank: boolean, bound: RuntimeProviderLock, active = false): boolean {
+  return (blank === false || active) && bound === null
+}
+
 /**
  * Whether one provider remains selectable under a lock read that may have failed.
  * Fail closed for native-bound sessions (known lock, or current Antigravity
  * selection with no successful read yet): only the anchor stays selectable.
- * Pure-LLM sessions stay fully open; log reading is never gated by this.
+ * Unbound sessions with DSH history cannot select a new Agent provider.
+ * Log reading is never gated by this.
  * @param state - Latest lock read for the session.
  * @param provider - Candidate provider for the pending selection.
  * @param currentProvider - Session current provider, if any.
+ * @param context - Session history, request activity, and candidate Agent role.
  */
 export function isProviderAllowed(
   state: ProviderLockState,
   provider: string,
   currentProvider: string | undefined,
+  context: ProviderAllowContext = {},
 ): boolean {
-  if (!state.failed) return providerSelectable(state.provider, provider)
-  if (state.provider === ANTIGRAVITY_PROVIDER_KEY || currentProvider === ANTIGRAVITY_PROVIDER_KEY) {
-    return provider === ANTIGRAVITY_PROVIDER_KEY
-  }
+  const lock = effectiveProviderLock(state, currentProvider, context.active)
+  if (!providerSelectable(lock, provider)) return false
+  if (context.agent === true && (context.blank === false || context.active === true) && lock === null) return provider === currentProvider
   return true
 }
 
@@ -86,7 +106,9 @@ export function isProviderAllowed(
 export function effectiveProviderLock(
   state: ProviderLockState,
   currentProvider: string | undefined,
+  active = false,
 ): RuntimeProviderLock {
+  if (active && currentProvider === ANTIGRAVITY_PROVIDER_KEY) return ANTIGRAVITY_PROVIDER_KEY
   if (!state.failed) return state.provider
   if (state.provider === ANTIGRAVITY_PROVIDER_KEY || currentProvider === ANTIGRAVITY_PROVIDER_KEY) {
     return ANTIGRAVITY_PROVIDER_KEY

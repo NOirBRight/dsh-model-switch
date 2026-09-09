@@ -267,6 +267,40 @@ describe('ComposerPicker Plan transaction lock', () => {
     expect(onDraftChange).not.toHaveBeenCalled()
   })
 
+  it('greys out Agent-role rows on existing DSH sessions and refuses their selection', async () => {
+    const current = { provider: 'codex', model: 'gpt' }
+    const snapshot = {
+      current, routable: true, failures: [], status: 'ready' as const, error: null,
+      groups: [
+        { id: 'antigravity', name: 'Antigravity', models: [{ id: 'gemini', name: 'Gemini' }] },
+        { id: 'codex', name: 'Codex', models: [{ id: 'gpt', name: 'GPT' }] },
+      ],
+    }
+    const onDraftChange = vi.fn()
+    const roleOf = (key: string) => key === 'antigravity' ? 'agent' : 'llm'
+    let picker!: ReturnType<typeof create>
+    await act(async () => {
+      picker = create(<ComposerPicker {...{
+        locked: false,
+        agentLocked: true,
+        available: true,
+        roleOf,
+        directory: { snapshot, getDirectorySnapshot: () => snapshot, load: vi.fn(), select: vi.fn() },
+        draft: current,
+        onDraftChange,
+        t: (key: string) => key,
+        embedded: true,
+      } as never} />)
+    })
+    await act(async () => { picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.onClick() })
+    const rows = picker.root.findAllByProps({ role: 'menuitemradio' })
+    const row = (label: string) => rows.find(item => item.findAllByType('span').some(span => span.children.includes(label)))!
+    expect(row('GPT').props.disabled).toBe(false)
+    expect(row('Gemini').props.disabled).toBe(true)
+    await act(async () => { row('Gemini').props.onClick() })
+    expect(onDraftChange).not.toHaveBeenCalled()
+  })
+
   it('ignores a detail-zero mobile fallback reopen after one close gesture', async () => {
     let picker!: ReturnType<typeof create>
     await act(async () => { picker = create(<ComposerPicker {...props(false) as never} />) })

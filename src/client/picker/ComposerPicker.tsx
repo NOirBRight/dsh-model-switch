@@ -55,6 +55,8 @@ function sameSelection(left: ModelSelection | null, right: ModelSelection | null
 interface ComposerPickerBaseProps {
   locked: boolean
   providerLock?: RuntimeProviderLock
+  /** Hide/disable Agent-role groups on existing DSH sessions that are not native-bound. */
+  agentLocked?: boolean
   available: boolean
   directory: PickerDirectoryView
   t: (key: PickerKey, params?: Record<string, string>) => string
@@ -145,7 +147,7 @@ function RuntimeIcon({ provider, roleOf }: { provider: string, roleOf?: (provide
 }
 
 export function ComposerPicker({
-  locked, providerLock = null, available, directory, t, draft, onDraftChange, embedded,
+  locked, providerLock = null, agentLocked = false, available, directory, t, draft, onDraftChange, embedded,
   tone,
   resolveInteractionOperations,
   roleOf,
@@ -185,6 +187,8 @@ export function ComposerPicker({
   const visibleFamilies = useMemo(() => filterFamilies(families, query), [families, query])
   const sections = useMemo(() => sectionFamilies(visibleFamilies), [visibleFamilies])
   const busy = state.status === 'selecting'
+  const choiceAllowed = (provider: string): boolean =>
+    providerSelectable(providerLock, provider) && !(agentLocked && isAgentRole(roleOf?.(provider)))
 
   const reload = (): void => {
     if (lockedRef.current) return
@@ -255,7 +259,7 @@ export function ComposerPicker({
   }
 
   const applySelection = (next: ModelSelection): void => {
-    if (lockedRef.current || !providerSelectable(providerLock, next.provider)) return
+    if (lockedRef.current || !choiceAllowed(next.provider)) return
     if (onDraftChange !== undefined) {
       onDraftChange(next)
       returnToRoot()
@@ -428,7 +432,7 @@ export function ComposerPicker({
                         aria-checked={selected}
                         className={classNames(css.option, selected && css.selected)}
                         key={`${item.provider}:${item.base}`}
-                        disabled={locked || busy || !providerSelectable(providerLock, item.provider)}
+                        disabled={locked || busy || !choiceAllowed(item.provider)}
                         onClick={() => {
                           if (representative === undefined) return
                           chooseMember(item, representative)

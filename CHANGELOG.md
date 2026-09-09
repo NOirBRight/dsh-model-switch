@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.9] - 2026-09-09
+
+- Reserve the selected execution runtime as soon as a prompt is submitted, before the first token or native binding.
+- Native Antigravity keeps its models and effort; DSH keeps LLM-provider choices and disables Agent providers until cancel or a durable native binding.
+
 ## [0.4.8] - 2026-09-07
 
 - Development dependency now points at the final `dsh-llm-providers-ui` 0.1.10 release URL with pinned integrity; Alpha.4 fixtures updated coherently (roots + provider identity + fresh self-root tarball).

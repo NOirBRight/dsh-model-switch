@@ -58,6 +58,7 @@ function propsFor(provider: string, roleOf?: (key: string) => string | undefined
     useDirectory: (selector: (value: typeof snapshot) => unknown) => selector(snapshot),
     useProviderOrder: (selector: (value: readonly string[]) => unknown) => selector(EMPTY_ORDER),
     useInput: (selector: (value: typeof PLAIN_PHASE) => unknown) => selector(PLAIN_PHASE),
+    useSession: (selector: (value: { blank: boolean }) => unknown) => selector({ blank: false }),
     providerLockStore: { subscribe: () => () => undefined, getSnapshot: () => UNLOCKED_LOCK },
     refreshProviderLock: vi.fn(() => undefined),
     getDirectorySnapshot: () => snapshot,

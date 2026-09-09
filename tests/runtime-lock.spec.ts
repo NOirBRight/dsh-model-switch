@@ -4,6 +4,7 @@ import {
   decodeBindingProvider,
   effectiveProviderLock,
   fetchSessionBinding,
+  agentProviderLocked,
   isProviderAllowed,
   providerSelectable,
 } from '../src/client/runtime-lock.ts'
@@ -36,6 +37,22 @@ describe('Antigravity binding reply', () => {
 })
 
 describe('Antigravity provider lock policy', () => {
+  it('reserves the running native runtime before its first token or binding arrives', () => {
+    const unbound = { provider: null, failed: false } as const
+    expect(effectiveProviderLock(unbound, 'antigravity', true)).toBe('antigravity')
+    expect(isProviderAllowed(unbound, 'codex', 'antigravity', { active: true, blank: true })).toBe(false)
+    expect(isProviderAllowed(unbound, 'antigravity', 'antigravity', { active: true, blank: true, agent: true })).toBe(true)
+    expect(effectiveProviderLock(unbound, 'antigravity', false)).toBeNull()
+  })
+
+  it('keeps LLM routing within DSH while its first response is pending', () => {
+    const unbound = { provider: null, failed: false } as const
+    expect(agentProviderLocked(true, null, true)).toBe(true)
+    expect(isProviderAllowed(unbound, 'antigravity', 'codex', { active: true, blank: true, agent: true })).toBe(false)
+    expect(isProviderAllowed(unbound, 'grok', 'codex', { active: true, blank: true, agent: false })).toBe(true)
+    expect(isProviderAllowed(unbound, 'antigravity', 'codex', { active: false, blank: true, agent: true })).toBe(true)
+  })
+
   it('blocks other providers while preserving Antigravity controls', () => {
     expect(providerSelectable(null, 'codex')).toBe(true)
     expect(providerSelectable('antigravity', 'codex')).toBe(false)
@@ -51,6 +68,18 @@ describe('Antigravity provider lock policy', () => {
     expect(isProviderAllowed({ provider: null, failed: true }, 'antigravity', 'antigravity')).toBe(true)
     expect(isProviderAllowed({ provider: null, failed: true }, 'codex', 'codex')).toBe(true)
     expect(isProviderAllowed({ provider: null, failed: true }, 'codex', undefined)).toBe(true)
+  })
+
+  it('blocks Agent-role switches on existing DSH history and keeps blank sessions open', () => {
+    const unbound = { provider: null, failed: false } as const
+    expect(agentProviderLocked(true, null)).toBe(false)
+    expect(agentProviderLocked(false, null)).toBe(true)
+    expect(agentProviderLocked(false, 'antigravity')).toBe(false)
+    expect(isProviderAllowed(unbound, 'antigravity', 'deepseek', { blank: false, agent: true })).toBe(false)
+    expect(isProviderAllowed(unbound, 'antigravity', 'antigravity', { blank: false, agent: true })).toBe(true)
+    expect(isProviderAllowed(unbound, 'deepseek', 'deepseek', { blank: false, agent: false })).toBe(true)
+    expect(isProviderAllowed(unbound, 'antigravity', 'deepseek', { blank: true, agent: true })).toBe(true)
+    expect(isProviderAllowed(unbound, 'antigravity', 'deepseek', { agent: true })).toBe(true)
   })
 
   it('maps failed reads to the same effective single-provider lock', () => {

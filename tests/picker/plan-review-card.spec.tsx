@@ -44,6 +44,7 @@ function props(overrides: Record<string, unknown> = {}) {
     useDirectory: (selector: (value: typeof baseSnapshot) => unknown) => selector(snapshot),
     useProviderOrder: (selector: (value: readonly string[]) => unknown) => selector([]),
     useInput: (selector: (value: { phase: string }) => unknown) => selector({ phase: 'plain' }),
+    useSession: (selector: (value: { blank: boolean }) => unknown) => selector({ blank: false }),
     providerLockStore: {
       subscribe: () => () => undefined,
       getSnapshot: () => unlockedLockSnapshot,
