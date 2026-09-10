@@ -7,7 +7,6 @@ import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { type ResolvedSubagentStartRequest, type SubagentCapabilities, type SubagentProvider, type SubagentRun } from '@deepseek-ai/dsh-subagent'
 import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import profileSubagentRuntime, { ModelSwitchSubagentRuntime } from '../src/subagent-runtime.js'
@@ -138,13 +137,14 @@ describe('public profile-patched Subagent replacement', () => {
     ctx = context
     root = await mkdtemp(join(tmpdir(), 'dsh-model-switch-continuable-'))
     await mountAgentLoopTestDependencies(context)
-    await context.plugin(SessionProjectionRegistry)
+    // SessionProjectionRegistry is mounted by the 0.1.5-rc.1 testkit; a second mount double-registers sessionProjections.
     await context.plugin(JsonlSessionPersistence, { root })
     await context.plugin(AgentLoop, { agents: [] })
     await context.plugin(TestModelSwitch)
     await context.plugin(profileSubagentRuntime)
     await context.plugin(SubagentSpawn, { providerName: 'spawn' })
-    const parent = context.agentLoop.create(SessionId('parent'), { provider: 'parent-provider', model: 'parent-model' })
+    // AgentLoop.create is async on the 0.1.5-rc.1 host; an unawaited call hands startContinuable a Promise without .session.
+    const parent = await context.agentLoop.create(SessionId('parent'), { provider: 'parent-provider', model: 'parent-model' })
     ;(context.modelSwitch as unknown as TestModelSwitch).settings = {
       subagentMode: 'fixed', subagentProvider: 'fixed-provider', subagentModel: 'fixed-model',
     }
