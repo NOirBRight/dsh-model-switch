@@ -114,7 +114,7 @@ Production profiles must use released GitHub tags rather than workspace-local de
 
 ## Compatibility
 
-Verified runtimes are DeepSeek Harness `0.1.2-alpha.4` and `0.1.2-rc.1` on Cordis `4.0.2`; this record is evidence, not an allowlist.
+Verified runtimes are DeepSeek Harness `0.1.5-rc.1` (current) and historically `0.1.2-alpha.4` / `0.1.2-rc.1` on Cordis `4.0.2`; this record is evidence, not an allowlist.
 
 Unknown newer runtimes are attempted on a best-effort basis after one warning, and the plugin keeps its normal mount path.
 
