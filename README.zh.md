@@ -85,13 +85,17 @@ Plan Review 拥有独立于 Main 的执行模型草稿。**确认执行**会先�
 
 ## 安装
 
-安装 Model Switch，以及实际使用的 Provider Adapter。以下协调版本面向已验证的 DSH 0.1.2-alpha.4 和 0.1.2-rc.1 运行时：
+安装 Model Switch，以及实际使用的 Provider Adapter。以下协调版本面向 DeepSeek Harness 0.1.5-rc.1：
 
 ```sh
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-providers-ui#v0.1.9
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.14
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.11
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.7
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.12.tgz
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-llm-codex/releases/latest/download/dsh-llm-codex-0.3.15.tgz
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-llm-grok/releases/latest/download/dsh-llm-grok-0.3.12.tgz
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.9.tgz
 ```
 
 ### 搜索供应商统一接入（0.4.7）
@@ -138,14 +142,18 @@ Latest 安装命令（永久不含版本号）：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.12.tgz
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.9.tgz
 ~~~
 
 固定版本安装命令：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.7/dsh-model-switch.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1e/dsh-llm-providers-ui-0.1.12.tgz
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.9-015rc1b/dsh-model-switch-0.4.9.tgz
 ~~~
 
 更新、卸载与验证：
@@ -153,7 +161,9 @@ dsh plugin --profile web add --force \
 ~~~sh
 # 更新到最新 Release
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.12.tgz
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.9.tgz
 # 验证加载与版本
 dsh plugin --profile web list
 dsh plugin --profile web doctor
@@ -165,4 +175,4 @@ dsh plugin --profile web remove dsh-model-switch
 
 回滚：重新执行固定版本 v0.4.4 命令，确认插件列表后只重启一次 Web 服务。失败时查看 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor，不要把源码 checkout 写入 production profile。
 
-Release 与完整性：[v0.4.7](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.7) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.7/SHA256SUMS)。
+Release 与完整性：[v0.4.9-015rc1b](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.9-015rc1b) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.9-015rc1b/SHA256SUMS)。

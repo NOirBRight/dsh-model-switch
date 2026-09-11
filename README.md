@@ -87,13 +87,17 @@ Plan Review owns an execution-model draft separate from Main. **Confirm** first 
 
 ## Installation
 
-Install Model Switch and only the provider adapters you use. The coordinated versions below target the verified DSH 0.1.2-alpha.4 and 0.1.2-rc.1 runtimes:
+Install Model Switch and only the provider adapters you use. The coordinated versions below target DeepSeek Harness 0.1.5-rc.1:
 
 ```sh
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-providers-ui#v0.1.10
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-codex#v0.3.14
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-llm-grok#v0.3.11
-DSH_HOME=~/.dsh dsh plugin --profile web add github:NOirBRight/dsh-model-switch#v0.4.7
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.12.tgz
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-llm-codex/releases/latest/download/dsh-llm-codex-0.3.15.tgz
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-llm-grok/releases/latest/download/dsh-llm-grok-0.3.12.tgz
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.9.tgz
 ```
 
 ### Search routing (0.4.7)
@@ -140,14 +144,18 @@ Latest installation (the URL never contains a version):
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.12.tgz
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.9.tgz
 ~~~
 
 Fixed-version installation:
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.9/dsh-model-switch.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1e/dsh-llm-providers-ui-0.1.12.tgz
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.9-015rc1b/dsh-model-switch-0.4.9.tgz
 ~~~
 
 Update, uninstall, and verify:
@@ -155,7 +163,9 @@ Update, uninstall, and verify:
 ~~~sh
 # Update to the latest Release
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.1.12.tgz
+dsh plugin --profile web add --force \
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.9.tgz
 # Verify the loaded version
 dsh plugin --profile web list
 dsh plugin --profile web doctor
