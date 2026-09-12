@@ -44,6 +44,8 @@ export interface ProviderAllowContext {
  * and already-bound native sessions keep their current Agent choice.
  */
 export declare function agentProviderLocked(blank: boolean, bound: RuntimeProviderLock, active?: boolean): boolean;
+/** Picker allow-check over the already-effective lock and the agentLocked bit. */
+export declare function runtimeChoiceAllowed(lock: RuntimeProviderLock, agentLocked: boolean, provider: string, currentProvider: string | undefined, agent: boolean): boolean;
 /**
  * Whether one provider remains selectable under a lock read that may have failed.
  * Fail closed for native-bound sessions (known lock, or current Antigravity

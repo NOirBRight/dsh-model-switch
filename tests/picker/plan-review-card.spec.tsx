@@ -136,6 +136,30 @@ describe('PlanReviewCard', () => {
     expect(approve(card).props.disabled).toBe(true)
   })
 
+  it('does not treat a drafted Agent as current when the directory has no provider', async () => {
+    const fixture = props({
+      roleOf: (key: string) => key === 'antigravity' ? 'agent' : 'llm',
+    })
+    fixture.setSnapshot({ ...baseSnapshot, current: null })
+    let card!: ReturnType<typeof create>
+    await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+    await act(async () => {
+      card.root.findByType(ComposerPicker).props.onDraftChange({ provider: 'antigravity', model: 'gemini' })
+    })
+    expect(approve(card).props.disabled).toBe(true)
+  })
+
+  it('allows Approve for the current Agent after history', async () => {
+    const current = { provider: 'cursor-agent', model: 'composer-2.5' }
+    const fixture = props({
+      roleOf: (key: string) => key === 'cursor-agent' ? 'agent' : 'llm',
+    })
+    fixture.setSnapshot({ ...baseSnapshot, current })
+    let card!: ReturnType<typeof create>
+    await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+    expect(approve(card).props.disabled).toBe(false)
+  })
+
   it('keeps Approve disabled until the rendered execution picker is ready', async () => {
     const fixture = props()
     fixture.setSnapshot({ ...baseSnapshot, current: null })

@@ -58,7 +58,7 @@ describe('picker trigger runtime icons', () => {
 
   it('shows the own mark for the native Agent family', () => {
     const html = triggerHtml('antigravity', 'Antigravity', agentRoleOf)
-    expect(html).toContain('viewBox="0 0 169 148"')
+    expect(html).toContain('viewBox="13.4 8.4 142.1 129.9"')
     expect(html).not.toContain(WHALE_VIEWBOX)
   })
 

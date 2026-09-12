@@ -357,3 +357,146 @@ describe('ComposerPicker Plan transaction lock', () => {
     expect(labels).not.toContain('menu.search')
   })
 })
+
+function liveVariantPicker(options: {
+  provider: string
+  model: string
+  models: Array<{ id: string, name: string }>
+  agentLocked?: boolean
+  role?: string
+}) {
+  const current = { provider: options.provider, model: options.model }
+  const snapshot = {
+    current,
+    routable: true,
+    failures: [] as const,
+    status: 'ready' as const,
+    error: null,
+    groups: [{ id: options.provider, name: options.provider, models: options.models }],
+  }
+  const select = vi.fn(async () => true)
+  return {
+    select,
+    props: {
+      locked: false,
+      agentLocked: options.agentLocked ?? false,
+      available: true,
+      directory: { snapshot, getDirectorySnapshot: () => snapshot, load: vi.fn(), select },
+      t: (key: string) => key,
+      tone: 'capsule' as const,
+      ...(options.role === undefined ? {} : { roleOf: (key: string) => key === options.provider ? options.role : 'llm' }),
+    },
+  }
+}
+
+async function openRadio(picker: ReturnType<typeof create>, menu: string, label: string) {
+  await act(async () => { picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.onClick() })
+  const item = picker.root.findAllByProps({ role: 'menuitem' }).find(row =>
+    row.findAllByType('span').some(span => span.children.includes(menu)),
+  )
+  expect(item).toBeDefined()
+  await act(async () => { item!.props.onClick() })
+  const radio = picker.root.findAllByProps({ role: 'menuitemradio' }).find(row =>
+    row.findAllByType('span').some(span => span.children.includes(label)),
+  )
+  expect(radio).toBeDefined()
+  return radio!
+}
+
+describe('ComposerPicker Fast/Context after a turn', () => {
+  const cursorModels = [
+    { id: 'composer-2.5', name: 'Composer 2.5' },
+    { id: 'composer-2.5-fast', name: 'Composer 2.5 Fast' },
+    { id: 'composer-2.5-1m', name: 'Composer 2.5 Max' },
+    { id: 'composer-2.5-fast-1m', name: 'Composer 2.5 Fast Max' },
+    { id: 'grok-4.6', name: 'Cursor Grok 4.6' },
+  ]
+
+  it('keeps Fast on the current Agent after a turn', async () => {
+    const { select, props } = liveVariantPicker({
+      provider: 'cursor-agent',
+      model: 'composer-2.5-fast',
+      models: cursorModels,
+      agentLocked: true,
+      role: 'agent',
+    })
+    let picker!: ReturnType<typeof create>
+    await act(async () => { picker = create(<ComposerPicker {...props as never} />) })
+    const off = await openRadio(picker, 'menu.fast', 'fast.off')
+    expect(off.props.disabled).toBe(false)
+    await act(async () => { off.props.onClick() })
+    expect(select).toHaveBeenCalledWith({ provider: 'cursor-agent', model: 'composer-2.5' })
+  })
+
+  it('keeps Context on the current Agent after a turn', async () => {
+    const { select, props } = liveVariantPicker({
+      provider: 'cursor-agent',
+      model: 'composer-2.5',
+      models: cursorModels,
+      agentLocked: true,
+      role: 'agent',
+    })
+    let picker!: ReturnType<typeof create>
+    await act(async () => { picker = create(<ComposerPicker {...props as never} />) })
+    const max = await openRadio(picker, 'menu.context', '1M')
+    expect(max.props.disabled).toBe(false)
+    await act(async () => { max.props.onClick() })
+    expect(select).toHaveBeenCalledWith({ provider: 'cursor-agent', model: 'composer-2.5-1m' })
+  })
+
+  it('still switches Fast on a current LLM while Agent conversion is locked', async () => {
+    const { select, props } = liveVariantPicker({
+      provider: 'codex',
+      model: 'gpt-5.6-sol-fast',
+      models: [
+        { id: 'gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+        { id: 'gpt-5.6-sol-fast', name: 'GPT-5.6 Sol Fast' },
+      ],
+      agentLocked: true,
+    })
+    let picker!: ReturnType<typeof create>
+    await act(async () => { picker = create(<ComposerPicker {...props as never} />) })
+    const off = await openRadio(picker, 'menu.fast', 'fast.off')
+    expect(off.props.disabled).toBe(false)
+    await act(async () => { off.props.onClick() })
+    expect(select).toHaveBeenCalledWith({ provider: 'codex', model: 'gpt-5.6-sol' })
+  })
+
+  it('disables Fast Off when the non-Fast sibling is missing at the current Context tier', async () => {
+    const { select, props } = liveVariantPicker({
+      provider: 'codex',
+      model: 'gpt-5.6-sol-1m-fast',
+      models: [
+        { id: 'gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+        { id: 'gpt-5.6-sol-fast', name: 'GPT-5.6 Sol Fast' },
+        { id: 'gpt-5.6-sol-1m-fast', name: 'GPT-5.6 Sol 1M Fast' },
+      ],
+    })
+    let picker!: ReturnType<typeof create>
+    await act(async () => { picker = create(<ComposerPicker {...props as never} />) })
+    const off = await openRadio(picker, 'menu.fast', 'fast.off')
+    expect(off.props.disabled).toBe(true)
+    expect(off.props.title).toBe('choice.unavailable')
+    await act(async () => { off.props.onClick() })
+    expect(select).not.toHaveBeenCalled()
+  })
+
+  it('disables a Context tier that pickVariant cannot honor at the current Fast axis', async () => {
+    const { select, props } = liveVariantPicker({
+      provider: 'codex',
+      model: 'gpt-5.6-sol',
+      models: [
+        { id: 'gpt-5.6-sol', name: 'GPT-5.6 Sol' },
+        { id: 'gpt-5.6-sol-fast', name: 'GPT-5.6 Sol Fast' },
+        { id: 'gpt-5.6-sol-1m-fast', name: 'GPT-5.6 Sol 1M Fast' },
+      ],
+    })
+    let picker!: ReturnType<typeof create>
+    await act(async () => { picker = create(<ComposerPicker {...props as never} />) })
+    const max = await openRadio(picker, 'menu.context', '1M')
+    expect(max.props.disabled).toBe(true)
+    expect(max.props.title).toBe('choice.unavailable')
+    await act(async () => { max.props.onClick() })
+    expect(select).not.toHaveBeenCalled()
+  })
+})

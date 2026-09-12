@@ -27,7 +27,7 @@ vi.mock('../../src/client/picker/useComposerPickerSurface.ts', () => ({
 }))
 
 const WHALE_VIEWBOX = '0 0 23.16 17.04'
-const AGENT_VIEWBOX = '0 0 169 148'
+const AGENT_VIEWBOX = '13.4 8.4 142.1 129.9'
 
 function matched(key = 'plan-1') {
   return {

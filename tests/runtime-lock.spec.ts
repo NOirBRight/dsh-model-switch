@@ -7,6 +7,7 @@ import {
   agentProviderLocked,
   isProviderAllowed,
   providerSelectable,
+  runtimeChoiceAllowed,
 } from '../src/client/runtime-lock.ts'
 
 describe('Antigravity binding reply', () => {
@@ -80,6 +81,14 @@ describe('Antigravity provider lock policy', () => {
     expect(isProviderAllowed(unbound, 'deepseek', 'deepseek', { blank: false, agent: false })).toBe(true)
     expect(isProviderAllowed(unbound, 'antigravity', 'deepseek', { blank: true, agent: true })).toBe(true)
     expect(isProviderAllowed(unbound, 'antigravity', 'deepseek', { agent: true })).toBe(true)
+  })
+
+  it('keeps the current Agent selectable in the picker after history', () => {
+    expect(runtimeChoiceAllowed(null, true, 'cursor-agent', 'cursor-agent', true)).toBe(true)
+    expect(runtimeChoiceAllowed(null, true, 'antigravity', 'cursor-agent', true)).toBe(false)
+    expect(runtimeChoiceAllowed(null, true, 'codex', 'codex', false)).toBe(true)
+    expect(runtimeChoiceAllowed('antigravity', false, 'antigravity', 'antigravity', true)).toBe(true)
+    expect(runtimeChoiceAllowed('antigravity', false, 'codex', 'antigravity', false)).toBe(false)
   })
 
   it('maps failed reads to the same effective single-provider lock', () => {

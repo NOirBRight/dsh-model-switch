@@ -292,8 +292,8 @@ importers:
         specifier: 18.3.1
         version: 18.3.1
       dsh-llm-providers-ui:
-        specifier: https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1d/dsh-llm-providers-ui-0.1.12.tgz
-        version: https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1d/dsh-llm-providers-ui-0.1.12.tgz(07fffcbc8744de433ffa44527a4868b8)
+        specifier: https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.6/dsh-llm-providers-ui-0.2.6.tgz
+        version: https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.6/dsh-llm-providers-ui-0.2.6.tgz(07fffcbc8744de433ffa44527a4868b8)
       js-yaml:
         specifier: ^4.1.1
         version: 4.3.1
@@ -1632,9 +1632,9 @@ packages:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
 
-  dsh-llm-providers-ui@https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1d/dsh-llm-providers-ui-0.1.12.tgz:
-    resolution: {tarball: https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1d/dsh-llm-providers-ui-0.1.12.tgz}
-    version: 0.1.12
+  dsh-llm-providers-ui@https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.6/dsh-llm-providers-ui-0.2.6.tgz:
+    resolution: {tarball: https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.6/dsh-llm-providers-ui-0.2.6.tgz}
+    version: 0.2.6
     engines: {node: ^22.19.0 || >=24.0.0}
     peerDependencies:
       '@deepseek-ai/cordis': '>=4.0.2 <5.0.0'
@@ -3248,7 +3248,7 @@ snapshots:
 
   detect-libc@2.1.2: {}
 
-  dsh-llm-providers-ui@https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.1.12-015rc1d/dsh-llm-providers-ui-0.1.12.tgz(07fffcbc8744de433ffa44527a4868b8):
+  dsh-llm-providers-ui@https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.6/dsh-llm-providers-ui-0.2.6.tgz(07fffcbc8744de433ffa44527a4868b8):
     dependencies:
       '@deepseek-ai/cordis': 4.0.2(@deepseek-ai/cordis-plugin-include@1.0.7)(@deepseek-ai/cordis-plugin-loader@1.0.3)
       '@deepseek-ai/dsh-client-locale': 0.1.5-rc.1(@deepseek-ai/cordis@4.0.2)

@@ -76,6 +76,19 @@ export function agentProviderLocked(blank: boolean, bound: RuntimeProviderLock, 
   return (blank === false || active) && bound === null
 }
 
+/** Picker allow-check over the already-effective lock and the agentLocked bit. */
+export function runtimeChoiceAllowed(
+  lock: RuntimeProviderLock,
+  agentLocked: boolean,
+  provider: string,
+  currentProvider: string | undefined,
+  agent: boolean,
+): boolean {
+  if (!providerSelectable(lock, provider)) return false
+  if (agentLocked && agent) return provider === currentProvider
+  return true
+}
+
 /**
  * Whether one provider remains selectable under a lock read that may have failed.
  * Fail closed for native-bound sessions (known lock, or current Antigravity

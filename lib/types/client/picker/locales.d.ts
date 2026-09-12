@@ -28,6 +28,7 @@ export declare const zh: {
     'empty.models': string;
     'empty.efforts': string;
     'lock.readFailed': string;
+    'choice.unavailable': string;
     'plan.kicker': string;
     'plan.header': string;
     'plan.execution': string;
@@ -72,6 +73,7 @@ export declare const en: {
     'empty.models': string;
     'empty.efforts': string;
     'lock.readFailed': string;
+    'choice.unavailable': string;
     'plan.kicker': string;
     'plan.header': string;
     'plan.execution': string;

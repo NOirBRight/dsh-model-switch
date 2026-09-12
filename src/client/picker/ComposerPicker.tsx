@@ -35,7 +35,7 @@ import type { PickerDirectoryView } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { useComposerPickerSurface } from './useComposerPickerSurface.ts'
 import { ProviderMark } from 'dsh-llm-providers-ui/provider-ui'
-import { providerSelectable, type RuntimeProviderLock } from '../runtime-lock.ts'
+import { runtimeChoiceAllowed, type RuntimeProviderLock } from '../runtime-lock.ts'
 import { isAgentRole } from '../antigravity-catalog.ts'
 import css from './ComposerPicker.module.css'
 
@@ -188,7 +188,13 @@ export function ComposerPicker({
   const sections = useMemo(() => sectionFamilies(visibleFamilies), [visibleFamilies])
   const busy = state.status === 'selecting'
   const choiceAllowed = (provider: string): boolean =>
-    providerSelectable(providerLock, provider) && !(agentLocked && isAgentRole(roleOf?.(provider)))
+    runtimeChoiceAllowed(
+      providerLock,
+      agentLocked,
+      provider,
+      currentSelection?.provider,
+      isAgentRole(roleOf?.(provider)),
+    )
 
   const reload = (): void => {
     if (lockedRef.current) return
@@ -465,7 +471,7 @@ export function ComposerPicker({
               aria-checked={effectiveEffort === level.id}
               className={classNames(css.option, effectiveEffort === level.id && css.selected)}
               key={level.id}
-              disabled={locked || busy}
+              disabled={locked || busy || (family !== undefined && !choiceAllowed(family.provider))}
               onClick={() => { chooseEffort(level.id) }}
             >
               <span className={css.optionCopy}>
@@ -478,7 +484,10 @@ export function ComposerPicker({
 
       {pane === 'context' && family !== undefined && member !== undefined && (
         contextTiers(family).map(row => {
+          const next = pickVariant(family, member, { contextTier: row.tier })
           const selected = member.contextTier === row.tier
+          const honored = next.contextTier === row.tier && next.fast === member.fast && next.thinking === member.thinking
+          const unreachable = !selected && (!honored || next.model.id === member.model.id)
           return (
             <button
               type="button"
@@ -486,8 +495,9 @@ export function ComposerPicker({
               aria-checked={selected}
               className={classNames(css.option, selected && css.selected)}
               key={row.tier ?? 'standard'}
-              disabled={locked || busy}
-              onClick={() => { chooseMember(family, pickVariant(family, member, { contextTier: row.tier }), effectiveEffort) }}
+              disabled={locked || busy || !choiceAllowed(family.provider) || unreachable}
+              title={unreachable ? t('choice.unavailable') : undefined}
+              onClick={() => { if (!unreachable) chooseMember(family, next, effectiveEffort) }}
             >
               <span className={css.optionCopy}>
                 <span className={css.modelName}>{contextDisplay(row.label)}</span>
@@ -500,7 +510,10 @@ export function ComposerPicker({
 
       {pane === 'fast' && family !== undefined && member !== undefined && (
         [false, true].map(fast => {
+          const next = pickVariant(family, member, { fast })
           const selected = member.fast === fast
+          const honored = next.fast === fast && next.contextTier === member.contextTier && next.thinking === member.thinking
+          const unreachable = !selected && (!honored || next.model.id === member.model.id)
           return (
             <button
               type="button"
@@ -508,8 +521,9 @@ export function ComposerPicker({
               aria-checked={selected}
               className={classNames(css.option, selected && css.selected)}
               key={fast ? 'on' : 'off'}
-              disabled={locked || busy}
-              onClick={() => { chooseMember(family, pickVariant(family, member, { fast }), effectiveEffort) }}
+              disabled={locked || busy || !choiceAllowed(family.provider) || unreachable}
+              title={unreachable ? t('choice.unavailable') : undefined}
+              onClick={() => { if (!unreachable) chooseMember(family, next, effectiveEffort) }}
             >
               <span className={css.optionCopy}>
                 <span className={css.modelName}>{fast ? t('fast.on') : t('fast.off')}</span>
@@ -530,7 +544,7 @@ export function ComposerPicker({
               aria-checked={selected}
               className={classNames(css.option, selected && css.selected)}
               key={choice.on ? 'on' : 'off'}
-              disabled={locked || busy}
+              disabled={locked || busy || !choiceAllowed(family.provider)}
               onClick={() => { chooseMember(family, choice.row, effectiveEffort) }}
             >
               <span className={css.optionCopy}>

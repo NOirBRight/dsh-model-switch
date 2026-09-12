@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.10] - 2026-09-13
+
+- DSH Host packages are no longer version-locked. `@deepseek-ai/dsh-*` peers are `*` and optional; unknown Hosts warn once and still mount. Cordis stays `>=4.0.2 <5.0.0`. Compile-target `devDependencies` remain `0.1.5-rc.1`.
+- Keep Fast / Context / Thinking / Effort switches on the current Agent after a turn; disable unpublished sibling rows instead of ignoring clicks.
+- Composer picker Cursor mark comes from `dsh-llm-providers-ui` 0.2.6.
+
 ## [0.4.9] - 2026-09-09
 
 - Reserve the selected execution runtime as soon as a prompt is submitted, before the first token or native binding.

@@ -10,7 +10,7 @@ import { ComposerPicker } from './ComposerPicker.tsx'
 import { pickerDirectoryViewOrdered, type PickerDirectoryFace, type PickerDirectoryView } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { RetryBoundary } from './RetryBoundary.tsx'
-import { agentProviderLocked, effectiveProviderLock, providerSelectable, type RuntimeProviderLock } from '../runtime-lock.ts'
+import { agentProviderLocked, effectiveProviderLock, runtimeChoiceAllowed, type RuntimeProviderLock } from '../runtime-lock.ts'
 import { isAgentRole } from '../antigravity-catalog.ts'
 import css from './PlanReviewCard.module.css'
 
@@ -165,8 +165,13 @@ function PlanReviewState({
   }
 
   const executionAllowed = execution !== undefined
-    && providerSelectable(providerLock, execution.provider)
-    && !(agentLocked && isAgentRole(roleOf?.(execution.provider)))
+    && runtimeChoiceAllowed(
+      providerLock,
+      agentLocked,
+      execution.provider,
+      snapshot.current?.provider,
+      isAgentRole(roleOf?.(execution.provider)),
+    )
   const action = planActionView({ busy, blocked, error }, available, executionAllowed)
 
   const onApprove = (): void => {
