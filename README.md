@@ -87,15 +87,15 @@ Plan Review owns an execution-model draft separate from Main. **Confirm** first 
 
 ## Installation
 
-Install Model Switch and only the provider adapters you use. The coordinated versions below target DeepSeek Harness 0.1.5-rc.1:
+Install Model Switch and only the provider adapters you use. The coordinated versions below target DeepSeek Harness 0.1.5-rc.1 and 0.1.5-rc.2:
 
 ```sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.6.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.8.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-codex/releases/latest/download/dsh-llm-codex-0.3.15.tgz
+  https://github.com/NOirBRight/dsh-llm-codex/releases/latest/download/dsh-llm-codex-0.3.19.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-grok/releases/latest/download/dsh-llm-grok-0.3.12.tgz
+  https://github.com/NOirBRight/dsh-llm-grok/releases/latest/download/dsh-llm-grok-0.3.16.tgz
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.10.tgz
 ```
@@ -141,7 +141,7 @@ Latest installation (the URL never contains a version):
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.6.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.8.tgz
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.10.tgz
 ~~~
@@ -150,7 +150,7 @@ Fixed-version installation:
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.6/dsh-llm-providers-ui-0.2.6.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.8/dsh-llm-providers-ui-0.2.8.tgz
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.10/dsh-model-switch-0.4.10.tgz
 ~~~
@@ -160,7 +160,7 @@ Update, uninstall, and verify:
 ~~~sh
 # Update to the latest Release
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.6.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.8.tgz
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.10.tgz
 # Verify the loaded version
@@ -172,6 +172,6 @@ dsh plugin --profile web remove dsh-model-switch
 
 Configuration: use the plugin section in Settings for Web UI plugins, or the profile dsh.profile.bundles entry for Host-only plugins. Start with this README's minimal YAML/JSON example and provide credentials/backend addresses explicitly.
 
-Rollback: rerun the fixed v0.4.4 command, verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never put a source checkout in the production profile.
+Rollback: rerun the fixed v0.4.10 command, verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never put a source checkout in the production profile.
 
 Release and integrity: [v0.4.10](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.10) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.10/SHA256SUMS).
