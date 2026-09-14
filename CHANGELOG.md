@@ -1,3 +1,7 @@
+## v0.4.11
+
+Rank live catalogRoutes. Compact-on-switch uses previous-provider usage when present.
+
 # Changelog
 
 ## [0.4.10] - 2026-09-13
