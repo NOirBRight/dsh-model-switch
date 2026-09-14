@@ -44,6 +44,7 @@ function faceProps(loadCapabilities: unknown) {
   // Stable hook snapshots: the component reads them every render, so they must keep identity.
   const searchSettings = snapshot({ provider: 'codex', model: 'gpt-search' })
   const imageSettings = snapshot({ provider: 'grok', model: 'grok-imagine-image-quality' })
+  const switchSettings = snapshot({ compactOnSwitch: true })
   return {
     t: (key: string) => key,
     capabilities: {
@@ -53,6 +54,7 @@ function faceProps(loadCapabilities: unknown) {
     },
     useSearchSettings: (selector: (value: unknown) => unknown) => selector(searchSettings),
     useImageSettings: (selector: (value: unknown) => unknown) => selector(imageSettings),
+    useSwitchSettings: (selector: (value: unknown) => unknown) => selector(switchSettings),
     setSubagent: vi.fn(),
     setCapability: vi.fn(),
     saveMain: vi.fn(),

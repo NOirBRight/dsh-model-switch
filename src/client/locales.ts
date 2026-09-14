@@ -1,6 +1,7 @@
 export const zh = {
   nav: '模型切换', title: '模型切换', subtitle: '为主会话、子代理和能力工具设置默认模型。修改只影响新请求。',
   conversationRoutes: '对话路由', capabilityRoutes: '能力路由', settingsSynced: '设置已同步', defaultBadge: '默认', cancel: '取消',
+  compactOnSwitch: '发送时自动检查并压缩上下文', compactOnSwitchHelp: '发送消息采用新模型时，先检查上下文容量；必要时使用切换前的模型压缩历史，再继续请求。仅选择模型不会触发压缩。压缩会产生额外模型用量，摘要可能省略细节。',
   main: '主模型', provider: '提供商', model: '模型', providerDefault: '使用提供商默认值', providerDefaultShort: 'Provider 默认', effort: '推理强度', save: '保存', saving: '保存中…', saved: '已保存',
   subagent: '子代理', subagentMode: '路由策略', subagentFollowMain: '跟随主模型', subagentFixed: '固定模型', agentBadge: 'Agent',
   search: 'Web 搜索', searchHelp: '下拉选择的是期望使用的搜索 Adapter/模型；仅当全局 Web searchProvider=model-switch 时官方 web_search 才会使用该选择，否则保持原有路由不变。', image: '图像生成', imageHelp: '统一 generate_image 会调用所选 Codex 或 Grok Adapter；Provider 原有图片工具仍保留。', unavailable: '未接入', loading: '正在加载设置…', readonly: '设置为只读', requestFailed: '保存失败', catalogFailed: '无法加载模型目录。', conflict: '设置已在其他位置更改，请检查最新值后重试。',
@@ -11,6 +12,7 @@ export const zh = {
 export const en: Record<keyof typeof zh, string> = {
   nav: 'Model Switch', title: 'Model Switch', subtitle: 'Set default models for Main, Subagents, and capability tools. Changes affect new requests only.',
   conversationRoutes: 'Conversation routes', capabilityRoutes: 'Capability routes', settingsSynced: 'Settings synced', defaultBadge: 'Default', cancel: 'Cancel',
+  compactOnSwitch: 'Check and compact context on send', compactOnSwitchHelp: 'When a sent message uses a new model, check context capacity first. If needed, compact history with the previous model, then continue. Choosing a model does not compact. Compaction uses extra model quota and may omit details.',
   main: 'Main model', provider: 'Provider', model: 'Model', providerDefault: 'Provider default', providerDefaultShort: 'Provider default', effort: 'Reasoning effort', save: 'Save', saving: 'Saving…', saved: 'Saved',
   subagent: 'Subagent', subagentMode: 'Routing policy', subagentFollowMain: 'Follow Main', subagentFixed: 'Fixed model', agentBadge: 'Agent',
   search: 'Web search', searchHelp: 'The dropdown selects the requested search adapter/model. The official web_search uses it only when the global Web searchProvider is model-switch; otherwise the original route is unchanged.', image: 'Image generation', imageHelp: 'The stable generate_image tool calls the selected Codex or Grok Adapter; existing provider image tools remain available.', unavailable: 'Unavailable', loading: 'Loading settings…', readonly: 'Settings are read-only', requestFailed: 'Save failed', catalogFailed: 'Could not load the model catalog.', conflict: 'Settings changed elsewhere. Review the latest values and retry.',

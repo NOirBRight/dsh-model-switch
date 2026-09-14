@@ -7,6 +7,8 @@ export declare const zh: {
     readonly settingsSynced: "设置已同步";
     readonly defaultBadge: "默认";
     readonly cancel: "取消";
+    readonly compactOnSwitch: "发送时自动检查并压缩上下文";
+    readonly compactOnSwitchHelp: "发送消息采用新模型时，先检查上下文容量；必要时使用切换前的模型压缩历史，再继续请求。仅选择模型不会触发压缩。压缩会产生额外模型用量，摘要可能省略细节。";
     readonly main: "主模型";
     readonly provider: "提供商";
     readonly model: "模型";

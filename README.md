@@ -76,6 +76,10 @@ Plan Review owns an execution-model draft separate from Main. **Confirm** first 
 
 ![Plan Review with an execution-model picker](docs/screenshots/plan-review.png)
 
+## Send-time context protection
+
+When a sent message will use a different model or context-tier id than the last request, Model Switch checks the full pending request against the target window before that request is sent. Choosing a model in the picker does not compact. If the target is over budget, history is compacted once with the previous model through a private compaction engine; DSH's own automatic compaction settings are not changed. Progress appears as plugin notices in the transcript. The budget includes the completion notice and pending model-change notice; an oversized summary blocks the request. Failure keeps the user message in the session and does not send the target request or emit a switch-success notice. Turn the behavior off with **Settings → Model Switch → Check and compact context on send** (on by default). Native External Agent runtimes are not treated as DSH-compactable history.
+
 ## What Model Switch does not change
 
 - `web_fetch` and its configured provider
@@ -84,6 +88,7 @@ Plan Review owns an execution-model draft separate from Main. **Confirm** first 
 - Official Agent Presets
 - Existing provider-specific image tools
 - Existing sessions when the Main default changes
+- Global compaction policy, titles, or DSH Core
 
 ## Installation
 
@@ -102,7 +107,7 @@ dsh plugin --profile web add --force \
 
 ### Search routing (0.4.7)
 
-Providers declare independent search adapters and model metadata on the existing Host `ModelSwitchAdapterRegistry`. The browser receives only id/name/model metadata over authenticated Connection RPC, not adapters or credentials. Registration/unload updates subscribers; in-place catalog changes are picked up by the bounded 20-second heartbeat. `ProviderDirectory` remains the client role/usage owner, not a second Host execution registry.
+Providers declare independent search adapters and model metadata on the existing Host `ModelSwitchAdapterRegistry`. The browser receives only id/name/model metadata over authenticated Connection RPC, not adapters or credentials. Registration/unload updates subscribers; in-place catalog changes are picked up by the bounded 20-second heartbeat. `ProviderDirectory` remains the client role/usage owner, not a second Host execution registry. Published 0.2.8 `sortCatalogGroups` only ranks hardcoded LLM routes; Model Switch ranks live `catalogRoutes` itself so Agent catalog ids follow saved card order when the Owner publishes them. Native `catalogId` / `unknown` account styling still need a newer Owner than published 0.2.8.
 
 DeepSeek uses the official public `DeepSeekSearchProvider`, the existing `web-search-deepseek` settings and credential service. Codex uses its existing ChatGPT credentials; Grok uses its existing subscription token and provider-owned Responses search. Native conversational networking alone does not create a search option. Missing credentials, invalid settings, unsupported models and unavailable adapters fail explicitly, without fallback.
 

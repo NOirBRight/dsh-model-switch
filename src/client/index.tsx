@@ -11,9 +11,9 @@ import { RUNTIME_CAPABILITIES } from '../runtime-capabilities.js'
 import { decodeCapabilitiesSnapshot, type CapabilitiesSnapshot } from './search-capabilities.js'
 import { ModelSwitchSettings, type ModelSwitchSettingsFace } from './ModelSwitchSettings.js'
 import { en, zh, type ModelSwitchLocaleKey } from './locales.js'
-import { decodeProviderOrder, PROVIDERS_SETTINGS_NS, sortCatalogGroups } from 'dsh-llm-providers-ui/order'
 import { fetchAntigravityCatalogGroups, readProviderRole, withAntigravityCatalog } from './antigravity-catalog.ts'
-import { installComposerPicker } from './picker/install.tsx'
+import { installComposerPicker, providerOrderStore } from './picker/install.tsx'
+import { readCatalogRoutes, sortCatalogGroupsWithRoutes, type ProviderDirectoryFace } from './provider-directory.ts'
 import { installModelSwitchNavIcon } from './nav-icon.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -68,45 +68,38 @@ export function apply(ctx: ClientContext): void {
       return undefined
     }
   })()
-  const providerRoleOf = ((): ((key: string) => string) | undefined => {
-    let directory: unknown
-    try {
-      directory = ctx.get('providerDirectory', false)
-    } catch {
-      return undefined
-    }
-    if (directory === undefined) return undefined
-    return (key: string) => readProviderRole(directory, key) ?? 'llm'
-  })()
-  let subscribeProviderOrder: ((listener: () => void) => () => void) | undefined
-  try {
-    const orderScope = ctx.settingsScope.bind({ namespace: PROVIDERS_SETTINGS_NS, decode: decodeProviderOrder })
-    subscribeProviderOrder = listener => orderScope.subscribe(listener)
-  } catch {
-    subscribeProviderOrder = undefined
-  }
+  const orderStore = providerOrderStore(ctx.settingsScope)
+  let directory: ProviderDirectoryFace | undefined
+  ctx.inject(['providerDirectory'], scope => {
+    const current = scope.get('providerDirectory', false) as ProviderDirectoryFace | undefined
+    if (current === undefined || typeof current.subscribe !== 'function') return
+    directory = current
+    orderStore.invalidate()
+    scope.effect(() => current.subscribe(orderStore.invalidate))
+    scope.effect(() => () => {
+      if (directory === current) directory = undefined
+      orderStore.invalidate()
+    })
+  })
+  const providerRoleOf = (key: string) => readProviderRole(directory, key) ?? 'llm'
+  const subscribeProviderOrder = orderStore.subscribe
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section', id: 'model-switch', order: 9, label: () => t('nav'), locale: localeNamespace,
-    inject: (): ModelSwitchSettingsFace => ({ t, hooks: { mainSettings: main, subagentSettings: subagent, searchSettings: search, imageSettings: image }, capabilities: RUNTIME_CAPABILITIES, saveMain, setSubagent: (field, value) => value === undefined ? subagent.unset(field) : subagent.set(field, value), setCapability: (route, field, value) => { const scope = route === 'search' ? search : image; return value === undefined ? scope.unset(field) : scope.set(field, value) }, ...(providerRoleOf === undefined ? {} : { providerRoleOf }), loadCatalog: async () => {
+    inject: (): ModelSwitchSettingsFace => ({ t, hooks: { mainSettings: main, subagentSettings: subagent, searchSettings: search, imageSettings: image, switchSettings: owned }, capabilities: RUNTIME_CAPABILITIES, saveMain, setSubagent: (field, value) => value === undefined ? subagent.unset(field) : subagent.set(field, value), setCapability: (route, field, value) => { const scope = route === 'search' ? search : image; return value === undefined ? scope.unset(field) : scope.set(field, value) }, setCompactOnSwitch: value => owned.set('compactOnSwitch', value), providerRoleOf, loadCatalog: async () => {
       const response = await (ctx as unknown as { remote: { session: { modelCatalog(): Promise<{ ok: boolean; value?: { groups: readonly ModelProviderGroup[] }; error?: { message: string } }> } } }).remote.session.modelCatalog()
       if (!response.ok || response.value === undefined) throw new Error(t('catalogFailed'))
       const enabled = await fetchAntigravityCatalogGroups(connectionRpc)
-      let order: string[] = []
-      try {
-        order = ctx.settingsScope.bind({ namespace: PROVIDERS_SETTINGS_NS, decode: decodeProviderOrder }).getSnapshot().value?.order ?? []
-      } catch {
-        order = []
-      }
-      return sortCatalogGroups(withAntigravityCatalog(response.value.groups, enabled), order)
+      const order = orderStore.getSnapshot()
+      return sortCatalogGroupsWithRoutes(withAntigravityCatalog(response.value.groups, enabled), order, readCatalogRoutes(directory))
         }, ...(connectionRpc === undefined ? {} : { loadCapabilities: async (revision?: number, signal?: AbortSignal): Promise<CapabilitiesSnapshot> => {
       const rpc = connectionRpc
       if (rpc === undefined) throw new Error(t('catalogFailed'))
-      // ponytail: literals mirror host CAPABILITIES_CHANNEL/'capabilities'; a shared import would drag host code into the client bundle.
+      // Keep the Host capability endpoint out of the browser bundle.
       const response = await rpc.call('/model-switch', 'capabilities', revision === undefined ? {} : { revision }, signal)
       if (!response.ok || response.value === undefined) throw new Error(t('catalogFailed'))
       const snapshot = decodeCapabilitiesSnapshot(response.value)
       if (snapshot === undefined) throw new Error(t('catalogFailed'))
       return snapshot
-    } }), ...(subscribeProviderOrder === undefined ? {} : { subscribeProviderOrder }) }),
+    } }), subscribeProviderOrder }),
   }, ModelSwitchSettings))
 }

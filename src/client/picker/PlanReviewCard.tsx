@@ -45,6 +45,8 @@ export interface PlanReviewFace extends PickerDirectoryFace {
   providerLockStore: { subscribe: (listener: () => void) => () => void; getSnapshot: () => { provider: RuntimeProviderLock; failed: boolean } }
   /** Re-read the native binding now (mount, turn transitions, pre-selection). */
   refreshProviderLock: () => void
+  /** Live catalog-group-id → card-key map from ProviderDirectory. */
+  catalogRoutes?: () => Readonly<Record<string, string>>
 }
 
 export type PlanReviewCardProps = PropsRuntime<'conversation.composer'>
@@ -106,8 +108,8 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
   const phase = props.useInput(input => input.phase)
   const blank = props.useSession(session => session.blank)
   const active = props.useSession(session => session.running || session.awaitingFirstTurn) || phase === 'submitting'
-  useEffect(() => { props.refreshProviderLock() }, [props.refreshProviderLock, phase, active, snapshot])
-  const providerLock = effectiveProviderLock(lock, snapshot.current?.provider, active)
+  useEffect(() => { props.refreshProviderLock() }, [props.refreshProviderLock, phase, active, snapshot, order])
+  const providerLock = effectiveProviderLock(lock, snapshot.current?.provider, active, isAgentRole(props.roleOf?.(snapshot.current?.provider ?? '')))
   const agentLocked = agentProviderLocked(blank, providerLock, active)
   const review = planReviewOf(props.matched.questions)
   if (review === undefined) {
@@ -124,11 +126,11 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
     key={props.matched.key}
     matched={props.matched}
     review={review}
-    available={props.available}
+    available={props.available && (!lock.failed || snapshot.current !== null)}
     providerLock={providerLock}
     agentLocked={agentLocked}
     lockFailed={lock.failed}
-    directory={pickerDirectoryViewOrdered(snapshot, props, order)}
+    directory={pickerDirectoryViewOrdered(snapshot, props, order, props.catalogRoutes?.() ?? {})}
     t={props.t}
     {...props.resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations: props.resolveInteractionOperations }}
     {...props.roleOf === undefined ? {} : { roleOf: props.roleOf }}

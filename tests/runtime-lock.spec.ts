@@ -1,101 +1,93 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
-  createProviderLockStore,
-  decodeBindingProvider,
-  effectiveProviderLock,
-  fetchSessionBinding,
-  agentProviderLocked,
-  isProviderAllowed,
-  providerSelectable,
-  runtimeChoiceAllowed,
+  createProviderLockStore, decodeBindingProvider, effectiveProviderLock,
+  fetchSessionBinding, agentProviderLocked, isProviderAllowed,
+  providerSelectable, runtimeChoiceAllowed,
 } from '../src/client/runtime-lock.ts'
 
-describe('Antigravity binding reply', () => {
-  it('decodes bound, unbound, and malformed replies', () => {
-    expect(decodeBindingProvider({ provider: 'antigravity' })).toBe('antigravity')
-    expect(decodeBindingProvider({ provider: null })).toBeNull()
-    expect(decodeBindingProvider({ provider: 'codex' })).toBeUndefined()
-    expect(decodeBindingProvider({})).toBeUndefined()
-    expect(decodeBindingProvider(null)).toBeUndefined()
-    expect(decodeBindingProvider('antigravity')).toBeUndefined()
+const sources = [
+  { provider: 'antigravity', channel: '/dsh-acp-antigravity', endpoint: 'activity/binding' },
+  { provider: 'cursor-agent', channel: '/dsh-acp-cursor', endpoint: 'activity/binding' },
+]
+
+describe('declared native binding queries', () => {
+  it('accepts only an unbound reply or the queried provider identity', () => {
+    expect(decodeBindingProvider({ provider: 'new-native' }, 'new-native')).toBe('new-native')
+    expect(decodeBindingProvider({ provider: null }, 'new-native')).toBeNull()
+    for (const value of [{ provider: 'codex' }, {}, null, [], 'new-native']) {
+      expect(decodeBindingProvider(value, 'new-native')).toBeUndefined()
+    }
   })
 
-  it('reads undefined without a plugin rpc and on any failure', async () => {
-    await expect(fetchSessionBinding(undefined, 'session-1')).resolves.toBeUndefined()
-    const failing = { call: vi.fn(async () => { throw new Error('down') }) }
-    await expect(fetchSessionBinding(failing, 'session-1')).resolves.toBeUndefined()
-    const rejected = { call: vi.fn(async () => ({ ok: false as const, error: { code: 'x', message: 'y', details: {} } })) }
-    await expect(fetchSessionBinding(rejected, 'session-1')).resolves.toBeUndefined()
-    const malformed = { call: vi.fn(async () => ({ ok: true as const, value: { provider: 'codex' } })) }
-    await expect(fetchSessionBinding(malformed, 'session-1')).resolves.toBeUndefined()
+  it('queries only registered bindings and handles no installed Agent', async () => {
+    expect(await fetchSessionBinding(undefined, 's', [])).toEqual({ provider: null, failed: false })
+    expect(await fetchSessionBinding(undefined, 's', sources)).toEqual({ provider: null, failed: true })
+    const rpc = { call: vi.fn(async () => ({ ok: true, value: { provider: 'cursor-agent' } })) }
+    expect(await fetchSessionBinding(rpc, 's', [sources[1]!])).toEqual({ provider: 'cursor-agent', failed: false })
+    expect(rpc.call).toHaveBeenCalledExactlyOnceWith('/dsh-acp-cursor', 'activity/binding', { sessionId: 's' }, undefined)
   })
 
-  it('reads the bound provider for one session', async () => {
-    const rpc = { call: vi.fn(async () => ({ ok: true as const, value: { provider: 'antigravity' } })) }
-    await expect(fetchSessionBinding(rpc, 'session-9')).resolves.toBe('antigravity')
-    expect(rpc.call).toHaveBeenCalledWith('/dsh-acp-antigravity', 'activity/binding', { sessionId: 'session-9' }, undefined)
+  it('does not turn one unbound reply plus a failed query into a successful unlock', async () => {
+    const rpc = { call: vi.fn(async (channel: string) => channel === sources[0]!.channel
+      ? { ok: true, value: { provider: null } } : { ok: false }) }
+    expect(await fetchSessionBinding(rpc, 's', sources)).toEqual({ provider: null, failed: true })
+    const throwing = { call: vi.fn(async () => { throw new Error('offline') }) }
+    expect(await fetchSessionBinding(throwing, 's', sources)).toEqual({ provider: null, failed: true })
+  })
+
+  it('retains a proven binding on partial failure and rejects conflicting bindings', async () => {
+    const rpc = { call: vi.fn(async (channel: string) => channel === sources[0]!.channel
+      ? { ok: true, value: { provider: 'antigravity' } } : { ok: false }) }
+    expect(await fetchSessionBinding(rpc, 's', sources)).toEqual({ provider: 'antigravity', failed: true })
+    const conflict = { call: vi.fn(async (channel: string) => ({ ok: true, value: {
+      provider: sources.find(source => source.channel === channel)!.provider,
+    } })) }
+    expect(await fetchSessionBinding(conflict, 's', sources)).toEqual({ provider: null, failed: true })
+  })
+
+  it('unlocks only after all declared providers report unbound', async () => {
+    const rpc = { call: vi.fn(async () => ({ ok: true, value: { provider: null } })) }
+    expect(await fetchSessionBinding(rpc, 's', sources)).toEqual({ provider: null, failed: false })
   })
 })
 
-describe('Antigravity provider lock policy', () => {
-  it('reserves the running native runtime before its first token or binding arrives', () => {
-    const unbound = { provider: null, failed: false } as const
-    expect(effectiveProviderLock(unbound, 'antigravity', true)).toBe('antigravity')
-    expect(isProviderAllowed(unbound, 'codex', 'antigravity', { active: true, blank: true })).toBe(false)
-    expect(isProviderAllowed(unbound, 'antigravity', 'antigravity', { active: true, blank: true, agent: true })).toBe(true)
-    expect(effectiveProviderLock(unbound, 'antigravity', false)).toBeNull()
-  })
+describe('provider-neutral selection policy', () => {
+  const unbound = { provider: null, failed: false } as const
+  for (const current of ['antigravity', 'cursor-agent', 'another-native']) {
+    it('reserves ' + current + ' from its declared role, not its name', () => {
+      expect(effectiveProviderLock(unbound, current, true, true)).toBe(current)
+      expect(isProviderAllowed(unbound, 'codex', current, { active: true, currentAgent: true })).toBe(false)
+      expect(isProviderAllowed(unbound, current, current, { active: true, currentAgent: true, agent: true })).toBe(true)
+      expect(effectiveProviderLock(unbound, current, false, true)).toBeNull()
+    })
+  }
 
-  it('keeps LLM routing within DSH while its first response is pending', () => {
-    const unbound = { provider: null, failed: false } as const
-    expect(agentProviderLocked(true, null, true)).toBe(true)
-    expect(isProviderAllowed(unbound, 'antigravity', 'codex', { active: true, blank: true, agent: true })).toBe(false)
-    expect(isProviderAllowed(unbound, 'grok', 'codex', { active: true, blank: true, agent: false })).toBe(true)
-    expect(isProviderAllowed(unbound, 'antigravity', 'codex', { active: false, blank: true, agent: true })).toBe(true)
-  })
-
-  it('blocks other providers while preserving Antigravity controls', () => {
-    expect(providerSelectable(null, 'codex')).toBe(true)
-    expect(providerSelectable('antigravity', 'codex')).toBe(false)
-    expect(providerSelectable('antigravity', 'antigravity')).toBe(true)
-  })
-
-  it('fails closed for native-bound sessions and stays open for pure LLM', () => {
-    expect(isProviderAllowed({ provider: 'antigravity', failed: false }, 'codex', 'antigravity')).toBe(false)
-    expect(isProviderAllowed({ provider: 'antigravity', failed: false }, 'antigravity', 'antigravity')).toBe(true)
-    expect(isProviderAllowed({ provider: null, failed: false }, 'codex', 'codex')).toBe(true)
-    expect(isProviderAllowed({ provider: 'antigravity', failed: true }, 'codex', 'antigravity')).toBe(false)
-    expect(isProviderAllowed({ provider: null, failed: true }, 'codex', 'antigravity')).toBe(false)
-    expect(isProviderAllowed({ provider: null, failed: true }, 'antigravity', 'antigravity')).toBe(true)
-    expect(isProviderAllowed({ provider: null, failed: true }, 'codex', 'codex')).toBe(true)
-    expect(isProviderAllowed({ provider: null, failed: true }, 'codex', undefined)).toBe(true)
-  })
-
-  it('blocks Agent-role switches on existing DSH history and keeps blank sessions open', () => {
-    const unbound = { provider: null, failed: false } as const
-    expect(agentProviderLocked(true, null)).toBe(false)
+  it('keeps LLM choices available while preventing conversion of existing DSH history', () => {
+    expect(effectiveProviderLock(unbound, 'codex', true, false)).toBeNull()
+    expect(isProviderAllowed(unbound, 'grok', 'codex', { active: true, currentAgent: false })).toBe(true)
+    expect(isProviderAllowed(unbound, 'new-native', 'codex', { blank: false, agent: true })).toBe(false)
+    expect(isProviderAllowed(unbound, 'new-native', 'codex', { blank: true, agent: true })).toBe(true)
     expect(agentProviderLocked(false, null)).toBe(true)
-    expect(agentProviderLocked(false, 'antigravity')).toBe(false)
-    expect(isProviderAllowed(unbound, 'antigravity', 'deepseek', { blank: false, agent: true })).toBe(false)
-    expect(isProviderAllowed(unbound, 'antigravity', 'antigravity', { blank: false, agent: true })).toBe(true)
-    expect(isProviderAllowed(unbound, 'deepseek', 'deepseek', { blank: false, agent: false })).toBe(true)
-    expect(isProviderAllowed(unbound, 'antigravity', 'deepseek', { blank: true, agent: true })).toBe(true)
-    expect(isProviderAllowed(unbound, 'antigravity', 'deepseek', { agent: true })).toBe(true)
+    expect(agentProviderLocked(false, 'new-native')).toBe(false)
   })
 
-  it('keeps the current Agent selectable in the picker after history', () => {
-    expect(runtimeChoiceAllowed(null, true, 'cursor-agent', 'cursor-agent', true)).toBe(true)
+  it('makes a durable binding authoritative over a transient selection', () => {
+    const state = { provider: 'cursor-agent', failed: false }
+    expect(effectiveProviderLock(state, 'antigravity', true, true)).toBe('cursor-agent')
+    expect(providerSelectable(state.provider, 'antigravity')).toBe(false)
+    expect(runtimeChoiceAllowed(state.provider, false, 'cursor-agent', 'cursor-agent', true)).toBe(true)
     expect(runtimeChoiceAllowed(null, true, 'antigravity', 'cursor-agent', true)).toBe(false)
-    expect(runtimeChoiceAllowed(null, true, 'codex', 'codex', false)).toBe(true)
-    expect(runtimeChoiceAllowed('antigravity', false, 'antigravity', 'antigravity', true)).toBe(true)
-    expect(runtimeChoiceAllowed('antigravity', false, 'codex', 'antigravity', false)).toBe(false)
   })
 
-  it('maps failed reads to the same effective single-provider lock', () => {
-    expect(effectiveProviderLock({ provider: 'antigravity', failed: false }, 'antigravity')).toBe('antigravity')
-    expect(effectiveProviderLock({ provider: null, failed: false }, 'codex')).toBeNull()
-    expect(effectiveProviderLock({ provider: null, failed: true }, 'antigravity')).toBe('antigravity')
-    expect(effectiveProviderLock({ provider: null, failed: true }, 'codex')).toBeNull()
+  it('allows no provider change after a failed read, including without a native current selection', () => {
+    const failed = { provider: null, failed: true } as const
+    for (const current of ['cursor-agent', 'codex']) {
+      expect(effectiveProviderLock(failed, current)).toBe(current)
+      expect(isProviderAllowed(failed, 'grok', current)).toBe(false)
+      expect(isProviderAllowed(failed, current, current)).toBe(true)
+    }
+    expect(isProviderAllowed(failed, 'codex', undefined)).toBe(false)
+    expect(effectiveProviderLock({ provider: 'cursor-agent', failed: true }, 'codex')).toBe('cursor-agent')
   })
 })
 

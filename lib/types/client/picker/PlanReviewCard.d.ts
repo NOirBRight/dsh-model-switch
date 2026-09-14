@@ -18,6 +18,8 @@ export interface PlanReviewFace extends PickerDirectoryFace {
     };
     /** Re-read the native binding now (mount, turn transitions, pre-selection). */
     refreshProviderLock: () => void;
+    /** Live catalog-group-id → card-key map from ProviderDirectory. */
+    catalogRoutes?: () => Readonly<Record<string, string>>;
 }
 export type PlanReviewCardProps = PropsRuntime<'conversation.composer'> & PropsLocale<'composer-picker'> & InjectFace<PlanReviewFace> & {
     matched: PendingQuestion;

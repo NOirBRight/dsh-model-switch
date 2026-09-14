@@ -28,7 +28,7 @@ describe('Host runtime integration', () => {
     const runtimeFiber = ctx.plugin(ModelSwitchRuntime, Config({}))
     await runtimeFiber
 
-    expect(ctx.modelSwitch.currentSettings()).toEqual({ subagentMode: 'follow-main' })
+    expect(ctx.modelSwitch.currentSettings()).toEqual({ subagentMode: 'follow-main', compactOnSwitch: true })
     await ctx.settings.update(MODEL_SWITCH_SETTINGS_NAMESPACE, {
       subagentMode: 'fixed', subagentProvider: 'uninstalled', subagentModel: 'remember-me',
       searchProvider: 'codex', searchModel: 'gpt-search', imageProvider: 'grok', imageModel: 'grok-imagine-image-quality',

@@ -37,8 +37,10 @@ describe('Model Switch settings menu', () => {
       },
       useSearchSettings: () => snapshot({ provider: 'codex', model: 'gpt-search' }),
       useImageSettings: () => snapshot({ provider: 'grok', model: 'grok-imagine-image-quality' }),
+      useSwitchSettings: () => snapshot({ compactOnSwitch: true }),
       setSubagent: vi.fn(),
       setCapability: vi.fn(),
+      setCompactOnSwitch: vi.fn(),
       saveMain: vi.fn(),
     } as never)} />)
 
@@ -47,6 +49,8 @@ describe('Model Switch settings menu', () => {
     expect(markup).toContain('>search<')
     expect(markup).not.toContain('>vision<')
     expect(markup).toContain('>image<')
+    expect(markup).toContain('compactOnSwitch')
+    expect(markup).toContain('type="checkbox"')
     expect(markup).not.toContain('>save<')
     expect(markup).not.toContain('aria-expanded="true"')
   })

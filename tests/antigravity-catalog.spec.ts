@@ -62,6 +62,8 @@ describe('Antigravity enabled catalog', () => {
 
   it('reads the owner role and only treats agent as Agent', () => {
     expect(readProviderRole({ roleOf: (key: string) => key === 'antigravity' ? 'agent' : 'llm' }, 'antigravity')).toBe('agent')
+    expect(readProviderRole({ roleOf: (key: string) => key === 'native-card' ? 'agent' : 'llm', catalogRoutes: () => ({ 'new-native': 'native-card' }) }, 'new-native')).toBe('agent')
+    expect(readProviderRole({ roleOf: () => 'agent', catalogRoutes: 'not-a-function' }, 'antigravity')).toBe('agent')
     expect(readProviderRole(undefined, 'antigravity')).toBeUndefined()
     expect(readProviderRole({}, 'antigravity')).toBeUndefined()
     expect(isAgentRole('agent')).toBe(true)

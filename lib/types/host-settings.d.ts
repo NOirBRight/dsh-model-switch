@@ -9,6 +9,7 @@ export interface Config {
     searchModel?: string;
     imageProvider?: string;
     imageModel?: string;
+    compactOnSwitch?: boolean;
 }
 /** Stable lowercase namespace required by the Alpha.4 Settings provider. */
 export declare const MODEL_SWITCH_SETTINGS_NAMESPACE = "model-switch";

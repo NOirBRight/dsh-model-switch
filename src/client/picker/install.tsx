@@ -27,7 +27,8 @@ import {
   type ProviderLockState,
   type ProviderLockStore,
 } from '../runtime-lock.ts'
-import { ANTIGRAVITY_PROVIDER_KEY, isAgentRole, readProviderRole } from '../antigravity-catalog.ts'
+import { isAgentRole, readProviderRole } from '../antigravity-catalog.ts'
+import { readCatalogRoutes, readNativeBindings, type ProviderDirectoryFace } from '../provider-directory.ts'
 import { en, zh, type PickerKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -54,21 +55,37 @@ function interactionOperationsFrom(ctx: ClientContext): PickerInteractionOperati
 
 const EMPTY_ORDER: readonly string[] = []
 
-function providerOrderStore(settingsScope: { bind(options: { namespace: string, decode: (value: unknown) => { order: string[] } }): { getSnapshot(): { value?: { order: string[] } | undefined }, subscribe(listener: () => void): () => void } }) {
+/**
+ * Bind the optional Providers page order as a React external store.
+ * @param settingsScope - Settings registry that may expose the Providers order namespace.
+ * @returns A subscribable order snapshot with an invalidation hook for directory changes.
+ */
+export function providerOrderStore(
+  settingsScope: { bind(options: { namespace: string, decode: (value: unknown) => { order: string[] } }): { getSnapshot(): { value?: { order: string[] } | undefined }, subscribe(listener: () => void): () => void } },
+) {
   let bound: ReturnType<typeof settingsScope.bind> | undefined
   try {
     bound = settingsScope.bind({ namespace: PROVIDERS_SETTINGS_NS, decode: decodeProviderOrder })
   } catch {
+    // The optional Providers page may not have registered its settings namespace.
     bound = undefined
   }
+  const listeners = new Set<() => void>()
   let last: readonly string[] = EMPTY_ORDER
   return {
-    subscribe: (listener: () => void) => bound?.subscribe(listener) ?? (() => {}),
+    subscribe: (listener: () => void) => {
+      listeners.add(listener)
+      const stop = bound?.subscribe(listener) ?? (() => {})
+      return () => { listeners.delete(listener); stop() }
+    },
     getSnapshot: () => {
       const next = bound?.getSnapshot().value?.order ?? EMPTY_ORDER
-      if (next.length === last.length && next.every((key, index) => key === last[index])) return last
-      last = next
+      if (next.length !== last.length || next.some((key, index) => key !== last[index])) last = [...next]
       return last
+    },
+    invalidate: () => {
+      last = [...last]
+      for (const listener of listeners) listener()
     },
   }
 }
@@ -82,6 +99,8 @@ interface DirectoryFace extends PickerDirectoryFace {
   refreshProviderLock: () => void
   /** Resolve a provider key to its ProviderDirectory role for runtime icons. */
   roleOf?: (key: string) => string | undefined
+  /** Live catalog-group-id → card-key map from ProviderDirectory. */
+  catalogRoutes?: () => Readonly<Record<string, string>>
 }
 
 function mainDefaultOps(selection: MainSettingsView) {
@@ -147,18 +166,18 @@ function ModelSeat(
   const phase = props.useInput(input => input.phase)
   const blank = props.useSession(session => session.blank)
   const active = props.useSession(session => session.running || session.awaitingFirstTurn) || phase === 'submitting'
-  useEffect(() => { props.refreshProviderLock() }, [props.refreshProviderLock, phase, active, directory])
-  const providerLock = effectiveProviderLock(lock, directory.current?.provider, active)
+  useEffect(() => { props.refreshProviderLock() }, [props.refreshProviderLock, phase, active, directory, order])
+  const providerLock = effectiveProviderLock(lock, directory.current?.provider, active, isAgentRole(props.roleOf?.(directory.current?.provider ?? '')))
   return (
     <>
     {lock.failed && <ProviderLockHint t={props.t} />}
     <ComposerPicker
-      locked={props.locked}
+      locked={props.locked || (lock.failed && directory.current === null)}
       providerLock={providerLock}
       agentLocked={agentProviderLocked(blank, providerLock, active)}
       {...(props.roleOf === undefined ? {} : { roleOf: props.roleOf })}
       available={props.available}
-      directory={pickerDirectoryViewOrdered(directory, props, order)}
+      directory={pickerDirectoryViewOrdered(directory, props, order, props.catalogRoutes?.() ?? {})}
       t={props.t}
       {...props.resolveInteractionOperations === undefined
         ? {}
@@ -187,7 +206,19 @@ export function installComposerPicker(ctx: ClientContext): void {
       get?: (id: unknown) => { getSnapshot?: () => { blank?: boolean } }
     } | undefined
     const mainDefaults = scope.settingsScope.bind({ namespace: MAIN_SETTINGS_ID, decode: decodeMainSettings })
+    let directoryService: ProviderDirectoryFace | undefined
     const orderStore = providerOrderStore(scope.settingsScope)
+    scope.inject(['providerDirectory'], directoryScope => {
+      const directory = directoryScope.get('providerDirectory', false) as ProviderDirectoryFace | undefined
+      if (directory === undefined || typeof directory.subscribe !== 'function') return
+      directoryService = directory
+      orderStore.invalidate()
+      directoryScope.effect(() => directory.subscribe(orderStore.invalidate))
+      directoryScope.effect(() => () => {
+        if (directoryService === directory) directoryService = undefined
+        orderStore.invalidate()
+      })
+    })
     const remoteSettings = (scope as unknown as { remote: { settings: RemoteSettingsFace } }).remote.settings
     const resolveInteractionOperations = (): PickerInteractionOperations | undefined => interactionOperationsFrom(scope)
     type SessionRpc = Parameters<typeof fetchSessionBinding>[0]
@@ -198,25 +229,16 @@ export function installComposerPicker(ctx: ClientContext): void {
     const directoryFace = (sessionId: Parameters<typeof models.directoryFor>[0]): DirectoryFace => {
       const directory = models.directoryFor(sessionId)
       const available = sessions?.subagentAddress?.(sessionId) === undefined
-      const antigravityPresent = (): boolean => {
-        const declarations = scope.get('providerDirectory', false) as
-          | { reader?: (key: string) => unknown }
-          | undefined
-        return typeof declarations?.reader === 'function'
-          && declarations.reader(ANTIGRAVITY_PROVIDER_KEY) !== undefined
-      }
       const readLock = async (previous: ProviderLockState): Promise<ProviderLockState> => {
-        if (!antigravityPresent()) return { provider: null, failed: false }
-        const provider = await fetchSessionBinding(rpcOf(), sessionId)
-        if (provider !== undefined) return { provider, failed: false }
-        return { provider: previous.provider, failed: true }
+        const result = await fetchSessionBinding(rpcOf(), sessionId, readNativeBindings(directoryService))
+        return result.failed ? { provider: result.provider ?? previous.provider, failed: true } : result
       }
-      const roleOf = (key: string): string | undefined =>
-        readProviderRole(scope.get('providerDirectory', false), key)
+      const roleOf = (key: string): string | undefined => readProviderRole(directoryService, key)
       const providerLockStore = createProviderLockStore(readLock)
       return {
         available,
         roleOf,
+        catalogRoutes: () => readCatalogRoutes(directoryService),
         providerLockStore,
         refreshProviderLock: () => {
           void providerLockStore.refresh()
@@ -229,14 +251,13 @@ export function installComposerPicker(ctx: ClientContext): void {
         },
         select: async (selection: ModelSelection) => {
           if (!available) return false
-          if (antigravityPresent()) {
-            const state = await providerLockStore.refresh()
-            const currentProvider = directory.store.getSnapshot().current?.provider
-            if (!isProviderAllowed(state, selection.provider, currentProvider, {
-              ...readSessionState(sessions, sessionId),
-              agent: isAgentRole(roleOf(selection.provider)),
-            })) return false
-          }
+          const state = await providerLockStore.refresh()
+          const currentProvider = directory.store.getSnapshot().current?.provider
+          if (!isProviderAllowed(state, selection.provider, currentProvider, {
+            ...readSessionState(sessions, sessionId),
+            agent: isAgentRole(roleOf(selection.provider)),
+            currentAgent: currentProvider !== undefined && isAgentRole(roleOf(currentProvider)),
+          })) return false
           const defaultBeforeSwitch = mainDefaults.getSnapshot()
           try {
             await directory.select(selection)

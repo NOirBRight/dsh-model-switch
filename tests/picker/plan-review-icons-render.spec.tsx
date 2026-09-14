@@ -42,6 +42,7 @@ function matched(key = 'plan-1') {
 }
 
 const UNLOCKED_LOCK = { provider: null, failed: false } as const
+const FAILED_UNBOUND_LOCK = { provider: null, failed: true } as const
 const EMPTY_ORDER: readonly string[] = []
 const PLAIN_PHASE = { phase: 'plain' }
 
@@ -93,5 +94,22 @@ describe('PlanReview execution picker runtime icons', () => {
     const boxes = runtimeViewBoxes(card)
     expect(boxes).toContain(WHALE_VIEWBOX)
     expect(boxes).not.toContain(AGENT_VIEWBOX)
+  })
+
+  it('hides the execution picker when the native binding read failed before any selection', async () => {
+    const snapshot = {
+      current: null, routable: null, groups: [], failures: [], status: 'ready' as const, error: null,
+    }
+    let card!: ReturnType<typeof create>
+    await act(async () => {
+      card = create(<PlanReviewCard {...{
+        ...propsFor('codex'),
+        useDirectory: (selector: (value: typeof snapshot) => unknown) => selector(snapshot),
+        providerLockStore: { subscribe: () => () => undefined, getSnapshot: () => FAILED_UNBOUND_LOCK },
+        getDirectorySnapshot: () => snapshot,
+      } as never} />)
+    })
+    expect(card.root.findAllByProps({ 'data-provider-lock-failed': true })).toHaveLength(1)
+    expect(card.root.findAllByProps({ 'aria-haspopup': 'menu' })).toHaveLength(0)
   })
 })

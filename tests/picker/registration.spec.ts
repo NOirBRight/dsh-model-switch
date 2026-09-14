@@ -9,7 +9,7 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
   }
 })
 
-import { installComposerPicker } from '../../src/client/picker/install.tsx'
+import { installComposerPicker, providerOrderStore } from '../../src/client/picker/install.tsx'
 
 function bench(strictOptionalLookup = false) {
   const entries: Array<{ spec: Record<string, unknown>, component: unknown }> = []
@@ -20,6 +20,15 @@ function bench(strictOptionalLookup = false) {
     select: vi.fn(async () => undefined),
   }
   const raw: Record<string, unknown> = {
+    providerDirectory: {
+      roleOf: (key: string) => ['antigravity', 'cursor-agent'].includes(key) ? 'agent' : 'llm',
+      nativeBindings: () => [
+        { provider: 'antigravity', channel: '/dsh-acp-antigravity', endpoint: 'activity/binding' },
+        { provider: 'cursor-agent', channel: '/dsh-acp-cursor', endpoint: 'activity/binding' },
+      ],
+      catalogRoutes: () => ({ antigravity: 'antigravity', 'cursor-agent': 'cursor-agent' }),
+      subscribe: () => () => undefined,
+    },
     locale: { register: vi.fn(() => () => undefined) },
     slots: {
       inject: (_name: string, register: () => unknown) => register(),
@@ -50,14 +59,16 @@ function bench(strictOptionalLookup = false) {
     : raw
   ctx.inject = (services: string[], register: (scope: unknown) => unknown) => {
     injections.push([...services])
-    return register(ctx)
+    return services.includes('providerDirectory')
+      ? register({ ...ctx, get: (name: string) => name === 'providerDirectory' ? raw.providerDirectory : undefined })
+      : register(ctx)
   }
   installComposerPicker(ctx as never)
   return { entries, injections, raw, directory, directInteractionReads: () => directInteractionReads }
 }
 
 describe('composer picker seat ownership', () => {
-  it.each([['antigravity', 'codex'], ['codex', 'antigravity']])('rechecks pending first-turn state before %s to %s selection', async (current, target) => {
+  it.each([['antigravity', 'codex'], ['codex', 'antigravity'], ['cursor-agent', 'codex'], ['codex', 'cursor-agent']])('rechecks pending first-turn state before %s to %s selection', async (current, target) => {
     const { entries, raw, directory } = bench()
     let session = { blank: true, running: false, awaitingFirstTurn: false }
     Object.assign(raw.sessions as object, { get: () => ({ getSnapshot: () => session }) })
@@ -81,6 +92,48 @@ describe('composer picker seat ownership', () => {
     await expect(face.select(choice)).resolves.toBe(true)
   })
 
+  it('refuses a provider change when one declared native binding cannot be read', async () => {
+    const { entries, raw, directory } = bench()
+    directory.store.getSnapshot.mockReturnValue({ current: { provider: 'cursor-agent', model: 'm' } })
+    raw.get = (name: string) => name === 'connection' ? { rpc: {
+      call: async (channel: string) => channel === '/dsh-acp-antigravity'
+        ? { ok: true, value: { provider: null } } : { ok: false },
+    } } : undefined
+    const model = entries.find(({ spec }) => spec.name === 'conversation.input.model')!
+    const face = (model.spec.inject as (id: string) => { select(choice: { provider: string; model: string }): Promise<boolean> })('s')
+    await expect(face.select({ provider: 'codex', model: 'm' })).resolves.toBe(false)
+    expect(directory.select).not.toHaveBeenCalled()
+  })
+
+  it('treats an older ProviderDirectory without nativeBindings as unbound', async () => {
+    const { entries, raw } = bench()
+    delete (raw.providerDirectory as { nativeBindings?: unknown }).nativeBindings
+    const model = entries.find(({ spec }) => spec.name === 'conversation.input.model')!
+    const face = (model.spec.inject as (id: string) => {
+      providerLockStore: { refresh(): Promise<{ provider: string | null; failed: boolean }> }
+    })('s')
+    await expect(face.providerLockStore.refresh()).resolves.toEqual({ provider: null, failed: false })
+  })
+
+  it('publishes a new stable snapshot when provider declarations change without a reorder', () => {
+    const order = ['antigravity', 'llm-codex']
+    const store = providerOrderStore({ bind: () => ({
+      getSnapshot: () => ({ value: { order } }), subscribe: () => () => undefined,
+    }) })
+    const before = store.getSnapshot()
+    const changed = vi.fn()
+    const dispose = store.subscribe(changed)
+    store.invalidate()
+    const after = store.getSnapshot()
+    expect(changed).toHaveBeenCalledOnce()
+    expect(after).toEqual(before)
+    expect(after).not.toBe(before)
+    expect(store.getSnapshot()).toBe(after)
+    dispose()
+    store.invalidate()
+    expect(changed).toHaveBeenCalledOnce()
+  })
+
   it('uses the official model-seat service gate and an unambiguous winning priority', () => {
     const { entries, injections } = bench()
     expect(injections).toContainEqual(['slots', 'modelDirectories', 'settingsScope', 'remote.settings'])
@@ -100,6 +153,7 @@ describe('composer picker seat ownership', () => {
         mainSnapshot = { ...mainSnapshot, value: { provider: 'codex', model: 'gpt-switched' }, revision: 8 }
       }),
     }
+    directory.store.getSnapshot.mockReturnValue({ current: mainSnapshot.value })
     const entries: Array<{ spec: Record<string, unknown> }> = []
     const ctx = {
       locale: { register: vi.fn(() => () => undefined) },
@@ -114,7 +168,7 @@ describe('composer picker seat ownership', () => {
       remote: { settings: { mutate } },
       effect: (register: () => unknown) => register(),
       get: vi.fn(() => undefined),
-      inject: (_services: string[], register: (scope: unknown) => unknown) => register(ctx),
+      inject: (services: string[], register: (scope: unknown) => unknown) => services.includes('providerDirectory') ? undefined : register(ctx),
     }
     installComposerPicker(ctx as never)
     const model = entries.find(({ spec }) => spec.name === 'conversation.input.model')

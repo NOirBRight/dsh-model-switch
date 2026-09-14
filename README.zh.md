@@ -74,6 +74,10 @@ Plan Review 拥有独立于 Main 的执行模型草稿。**确认执行**会先�
 
 ![带执行模型 Picker 的 Plan Review](docs/screenshots/plan-review.png)
 
+## 发送时的上下文保护
+
+当发送后的实际请求将使用与上次不同的模型或窗口档位时，Model Switch 会在目标请求发出前检查完整待发上下文。仅在选择器中选模型不会压缩。超出目标可用容量时，使用切换前的模型、通过私有压缩引擎压缩一次历史；不会改 DSH 自身的自动压缩设置。进度以插件通知出现在正文中。预算包含完成提示和待提交的模型切换提示；摘要仍超限时会阻止请求。失败时用户消息留在会话里，不会发送目标模型请求，也不会出现切换成功提示。可在 **设置 → 模型切换 → 发送时自动检查并压缩上下文** 关闭（默认开启）。原生 External Agent 运行时的内部上下文不会被当成 DSH 可压缩历史。
+
 ## Model Switch 不会改变什么
 
 - `web_fetch` 及其配置的 provider
@@ -82,6 +86,7 @@ Plan Review 拥有独立于 Main 的执行模型草稿。**确认执行**会先�
 - 官方 Agent Presets
 - 已有的 Provider 专属图像工具
 - Main 默认值修改前已经存在的会话
+- 全局压缩策略、标题或 DSH Core
 
 ## 安装
 
@@ -100,7 +105,7 @@ dsh plugin --profile web add --force \
 
 ### 搜索供应商统一接入（0.4.7）
 
-搜索列表来自 Host 上已有的 `ModelSwitchAdapterRegistry`，Provider 自声明名称和独立搜索模型；浏览器只收到普通元数据，不收到凭据或可执行函数。注册、卸载会通知订阅者；原地修改模型声明最迟由 20 秒心跳更新。`ProviderDirectory` 继续负责客户端 role/usage，不另造注册表。模型原生联网不等于独立 `web_search` 适配器。
+搜索列表来自 Host 上已有的 `ModelSwitchAdapterRegistry`，Provider 自声明名称和独立搜索模型；浏览器只收到普通元数据，不收到凭据或可执行函数。注册、卸载会通知订阅者；原地修改模型声明最迟由 20 秒心跳更新。`ProviderDirectory` 继续负责客户端 role/usage，不另造注册表。 已发布 0.2.8 的 `sortCatalogGroups` 只排序硬编码 LLM 路由；Model Switch 自行按实时 `catalogRoutes` 排序，因此 Owner 公布 Agent catalog id 时会跟随已保存的卡片顺序。原生 `catalogId` / `unknown` 账户样式仍需要比已发布 0.2.8 更新的 Owner。模型原生联网不等于独立 `web_search` 适配器。
 
 DeepSeek 薄适配器调用官方公开 `DeepSeekSearchProvider`，复用用户的 `web-search-deepseek` 设置和公开凭据服务；Codex 复用 ChatGPT 登录，Grok 复用已有订阅凭据。缺凭据、配置错误、模型不支持均明确失败，不静默切换。
 

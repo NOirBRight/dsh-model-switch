@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { CapabilityRouteView, MainSettingsView, SubagentSettingsView } from '../client-contract.js'
+import type { CapabilityRouteView, MainSettingsView, ModelSwitchSettingsView, SubagentSettingsView } from '../client-contract.js'
 import type { RuntimeCapabilities } from '../runtime-capabilities.js'
 import { searchGroupsFromCapabilities, type CapabilitiesSnapshot } from './search-capabilities.js'
 import type { ModelSwitchLocaleKey } from './locales.js'
@@ -12,11 +12,12 @@ import css from './ModelSwitchSettings.module.css'
 
 export interface ModelSwitchSettingsFace {
   t: (key: ModelSwitchLocaleKey) => string
-  hooks: { mainSettings: SettingsScope<MainSettingsView>; subagentSettings: SettingsScope<SubagentSettingsView>; searchSettings: SettingsScope<CapabilityRouteView>; imageSettings: SettingsScope<CapabilityRouteView> }
+  hooks: { mainSettings: SettingsScope<MainSettingsView>; subagentSettings: SettingsScope<SubagentSettingsView>; searchSettings: SettingsScope<CapabilityRouteView>; imageSettings: SettingsScope<CapabilityRouteView>; switchSettings: SettingsScope<ModelSwitchSettingsView> }
   capabilities: RuntimeCapabilities
   saveMain: (next: MainSettingsView, expectedRevision: number) => Promise<number>
   setSubagent: (field: 'mode' | 'provider' | 'model' | 'effort', value: string | undefined) => Promise<void>
   setCapability: (route: 'search' | 'image', field: 'provider' | 'model', value: string | undefined) => Promise<void>
+  setCompactOnSwitch: (value: boolean) => Promise<void>
   loadCatalog: () => Promise<readonly ModelProviderGroup[]>
   /** Host capabilities long-poll; absent in legacy faces, which keep the static-capabilities path. */
   loadCapabilities?: (revision?: number, signal?: AbortSignal) => Promise<CapabilitiesSnapshot>
@@ -98,16 +99,19 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
   const { main, subagent, draft, groups } = controller
   const search = props.useSearchSettings(value => value)
   const image = props.useImageSettings(value => value)
+  const switchSettings = props.useSwitchSettings(value => value)
   const [open, setOpen] = useState<RouteId | undefined>()
   const [subagentDraft, setSubagentDraft, resetSubagent] = useDraft(subagent)
   const [searchDraft, setSearchDraft, resetSearch] = useDraft(search)
   const [imageDraft, setImageDraft, resetImage] = useDraft(image)
   const [busy, setBusy] = useState<RouteId | undefined>()
   const [message, setMessage] = useState<{ route: RouteId; text: string } | undefined>()
+  const [compactBusy, setCompactBusy] = useState(false)
+  const [compactError, setCompactError] = useState<string>()
   const loadSearchCapabilities = props.loadCapabilities
   const [searchSnapshot, setSearchSnapshot] = useState<CapabilitiesSnapshot | undefined>(undefined)
   const [searchError, setSearchError] = useState<string | undefined>(undefined)
-  // ponytail: one effect owns the Host long-poll chain (initial fetch, revision follow-ups, bounded retry, abort).
+  // One effect owns the Host long-poll chain and its abort signal.
   useEffect(() => {
     if (loadSearchCapabilities === undefined) return
     let live = true
@@ -192,6 +196,23 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
     <p className={css.saved}><i className={css.savedDot} />{synced ? props.t('settingsSynced') : props.t('loading')}</p>
 
     <section className={css.group}><h2 className={css.groupLabel}>{props.t('conversationRoutes')}</h2>
+      <label className={cx(css.field, css.fieldFull)}>
+        <span className={css.fieldLabel}>{props.t('compactOnSwitch')}</span>
+        <input type="checkbox" checked={switchSettings.value?.compactOnSwitch !== false} disabled={!switchSettings.writable || compactBusy} onChange={event => {
+          const value = event.target.checked
+          setCompactBusy(true)
+          setCompactError(undefined)
+          void props.setCompactOnSwitch(value).then(
+            () => { setCompactBusy(false) },
+            error => {
+              setCompactBusy(false)
+              setCompactError(error instanceof Error ? error.message : props.t('requestFailed'))
+            },
+          )
+        }} />
+        <p className={css.hint}>{props.t('compactOnSwitchHelp')}</p>
+        {compactError === undefined ? null : <p className={cx(css.hint, css.message)}>{compactError}</p>}
+      </label>
       <RouteCard title={props.t('main')} summary={mainSummary} icon="main" open={open === 'main'} onToggle={() => { toggle('main') }} badge={props.t('defaultBadge')}>
         {draft === undefined ? <p className={css.hint}>{props.t('loading')}</p> : <><div className={css.formGrid}>
           <Field label={props.t('provider')} value={draft.provider} disabled={controller.busy || !main.writable} choices={controller.providers} onChange={controller.setProvider} />

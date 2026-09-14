@@ -41,6 +41,8 @@ export interface ModelSwitchImageAdapter {
 }
 export interface ModelSwitchProviderAdapters {
     readonly provider: string;
+    /** Native Agent providers own their context and are excluded from DSH switch compaction. */
+    readonly role?: 'llm' | 'agent';
     readonly search?: ModelSwitchSearchAdapter;
     readonly image?: ModelSwitchImageAdapter;
 }

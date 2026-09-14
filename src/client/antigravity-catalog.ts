@@ -119,6 +119,7 @@ export function withAntigravityCatalog(base: readonly ModelProviderGroup[], extr
 
 interface RoleDirectory {
   roleOf(key: string): unknown
+  catalogRoutes?(): Readonly<Record<string, string>>
 }
 
 /** Read one Provider role from the owner directory; undefined when the seam is absent. */
@@ -126,7 +127,9 @@ export function readProviderRole(directory: unknown, key: string): string | unde
   if (directory === null || (typeof directory !== 'object' && typeof directory !== 'function')) return undefined
   const roleOf = (directory as Partial<RoleDirectory>).roleOf
   if (typeof roleOf !== 'function') return undefined
-  const role = (roleOf as (key: string) => unknown).call(directory, key)
+  const catalogRoutes = (directory as Partial<RoleDirectory>).catalogRoutes
+  const routes = typeof catalogRoutes === 'function' ? catalogRoutes.call(directory) : undefined
+  const role = roleOf.call(directory, routes?.[key] ?? key)
   return typeof role === 'string' ? role : undefined
 }
 

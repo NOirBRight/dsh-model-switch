@@ -1,4 +1,4 @@
-import { sortCatalogGroups } from 'dsh-llm-providers-ui/order'
+import { sortCatalogGroupsWithRoutes } from '../provider-directory.ts'
 import type { ModelSelection } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { ModelDirectoryState } from '@deepseek-ai/dsh-client-ui-model-selection/client'
 
@@ -50,6 +50,7 @@ export function pickerDirectoryViewOrdered(
   snapshot: PickerDirectorySnapshot,
   operations: PickerDirectoryOperations,
   order: readonly string[],
+  catalogKeys: Readonly<Record<string, string>> = {},
 ) {
-  return pickerDirectoryView({ ...snapshot, groups: sortCatalogGroups(snapshot.groups, order) }, operations)
+  return pickerDirectoryView({ ...snapshot, groups: sortCatalogGroupsWithRoutes(snapshot.groups, order, catalogKeys) }, operations)
 }

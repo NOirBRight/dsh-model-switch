@@ -11,6 +11,7 @@ export interface Config {
   searchModel?: string
   imageProvider?: string
   imageModel?: string
+  compactOnSwitch?: boolean
 }
 
 /** Stable lowercase namespace required by the Alpha.4 Settings provider. */
@@ -24,6 +25,7 @@ export const Config: z<Config> = z.object({
   searchModel: z.string(),
   imageProvider: z.string(),
   imageModel: z.string(),
+  compactOnSwitch: z.boolean().default(true),
 })
 
-export const DEFAULT_CONFIG: Config = { subagentMode: 'follow-main' }
+export const DEFAULT_CONFIG: Config = { subagentMode: 'follow-main', compactOnSwitch: true }

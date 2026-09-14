@@ -2,6 +2,8 @@
 
 ## [0.4.10] - 2026-09-13
 
+- Include completion notices in the send-time budget; verify concurrent sessions, retained-input retry, live progress, and durable notice replay through the real agent loop.
+- On send, when the assembled target model or context-tier id differs from the last request, check the pending request against the target window and compact once with the previous model if needed. Picker-only changes do no work. Default on; Settings → Model Switch can turn it off without disabling DSH automatic compaction.
 - DSH Host packages are no longer version-locked. `@deepseek-ai/dsh-*` peers are `*` and optional; unknown Hosts warn once and still mount. Cordis stays `>=4.0.2 <5.0.0`. Compile-target `devDependencies` remain `0.1.5-rc.1`.
 - Keep Fast / Context / Thinking / Effort switches on the current Agent after a turn; disable unpublished sibling rows instead of ignoring clicks.
 - Composer picker Cursor mark comes from `dsh-llm-providers-ui` 0.2.6.

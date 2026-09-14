@@ -24,7 +24,7 @@ The settings surface aggregates public Settings namespaces, reads and mutates wi
 
 ## Exclusions
 
-No compaction, title, fetch routing, fallback, load balancing, provider credentials, CLI/API, configuration history, or DSH Core edits. Coordinated changes are limited to Model Switch and self-maintained provider plugins. Installing this package replaces a standalone `dsh-composer-picker` install; keep only one composer model seat.
+Send-time context protection (check, and compact with the previous model when a sent message would exceed the target window) is in scope. Model Switch does not own global compaction policy, titles, fetch routing, fallback, load balancing, provider credentials, CLI/API, configuration history, or DSH Core edits. Coordinated changes are limited to Model Switch and self-maintained provider plugins. Installing this package replaces a standalone `dsh-composer-picker` install; keep only one composer model seat.
 
 Official `settings.section` has no icon field. The Settings nav glyph is a label-matched DOM swap, the same published pattern as usage-monitor, until an official icon seam exists. The Plan Review takeover uses priority -5, and the composer model seat uses priority -10.
 

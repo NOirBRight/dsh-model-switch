@@ -9,7 +9,7 @@ describe('Host runtime surface', () => {
     expect(String(MODEL_SWITCH_SETTINGS_NAMESPACE)).toBe('model-switch')
   })
   it('defaults Subagent to follow-main and retains unavailable choices', () => {
-    expect(Config({})).toEqual({ subagentMode: 'follow-main' })
+    expect(Config({})).toEqual({ subagentMode: 'follow-main', compactOnSwitch: true })
     expect(Config({ subagentMode: 'fixed', subagentProvider: 'not-installed', subagentModel: 'remember-me' })).toMatchObject({ subagentProvider: 'not-installed', subagentModel: 'remember-me' })
     expect(() => Config({ subagentMode: 'other' } as never)).toThrow()
   })

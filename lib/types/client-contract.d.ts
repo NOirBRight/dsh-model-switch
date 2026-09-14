@@ -17,6 +17,7 @@ export interface ModelSwitchSettingsView {
     searchModel?: string;
     imageProvider?: string;
     imageModel?: string;
+    compactOnSwitch?: boolean;
 }
 export interface SubagentSettingsView {
     mode: 'follow-main' | 'fixed';

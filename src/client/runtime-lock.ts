@@ -1,17 +1,15 @@
 /** Session execution-runtime lock from native binding and request activity. */
 
-import { ANTIGRAVITY_PROVIDER_KEY } from './antigravity-catalog.ts'
+/** Native binding query declared by an installed Agent provider. */
+export interface NativeBindingSource {
+  readonly provider: string
+  readonly channel: string
+  readonly endpoint: string
+}
 
-/**
- * Antigravity activity RPC seam (dsh-acp-antigravity activity-contract).
- * Kept as literals: the Antigravity plugin is not a Model Switch dependency.
- */
-export const ANTIGRAVITY_BINDING_CHANNEL = '/dsh-acp-antigravity'
-export const ANTIGRAVITY_BINDING_ENDPOINT = 'activity/binding'
+export type RuntimeProviderLock = string | null
 
-export type RuntimeProviderLock = typeof ANTIGRAVITY_PROVIDER_KEY | null
-
-/** Lock read result: the bound provider, plus whether the read itself failed. */
+/** A known binding remains authoritative even if another query fails. */
 export interface ProviderLockState {
   readonly provider: RuntimeProviderLock
   readonly failed: boolean
@@ -21,35 +19,33 @@ interface BindingRpc {
   call(channel: string, endpoint: string, payload: unknown, extra: undefined): Promise<{ ok: boolean; value?: unknown }>
 }
 
-function record(value: unknown): Record<string, unknown> | undefined {
-  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : undefined
+/** Decode a wire reply only for the provider that owns the query. */
+export function decodeBindingProvider(value: unknown, provider: string): RuntimeProviderLock | undefined {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const reply = value as { provider?: unknown }
+  return reply.provider === null || reply.provider === provider ? reply.provider : undefined
 }
 
-/**
- * Decode one activity/binding reply. null means unbound; anything else shaped
- * is a read error (never thrown: the picker stays authoritative on failure).
- */
-export function decodeBindingProvider(value: unknown): RuntimeProviderLock | undefined {
-  const reply = record(value)
-  if (reply === undefined) return undefined
-  if (reply.provider === null) return null
-  return reply.provider === ANTIGRAVITY_PROVIDER_KEY ? ANTIGRAVITY_PROVIDER_KEY : undefined
-}
-
-/**
- * Read one session native binding; undefined when the plugin is absent,
- * unreachable, or malformed. Never throws.
- */
+/** Query installed declarations; one failed query must never become a successful unbound read. */
 export async function fetchSessionBinding(
   rpc: BindingRpc | undefined,
   sessionId: string,
-): Promise<RuntimeProviderLock | undefined> {
-  if (rpc === undefined) return undefined
-  try {
-    const result = await rpc.call(ANTIGRAVITY_BINDING_CHANNEL, ANTIGRAVITY_BINDING_ENDPOINT, { sessionId }, undefined)
-    return result.ok ? decodeBindingProvider(result.value) : undefined
-  } catch {
-    return undefined
+  sources: readonly NativeBindingSource[],
+): Promise<ProviderLockState> {
+  if (sources.length === 0) return { provider: null, failed: false }
+  if (rpc === undefined) return { provider: null, failed: true }
+  const replies = await Promise.all(sources.map(async source => {
+    try {
+      const result = await rpc.call(source.channel, source.endpoint, { sessionId }, undefined)
+      return result.ok ? decodeBindingProvider(result.value, source.provider) : undefined
+    } catch {
+      return undefined // An unavailable binding query is not proof of an unbound session.
+    }
+  }))
+  const bindings = new Set(replies.filter((value): value is string => typeof value === 'string'))
+  return {
+    provider: bindings.size === 1 ? [...bindings][0]! : null,
+    failed: replies.includes(undefined) || bindings.size > 1,
   }
 }
 
@@ -66,6 +62,8 @@ export interface ProviderAllowContext {
   active?: boolean
   /** Whether the candidate provider is an Agent-role External Agent. */
   agent?: boolean
+  /** Whether the current selection is an Agent provider, from its declaration. */
+  currentAgent?: boolean
 }
 
 /**
@@ -91,8 +89,8 @@ export function runtimeChoiceAllowed(
 
 /**
  * Whether one provider remains selectable under a lock read that may have failed.
- * Fail closed for native-bound sessions (known lock, or current Antigravity
- * selection with no successful read yet): only the anchor stays selectable.
+ * Failed reads keep only the known binding or current selection selectable;
+ * active Agent selections reserve their runtime before the first binding arrives.
  * Unbound sessions with DSH history cannot select a new Agent provider.
  * Log reading is never gated by this.
  * @param state - Latest lock read for the session.
@@ -106,7 +104,8 @@ export function isProviderAllowed(
   currentProvider: string | undefined,
   context: ProviderAllowContext = {},
 ): boolean {
-  const lock = effectiveProviderLock(state, currentProvider, context.active)
+  if (state.failed && provider !== (state.provider ?? currentProvider)) return false
+  const lock = effectiveProviderLock(state, currentProvider, context.active, context.currentAgent)
   if (!providerSelectable(lock, provider)) return false
   if (context.agent === true && (context.blank === false || context.active === true) && lock === null) return provider === currentProvider
   return true
@@ -120,12 +119,10 @@ export function effectiveProviderLock(
   state: ProviderLockState,
   currentProvider: string | undefined,
   active = false,
+  currentAgent = false,
 ): RuntimeProviderLock {
-  if (active && currentProvider === ANTIGRAVITY_PROVIDER_KEY) return ANTIGRAVITY_PROVIDER_KEY
-  if (!state.failed) return state.provider
-  if (state.provider === ANTIGRAVITY_PROVIDER_KEY || currentProvider === ANTIGRAVITY_PROVIDER_KEY) {
-    return ANTIGRAVITY_PROVIDER_KEY
-  }
+  if (state.provider !== null) return state.provider
+  if (state.failed || (active && currentAgent)) return currentProvider ?? null
   return null
 }
 

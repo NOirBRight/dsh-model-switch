@@ -27,4 +27,4 @@ export interface PickerDirectoryFace extends PickerDirectoryOperations {
 }
 export declare function pickerDirectoryView(snapshot: PickerDirectorySnapshot, operations: PickerDirectoryOperations): PickerDirectoryView;
 /** Directory view whose groups follow the shared LLM Providers card order. */
-export declare function pickerDirectoryViewOrdered(snapshot: PickerDirectorySnapshot, operations: PickerDirectoryOperations, order: readonly string[]): PickerDirectoryView;
+export declare function pickerDirectoryViewOrdered(snapshot: PickerDirectorySnapshot, operations: PickerDirectoryOperations, order: readonly string[], catalogKeys?: Readonly<Record<string, string>>): PickerDirectoryView;

@@ -10,6 +10,7 @@ export interface ModelSwitchSettingsView {
   subagentProvider?: string; subagentModel?: string; subagentReasoningEffort?: string
   searchProvider?: string; searchModel?: string
   imageProvider?: string; imageModel?: string
+  compactOnSwitch?: boolean
 }
 export interface SubagentSettingsView { mode: 'follow-main' | 'fixed'; provider?: string; model?: string; reasoningEffort?: string }
 export interface CapabilityRouteView { provider?: string; model?: string }
@@ -31,8 +32,9 @@ export function decodeModelSwitchSettings(value: unknown): ModelSwitchSettingsVi
   if (item === undefined || (item.subagentMode !== 'follow-main' && item.subagentMode !== 'fixed')) return undefined
   return {
     subagentMode: item.subagentMode,
+    compactOnSwitch: item.compactOnSwitch !== false,
     ...Object.fromEntries(['subagentProvider','subagentModel','subagentReasoningEffort','searchProvider','searchModel','imageProvider','imageModel']
-      .flatMap((key) => { const field = optionalString(item[key]); return field === undefined ? [] : [[key, field]] })) as Omit<ModelSwitchSettingsView, 'subagentMode'>,
+      .flatMap((key) => { const field = optionalString(item[key]); return field === undefined ? [] : [[key, field]] })) as Omit<ModelSwitchSettingsView, 'subagentMode' | 'compactOnSwitch'>,
   }
 }
 export function deriveSubagentSettings(settings: ModelSwitchSettingsView): SubagentSettingsView {

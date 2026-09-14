@@ -25,7 +25,7 @@ export function capabilitiesRpc(registry: ModelSwitchAdapterRegistry, snapshot: 
     if (requested === read().revision && !lifetime.aborted && !signal.aborted) await new Promise<void>(resolve => {
       const finish = (): void => { clearTimeout(timer); unsubscribe(); signal.removeEventListener('abort', finish); lifetime.removeEventListener('abort', finish); resolve() }
       const unsubscribe = registry.subscribe(finish)
-      // ponytail: unary Connection has no browser stream; bounded long-poll until a public stream fits.
+      // Connection calls are unary, so bounded long-poll carries capability updates.
       const timer = setTimeout(finish, 20_000)
       signal.addEventListener('abort', finish, { once: true })
       lifetime.addEventListener('abort', finish, { once: true })
