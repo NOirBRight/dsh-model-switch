@@ -26,8 +26,8 @@ export interface MountedStartup<T> {
     readonly dispose: () => Promise<void>;
 }
 type RoutableSubagentRequest = Pick<SubagentStartRequest, 'parent' | 'agentOptions'>;
-/** Resolve and snapshot the route that must exist before official descriptor creation. */
-export declare function routeSubagentRequest<T extends RoutableSubagentRequest>(request: T, settings: Config, main: ModelSelection): T;
+/** Inject a fixed Default Subagent route, or leave the request for Official inherit. */
+export declare function routeSubagentRequest<T extends RoutableSubagentRequest>(request: T, settings: Config, _main: ModelSelection): T;
 /**
  * Mount a candidate and use the fallback only for typed startup incompatibility.
  *

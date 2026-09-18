@@ -80,7 +80,7 @@ const processWorkerCapabilities: SubagentCapabilities = {
 }
 
 describe('public profile-patched Subagent replacement', () => {
-  it('routes a one-shot request before the official descriptor is created', async () => {
+  it('does not inject a route when Default Subagent is unset', async () => {
     const context = await loadComposition()
     expect(context.subagents).toBeInstanceOf(ModelSwitchSubagentRuntime)
 
@@ -95,7 +95,25 @@ describe('public profile-patched Subagent replacement', () => {
       prompt: [{ type: 'text', text: 'route me' }],
       parent: parentWithRoute({ provider: 'parent-provider', model: 'parent-model' }),
     })
-    expect(observed?.agentOptions).toMatchObject({ provider: 'parent-provider', model: 'parent-model' })
+    expect(observed?.agentOptions).toBeUndefined()
+  })
+
+  it('injects a fixed Default Subagent route before the official descriptor is created', async () => {
+    const context = await loadComposition()
+    ;(context.modelSwitch as unknown as TestModelSwitch).settings = {
+      subagentMode: 'fixed', subagentProvider: 'fixed-provider', subagentModel: 'fixed-model',
+    }
+    let observed: ResolvedSubagentStartRequest | undefined
+    await registerCapture(context, {
+      capabilities: routingCapabilities,
+      inheritsParentContext: true,
+      start: async (request) => { observed = request; return successfulRun(request) },
+    })
+    await context.subagents.start('capture', {
+      prompt: [{ type: 'text', text: 'route me' }],
+      parent: parentWithRoute({ provider: 'parent-provider', model: 'parent-model' }),
+    })
+    expect(observed?.agentOptions).toMatchObject({ provider: 'fixed-provider', model: 'fixed-model' })
   })
 
   it('lets an explicit provider and model override fixed policy', async () => {

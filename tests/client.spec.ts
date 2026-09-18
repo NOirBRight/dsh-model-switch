@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { decodeMainSettings, decodeModelSwitchSettings, MAIN_SETTINGS_ID, MODEL_SWITCH_SETTINGS_ID } from '../src/client-contract.js'
+import { decodeMainSettings, decodeModelSwitchSettings, MAIN_SETTINGS_ID, MODEL_SWITCH_SETTINGS_ID, subagentModeForEnabled } from '../src/client-contract.js'
 
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
   const Stub = () => null
@@ -86,6 +86,8 @@ describe('Client Settings surface', () => {
     expect(decodeModelSwitchSettings({ subagentMode: 'fixed', subagentProvider: 'missing', subagentModel: 'remember' })).toMatchObject({ subagentMode: 'fixed', subagentProvider: 'missing' })
     expect(decodeModelSwitchSettings({ subagentMode: 'follow-main', searchProvider: 'codex', searchModel: 'gpt-search', imageProvider: 'grok', imageModel: 'grok-imagine-1.0', visionProvider: 'hidden' })).toEqual({ subagentMode: 'follow-main', compactOnSwitch: true, searchProvider: 'codex', searchModel: 'gpt-search', imageProvider: 'grok', imageModel: 'grok-imagine-1.0' })
     expect(decodeModelSwitchSettings({ subagentMode: 'invalid' })).toBeUndefined()
+    expect(subagentModeForEnabled(true)).toBe('fixed')
+    expect(subagentModeForEnabled(false)).toBe('follow-main')
   })
   it('declares the Remote namespaces instead of the removed runtime package', () => {
     expect(name).toBe('dsh-model-switch-client')

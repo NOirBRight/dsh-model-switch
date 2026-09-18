@@ -4,11 +4,12 @@ export declare const zh: {
     readonly subtitle: "为主会话、子代理和能力工具设置默认模型。修改只影响新请求。";
     readonly conversationRoutes: "对话路由";
     readonly capabilityRoutes: "能力路由";
+    readonly sendProtection: "发送保护";
     readonly settingsSynced: "设置已同步";
     readonly defaultBadge: "默认";
     readonly cancel: "取消";
-    readonly compactOnSwitch: "发送时自动检查并压缩上下文";
-    readonly compactOnSwitchHelp: "发送消息采用新模型时，先检查上下文容量；必要时使用切换前的模型压缩历史，再继续请求。仅选择模型不会触发压缩。压缩会产生额外模型用量，摘要可能省略细节。";
+    readonly compactOnSwitch: "切换时压缩";
+    readonly compactOnSwitchHelp: "发送且换了模型时，先按目标窗口检查上下文；超了就用切换前的模型压一次历史，再继续请求。只选模型、不发送，不会压缩。官方自动压缩和 /compact 不受影响。压缩会产生额外模型用量，摘要可能省略细节。";
     readonly main: "主模型";
     readonly provider: "提供商";
     readonly model: "模型";
@@ -18,10 +19,9 @@ export declare const zh: {
     readonly save: "保存";
     readonly saving: "保存中…";
     readonly saved: "已保存";
-    readonly subagent: "子代理";
-    readonly subagentMode: "路由策略";
-    readonly subagentFollowMain: "跟随主模型";
-    readonly subagentFixed: "固定模型";
+    readonly subagent: "子代理默认路由";
+    readonly subagentHelp: "DSH 已有官方子代理模型白名单：模型自己点名 provider/model 时以它为准。这里只在未点名时使用。";
+    readonly subagentOff: "未指定时使用官方继承";
     readonly agentBadge: "Agent";
     readonly search: "Web 搜索";
     readonly searchHelp: "下拉选择的是期望使用的搜索 Adapter/模型；仅当全局 Web searchProvider=model-switch 时官方 web_search 才会使用该选择，否则保持原有路由不变。";

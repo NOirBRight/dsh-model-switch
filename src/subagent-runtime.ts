@@ -72,17 +72,6 @@ function explicitRoute(options: AgentOptions | undefined): ModelSelection | unde
   return undefined
 }
 
-function providerModel(selection: ModelSelection, source: string): ModelSelection {
-  if (!present(selection.provider) || !present(selection.model)) {
-    throw new SubagentRouteUnavailableError(source + ' must provide non-empty provider and model')
-  }
-  return {
-    provider: selection.provider,
-    model: selection.model,
-    ...(selection.reasoningEffort === undefined ? {} : { reasoningEffort: selection.reasoningEffort }),
-  }
-}
-
 function fixedRoute(settings: Config): ModelSelection {
   if (!present(settings.subagentProvider) || !present(settings.subagentModel)) {
     throw new SubagentRouteUnavailableError('fixed Subagent policy requires non-empty subagentProvider and subagentModel')
@@ -94,29 +83,15 @@ function fixedRoute(settings: Config): ModelSelection {
   }
 }
 
-function parentRoute(request: RoutableSubagentRequest): ModelSelection | undefined {
-  const header = request.parent.session.requestHeader()?.config
-  if (header !== undefined && present(header.provider) && present(header.model)) {
-    return {
-      provider: header.provider,
-      model: header.model,
-      ...(header.reasoningEffort === undefined ? {} : { reasoningEffort: header.reasoningEffort }),
-    }
-  }
-  return explicitRoute(request.parent.options)
-}
-
-/** Resolve and snapshot the route that must exist before official descriptor creation. */
+/** Inject a fixed Default Subagent route, or leave the request for Official inherit. */
 export function routeSubagentRequest<T extends RoutableSubagentRequest>(
   request: T,
   settings: Config,
-  main: ModelSelection,
+  _main: ModelSelection,
 ): T {
   if (explicitRoute(request.agentOptions) !== undefined) return request
-  const fromParent = settings.subagentMode === 'follow-main' ? parentRoute(request) : undefined
-  const selected = settings.subagentMode === 'fixed'
-    ? fixedRoute(settings)
-    : providerModel(fromParent ?? main, fromParent === undefined ? 'Main default' : 'parent route')
+  if (settings.subagentMode !== 'fixed') return request
+  const selected = fixedRoute(settings)
   return {
     ...request,
     agentOptions: {

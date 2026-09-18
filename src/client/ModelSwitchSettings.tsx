@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { CapabilityRouteView, MainSettingsView, ModelSwitchSettingsView, SubagentSettingsView } from '../client-contract.js'
+import { subagentModeForEnabled, type CapabilityRouteView, type MainSettingsView, type ModelSwitchSettingsView, type SubagentSettingsView } from '../client-contract.js'
 import type { RuntimeCapabilities } from '../runtime-capabilities.js'
 import { searchGroupsFromCapabilities, type CapabilitiesSnapshot } from './search-capabilities.js'
 import type { ModelSwitchLocaleKey } from './locales.js'
@@ -41,20 +41,29 @@ function RouteIcon({ kind }: { kind: RouteIconKind }): ReactNode {
   return null
 }
 
-function RouteCard({ title, summary, icon, open, onToggle, disabled = false, badge, badgeWarn = false, children }: {
-  title: string; summary: string; icon: RouteIconKind; open: boolean; onToggle: () => void; disabled?: boolean; badge?: string; badgeWarn?: boolean; children?: ReactNode
+function RouteCard({ title, summary, icon, open, onToggle, disabled = false, badge, badgeWarn = false, trailing, chevron = true, children }: {
+  title: string; summary: string; icon: RouteIconKind; open: boolean; onToggle: () => void; disabled?: boolean; badge?: string; badgeWarn?: boolean; trailing?: ReactNode; chevron?: boolean; children?: ReactNode
 }): ReactNode {
+  const header = <button type="button" className={css.routeHeader} disabled={disabled} aria-expanded={disabled || !chevron ? undefined : open} onClick={onToggle}>
+    <span className={css.routeIcon}><RouteIcon kind={icon} /></span>
+    <span className={css.routeCopy}>
+      <span className={css.routeName}>{title}{badge === undefined ? null : <i className={cx(css.badge, badgeWarn && css.badgeWarn)}>{badge}</i>}</span>
+      <span className={css.routeSummary}>{summary}</span>
+    </span>
+    {disabled || !chevron ? null : <svg className={css.chevron} width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="m4 5 3 3 3-3" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+  </button>
   return <article className={cx(css.routeCard, open && css.routeCardOpen, disabled && css.routeCardUnavailable)}>
-    <button type="button" className={css.routeHeader} disabled={disabled} aria-expanded={disabled ? undefined : open} onClick={onToggle}>
-      <span className={css.routeIcon}><RouteIcon kind={icon} /></span>
-      <span className={css.routeCopy}>
-        <span className={css.routeName}>{title}{badge === undefined ? null : <i className={cx(css.badge, badgeWarn && css.badgeWarn)}>{badge}</i>}</span>
-        <span className={css.routeSummary}>{summary}</span>
-      </span>
-      {disabled ? null : <svg className={css.chevron} width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="m4 5 3 3 3-3" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-    </button>
+    {trailing === undefined ? header : <div className={css.routeHeaderRow}>{header}{trailing}</div>}
     {open && !disabled ? <div className={css.cardBody}>{children}</div> : null}
   </article>
+}
+
+function InstantSwitch({ checked, disabled, label, onChange }: {
+  checked: boolean; disabled: boolean; label: string; onChange: (value: boolean) => void
+}): ReactNode {
+  return <button type="button" className={cx(css.switch, checked && css.switchOn)} role="switch" aria-checked={checked} aria-label={label} disabled={disabled} onClick={() => { if (!disabled) onChange(!checked) }}>
+    <i />
+  </button>
 }
 
 function Field({ label, value, disabled, choices, onChange, full = false }: { label: string; value: string | undefined; disabled: boolean; choices: readonly Choice[]; onChange: (value: string) => void; full?: boolean }): ReactNode {
@@ -169,25 +178,42 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
     catch (error) { setMessage({ route, text: error instanceof Error ? error.message : props.t('requestFailed') }) }
     finally { setBusy(undefined) }
   }
-  const saveSubagent = (): void => { if (subagentDraft === undefined) return; void run('subagent', async () => {
-    if (subagent.value?.mode !== subagentDraft.mode) await props.setSubagent('mode', subagentDraft.mode)
-    if (subagentDraft.mode === 'fixed') {
-      if (subagent.value?.provider !== subagentDraft.provider) await props.setSubagent('provider', subagentDraft.provider)
-      const matched = subagentCatalogModel
-      const nextModel = matched?.model.id ?? subagentDraft.model
-      const nextEffort = subagentDraft.reasoningEffort === '' ? undefined : subagentDraft.reasoningEffort || matched?.effort
-      if (subagent.value?.model !== nextModel) await props.setSubagent('model', nextModel)
-      if (subagent.value?.reasoningEffort !== nextEffort) await props.setSubagent('effort', nextEffort)
-    }
+  const saveSubagent = (): void => { if (subagentDraft === undefined || subagentDraft.mode !== 'fixed') return; void run('subagent', async () => {
+    if (subagent.value?.provider !== subagentDraft.provider) await props.setSubagent('provider', subagentDraft.provider)
+    const matched = subagentCatalogModel
+    const nextModel = matched?.model.id ?? subagentDraft.model
+    const nextEffort = subagentDraft.reasoningEffort === '' ? undefined : subagentDraft.reasoningEffort || matched?.effort
+    if (subagent.value?.model !== nextModel) await props.setSubagent('model', nextModel)
+    if (subagent.value?.reasoningEffort !== nextEffort) await props.setSubagent('effort', nextEffort)
   }) }
+  const persistSubagentEnabled = (enabled: boolean): void => {
+    if (subagentDraft === undefined || busy === 'subagent' || !subagent.writable) return
+    setSubagentDraft({ ...subagentDraft, mode: subagentModeForEnabled(enabled) })
+    setBusy('subagent')
+    setMessage(undefined)
+    void props.setSubagent('mode', subagentModeForEnabled(enabled)).then(
+      () => {
+        setBusy(undefined)
+        setOpen(current => enabled ? 'subagent' : current === 'subagent' ? undefined : current)
+      },
+      error => {
+        setBusy(undefined)
+        resetSubagent()
+        setMessage({ route: 'subagent', text: error instanceof Error ? error.message : props.t('requestFailed') })
+      },
+    )
+  }
   const saveCapability = (route: 'search' | 'image', current: SettingsScopeSnapshot<CapabilityRouteView>, next: CapabilityRouteView | undefined): void => { if (next === undefined) return; void run(route, async () => {
     if (current.value?.provider !== next.provider) await props.setCapability(route, 'provider', next.provider)
     if (current.value?.model !== next.model) await props.setCapability(route, 'model', next.model)
   }) }
   const mainSummary = draft === undefined ? props.t('loading') : compact(routeName(groups, draft), mainEffectiveEffort)
   const subagentRole = subagentDraft?.mode === 'fixed' && subagentDraft.provider !== undefined && subagentDraft.provider !== '' ? props.providerRoleOf?.(subagentDraft.provider) : undefined
-  const subagentSummary = subagentDraft?.mode === 'follow-main' ? props.t('subagentFollowMain') : compact(props.t('subagentFixed'), routeName(groups, subagentRoute), isAgentRole(subagentRole) ? props.t('agentBadge') : undefined, defaultEffort === undefined ? props.t('providerDefaultShort') : compact(props.t('providerDefaultShort'), defaultEffort))
-  const subagentDisabled = subagent.status !== 'ready' || !subagent.writable || subagentDraft === undefined || busy === 'subagent' || (subagentDraft.mode === 'fixed' && ((subagentDraft.provider ?? '').trim() === '' || (subagentDraft.model ?? '').trim() === ''))
+  const subagentOn = subagentDraft?.mode === 'fixed'
+  const subagentSummary = subagentDraft === undefined ? props.t('loading') : subagentOn
+    ? compact(routeName(groups, subagentRoute), isAgentRole(subagentRole) ? props.t('agentBadge') : undefined, defaultEffort === undefined ? props.t('providerDefaultShort') : compact(props.t('providerDefaultShort'), defaultEffort))
+    : props.t('subagentOff')
+  const subagentDisabled = subagent.status !== 'ready' || !subagent.writable || subagentDraft === undefined || busy === 'subagent' || !subagentOn || (subagentDraft.provider ?? '').trim() === '' || (subagentDraft.model ?? '').trim() === ''
   const capabilityDisabled = (route: 'search' | 'image', snapshot: SettingsScopeSnapshot<CapabilityRouteView>, next: CapabilityRouteView | undefined): boolean => snapshot.status !== 'ready' || !snapshot.writable || next === undefined || busy === route || (next.provider ?? '').trim() === '' || (next.model ?? '').trim() === ''
 
   return <main className={css.section}>
@@ -195,11 +221,15 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
     <p className={css.intro}>{props.t('subtitle')}</p>
     <p className={css.saved}><i className={css.savedDot} />{synced ? props.t('settingsSynced') : props.t('loading')}</p>
 
-    <section className={css.group}><h2 className={css.groupLabel}>{props.t('conversationRoutes')}</h2>
-      <label className={cx(css.field, css.fieldFull)}>
-        <span className={css.fieldLabel}>{props.t('compactOnSwitch')}</span>
-        <input type="checkbox" checked={switchSettings.value?.compactOnSwitch !== false} disabled={!switchSettings.writable || compactBusy} onChange={event => {
-          const value = event.target.checked
+    <section className={css.group}><h2 className={css.groupLabel}>{props.t('sendProtection')}</h2>
+      <div className={css.rowCard}>
+        <span className={css.routeIcon} aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 5.5h10M4 9h7M4 12.5h5" stroke="currentColor" strokeLinecap="round" /><path d="M13 11.5v3.5l2-1.6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+        <div className={css.rowCopy}>
+          <span className={css.rowTitle}>{props.t('compactOnSwitch')}</span>
+          <p className={css.hint}>{props.t('compactOnSwitchHelp')}</p>
+          {compactError === undefined ? null : <p className={cx(css.hint, css.message)}>{compactError}</p>}
+        </div>
+        <InstantSwitch checked={switchSettings.value?.compactOnSwitch !== false} disabled={!switchSettings.writable || compactBusy} label={props.t('compactOnSwitch')} onChange={value => {
           setCompactBusy(true)
           setCompactError(undefined)
           void props.setCompactOnSwitch(value).then(
@@ -210,9 +240,10 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
             },
           )
         }} />
-        <p className={css.hint}>{props.t('compactOnSwitchHelp')}</p>
-        {compactError === undefined ? null : <p className={cx(css.hint, css.message)}>{compactError}</p>}
-      </label>
+      </div>
+    </section>
+
+    <section className={css.group}><h2 className={css.groupLabel}>{props.t('conversationRoutes')}</h2>
       <RouteCard title={props.t('main')} summary={mainSummary} icon="main" open={open === 'main'} onToggle={() => { toggle('main') }} badge={props.t('defaultBadge')}>
         {draft === undefined ? <p className={css.hint}>{props.t('loading')}</p> : <><div className={css.formGrid}>
           <Field label={props.t('provider')} value={draft.provider} disabled={controller.busy || !main.writable} choices={controller.providers} onChange={controller.setProvider} />
@@ -221,10 +252,9 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
         </div>{!main.writable && main.status === 'ready' ? <p className={css.hint}>{props.t('readonly')}</p> : null}<Actions t={props.t} busy={controller.busy} disabled={controller.disabled} {...(controller.message === undefined ? {} : { message: controller.message })} onCancel={controller.reset} onSave={() => { void controller.save() }} /></>}
       </RouteCard>
 
-      {props.capabilities.centralSubagentRouting.available ? <RouteCard title={props.t('subagent')} summary={subagentSummary} icon="subagent" open={open === 'subagent'} onToggle={() => { toggle('subagent') }}>
-        {subagentDraft === undefined ? <p className={css.hint}>{props.t('loading')}</p> : <><div className={css.formGrid}>
-          <label className={cx(css.field, css.fieldFull)}><span className={css.fieldLabel}>{props.t('subagentMode')}</span><select className={css.input} disabled={busy === 'subagent' || !subagent.writable} value={subagentDraft.mode} onChange={event => { setSubagentDraft({ ...subagentDraft, mode: event.target.value as SubagentSettingsView['mode'] }) }}><option value="fixed">{props.t('subagentFixed')}</option><option value="follow-main">{props.t('subagentFollowMain')}</option></select></label>
-          {subagentDraft.mode === 'fixed' ? <><Field label={props.t('provider')} value={subagentDraft.provider ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.providers} onChange={provider => { const first = groups.find(group => group.id === provider)?.models[0]; setSubagentDraft({ mode: subagentDraft.mode, ...selectRouteModel(groups, provider, first?.id ?? subagentDraft.model ?? '') }) }} /><Field label={props.t('model')} value={subagentCatalogModel?.model.id ?? subagentDraft.model ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.models} onChange={model => { setSubagentDraft({ mode: subagentDraft.mode, ...selectRouteModel(groups, subagentDraft.provider ?? '', model) }) }} /><Field label={props.t('effort')} value={subagentDraft.reasoningEffort || subagentCatalogModel?.effort || ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentEfforts} onChange={effort => { const matched = subagentCatalogModel; setSubagentDraft({ ...subagentDraft, ...(matched?.model.id === undefined ? {} : { model: matched.model.id }), reasoningEffort: effort }) }} /></> : null}
+      {props.capabilities.centralSubagentRouting.available ? <RouteCard title={props.t('subagent')} summary={subagentSummary} icon="subagent" open={open === 'subagent' && subagentOn} onToggle={() => { if (subagentOn) toggle('subagent') }} chevron={subagentOn} trailing={subagentDraft === undefined ? undefined : <InstantSwitch checked={subagentOn} disabled={busy === 'subagent' || !subagent.writable} label={props.t('subagent')} onChange={persistSubagentEnabled} />}>
+        {subagentDraft === undefined ? <p className={css.hint}>{props.t('loading')}</p> : <><p className={css.hint}>{props.t('subagentHelp')}</p><div className={css.formGrid}>
+          <Field label={props.t('provider')} value={subagentDraft.provider ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.providers} onChange={provider => { const first = groups.find(group => group.id === provider)?.models[0]; setSubagentDraft({ mode: 'fixed', ...selectRouteModel(groups, provider, first?.id ?? subagentDraft.model ?? '') }) }} /><Field label={props.t('model')} value={subagentCatalogModel?.model.id ?? subagentDraft.model ?? ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentChoices.models} onChange={model => { setSubagentDraft({ mode: 'fixed', ...selectRouteModel(groups, subagentDraft.provider ?? '', model) }) }} /><Field label={props.t('effort')} value={subagentDraft.reasoningEffort || subagentCatalogModel?.effort || ''} disabled={busy === 'subagent' || !subagent.writable} choices={subagentEfforts} onChange={effort => { const matched = subagentCatalogModel; setSubagentDraft({ ...subagentDraft, ...(matched?.model.id === undefined ? {} : { model: matched.model.id }), reasoningEffort: effort }) }} />
         </div><Actions t={props.t} busy={busy === 'subagent'} disabled={subagentDisabled} {...(message?.route === 'subagent' ? { message: message.text } : {})} onCancel={() => { resetSubagent(); setMessage(undefined) }} onSave={saveSubagent} /></>}
       </RouteCard> : <RouteCard title={props.t('subagent')} summary={unavailable('centralSubagentRouting')} icon="subagent" open={false} onToggle={() => {}} disabled badge={props.t('unavailable')} badgeWarn />}
     </section>

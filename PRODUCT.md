@@ -5,7 +5,7 @@
 ## Routes
 
 - **Default Main:** provider, model, and optional effort. It uses the public Settings namespace and is copied only into newly created sessions; existing sessions are never migrated or selected through the session picker.
-- **Default Subagent:** `follow-main` or a fixed provider/model/effort. Follow-main resolves the immediate parent's latest request header, then global Main, and injects the route before official descriptor creation. Local spawn, fork, continuable, and workflow children use this policy unless workflow explicitly supplies provider/model. DSH 0.1.2-alpha.1 carries the fixed route, including effort, in child `AgentOptions`. Remote Codex/Claude children are outside unified routing.
+- **Default Subagent:** one optional fixed provider/model/effort, injected only when a child spawn names no Explicit child route. When the setting is off, stored `follow-main` is read as unset and Model Switch injects nothing; Official inherit (parent live request, then creation snapshot) and the official Allowlist remain DSH's. The default is not an Allowlist and need not be a member of one. Local spawn, fork, continuable, and workflow children use this policy unless the spawn already supplies provider/model. Remote Codex/Claude children are outside unified routing.
 - **Search Router:** does not register or replace `web_search`. Model Switch registers one public `WebSearchProvider` with id `model-switch`; the existing official `web_search` continues through `ctx.web`, whose configured search provider must be `model-switch`. The thin provider selects the configured backend adapter and model at execution time and returns the official `WebSearchResult` unchanged. v0.2.0 supports Codex Search only. `web_fetch` and its configured provider remain unchanged.
 - **Vision:** excluded. Model Switch exposes no Vision setting, does not shadow `read_image`, and does not preprocess chat attachments.
 - **Image Router:** owns a new, uniquely named stable `generate_image` tool. It selects the configured Codex or Grok adapter/model at execution time, rejects backend-incompatible fields, and returns normalized image metadata. Existing provider-specific image tools remain available as rollback paths.
@@ -20,7 +20,7 @@ Official `agent-presets` stay in the process. A nested `ctx.plugin(AgentPresets)
 
 ## Settings and lifecycle
 
-The settings surface aggregates public Settings namespaces, reads and mutates with optimistic revisions, and saves rows independently. Changing a Main or fixed Subagent model applies only the target catalog row's default effort, so an effort never leaks across providers or models. Every registration, watcher, and dynamic tool generation has clean disposal. All visible copy lives in zh/en locale dictionaries.
+The settings surface aggregates public Settings namespaces, reads and mutates with optimistic revisions, and saves rows independently. Changing a Main or fixed Subagent model applies only the target catalog row's default effort, so an effort never leaks across providers or models. The Subagent card is a RouteCard with an instant on/off for the Default Subagent route; turning it off keeps the last provider/model on disk. Switch compaction is a B-row in the Send protection group (发送保护), default on, written immediately. Every registration, watcher, and dynamic tool generation has clean disposal. All visible copy lives in zh/en locale dictionaries.
 
 ## Exclusions
 

@@ -5,13 +5,13 @@ import { catalog } from './fixtures.js'
 const main = { version: 1 as const, defaultRoute: { provider: 'deepseek', model: 'deep-chat' } }
 
 describe('SubagentRoutePolicy', () => {
-  it('follow-main uses the latest parent request-header selection', () => {
+  it('follow-main does not produce a Model Switch-owned selection', () => {
     expect(createSubagentRouteSnapshot(catalog, { policy: { mode: 'follow-main' }, parentRequestHeaderSelection: { provider: 'codex', model: 'codex-chat', reasoningEffort: 'ultra' }, main }))
-      .toEqual({ version: 1, source: 'parent-request-header', selection: { provider: 'codex', model: 'codex-chat', reasoningEffort: 'ultra' } })
-  })
-  it('follow-main falls back to global Main', () => {
+      .toEqual({ version: 1, source: 'official-inherit' })
     expect(createSubagentRouteSnapshot(catalog, { policy: { mode: 'follow-main' }, main }))
-      .toEqual({ version: 1, source: 'main-fallback', selection: { provider: 'deepseek', model: 'deep-chat', reasoningEffort: 'off' } })
+      .toEqual({ version: 1, source: 'official-inherit' })
+    expect(createSubagentRouteSnapshot(catalog, { policy: { mode: 'follow-main' }, main, parentRequestHeaderSelection: { provider: 'bad', model: 'x' } }))
+      .toEqual({ version: 1, source: 'official-inherit' })
   })
   it('fixed ignores parent and applies model default effort', () => {
     expect(createSubagentRouteSnapshot(catalog, { policy: { mode: 'fixed', route: { provider: 'codex', model: 'codex-chat' } }, parentRequestHeaderSelection: { provider: 'deepseek', model: 'deep-chat', reasoningEffort: 'max' }, main }))
@@ -26,13 +26,15 @@ describe('SubagentRoutePolicy', () => {
       .toEqual({ version: 1, source: 'workflow-override', selection: { provider: 'codex', model: 'codex-chat', reasoningEffort: 'standard' } })
   })
   it('snapshots are JSON serializable and restore cold without policy reads', () => {
-    const frozen = createSubagentRouteSnapshot(catalog, { policy: { mode: 'follow-main' }, main })
+    const frozen = createSubagentRouteSnapshot(catalog, { policy: { mode: 'fixed', route: { provider: 'deepseek', model: 'deep-chat' } }, main })
     main.defaultRoute = { provider: 'codex', model: 'codex-chat' }
     expect(restoreSubagentRouteSnapshot(catalog, JSON.parse(JSON.stringify(frozen)))).toEqual(frozen)
+    expect(restoreSubagentRouteSnapshot(catalog, { version: 1, source: 'official-inherit' })).toEqual({ version: 1, source: 'official-inherit' })
+    expect(restoreSubagentRouteSnapshot(catalog, { version: 1, source: 'main-fallback', selection: { provider: 'deepseek', model: 'deep-chat' } }))
+      .toEqual({ version: 1, source: 'main-fallback', selection: { provider: 'deepseek', model: 'deep-chat' } })
   })
-  it('rejects invalid fixed, parent, workflow, and cold routes', () => {
+  it('rejects invalid fixed, workflow, and cold routes', () => {
     expect(() => createSubagentRouteSnapshot(catalog, { policy: { mode: 'fixed', route: { provider: 'bad', model: 'x' } }, main })).toThrow('unknown provider')
-    expect(() => createSubagentRouteSnapshot(catalog, { policy: { mode: 'follow-main' }, main, parentRequestHeaderSelection: { provider: 'bad', model: 'x' } })).toThrow('unknown provider')
     expect(() => createSubagentRouteSnapshot(catalog, { policy: { mode: 'follow-main' }, main, workflowOverride: { provider: 'bad', model: 'x' } })).toThrow('unknown provider')
     expect(() => restoreSubagentRouteSnapshot(catalog, { version: 1, source: 'fixed-policy', selection: { provider: 'bad', model: 'x' } })).toThrow('unknown provider')
   })

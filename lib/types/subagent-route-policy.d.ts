@@ -11,11 +11,18 @@ export interface WorkflowRouteOverride {
     model: string;
     effort?: ReasoningEffortId;
 }
-export interface SubagentRouteSnapshot {
+export type SubagentRouteSnapshot = {
     version: 1;
-    source: 'parent-request-header' | 'main-fallback' | 'fixed-policy' | 'workflow-override';
+    source: 'fixed-policy' | 'workflow-override';
     selection: ModelSelection;
-}
+} | {
+    version: 1;
+    source: 'official-inherit';
+} | {
+    version: 1;
+    source: 'parent-request-header' | 'main-fallback';
+    selection: ModelSelection;
+};
 export interface CreateSubagentRouteInput {
     policy: SubagentRoutePolicy;
     parentRequestHeaderSelection?: ModelSelection;
