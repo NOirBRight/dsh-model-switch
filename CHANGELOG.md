@@ -1,4 +1,4 @@
-## Unreleased
+## v0.4.13
 
 Replacement Subagent runtime exposes public `resolveMaxDepth` so Host 0.1.6-alpha.2 Standard remount keeps Model Switch routing. Compile target stays `0.1.5-rc.1`.
 

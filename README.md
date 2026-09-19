@@ -102,7 +102,7 @@ dsh plugin --profile web add --force \
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-grok/releases/latest/download/dsh-llm-grok-0.3.16.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.12.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.13.tgz
 ```
 
 ### Search routing (0.4.7)
@@ -148,7 +148,7 @@ Latest installation (the URL never contains a version):
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.9.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.12.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.13.tgz
 ~~~
 
 Fixed-version installation:
@@ -157,7 +157,7 @@ Fixed-version installation:
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.9/dsh-llm-providers-ui-0.2.9.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.12/dsh-model-switch-0.4.12.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.13/dsh-model-switch-0.4.13.tgz
 ~~~
 
 Update, uninstall, and verify:
@@ -167,7 +167,7 @@ Update, uninstall, and verify:
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.9.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.12.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.13.tgz
 # Verify the loaded version
 dsh plugin --profile web list
 dsh plugin --profile web doctor
@@ -177,6 +177,6 @@ dsh plugin --profile web remove dsh-model-switch
 
 Configuration: use the plugin section in Settings for Web UI plugins, or the profile dsh.profile.bundles entry for Host-only plugins. Start with this README's minimal YAML/JSON example and provide credentials/backend addresses explicitly.
 
-Rollback: rerun the fixed v0.4.11 command, verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never put a source checkout in the production profile.
+Rollback: rerun the fixed v0.4.12 command, verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never put a source checkout in the production profile.
 
-Release and integrity: [v0.4.12](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.12) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.12/SHA256SUMS).
+Release and integrity: [v0.4.13](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.13) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.13/SHA256SUMS).
