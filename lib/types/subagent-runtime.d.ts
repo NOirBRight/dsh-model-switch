@@ -47,5 +47,10 @@ export declare class ModelSwitchSubagentRuntime extends OfficialSubagentRuntime 
     private routed;
     start(name: string, request: SubagentStartRequest): Promise<SubagentRun>;
     startContinuable(spec: ContinuableStartSpec): Promise<ContinuableStart>;
+    /**
+     * Public depth policy expected by Host 0.1.6 agent-presets. Nested
+     * OfficialSubagentRuntime at the 0.1.5-rc.1 compile target does not declare it.
+     */
+    resolveMaxDepth(configured?: number | 'provider-managed'): number | undefined;
 }
 export default profileSubagentRuntime;

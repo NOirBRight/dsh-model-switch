@@ -122,6 +122,7 @@ function routingSurface(ctx: Context): ModelSwitchSurface {
 function assertMountedSurface(ctx: Context): void {
   assertPublicMethod((ctx as ProfileContext).subagents, 'mounted Subagent runtime', 'start')
   assertPublicMethod((ctx as ProfileContext).subagents, 'mounted Subagent runtime', 'startContinuable')
+  assertPublicMethod((ctx as ProfileContext).subagents, 'mounted Subagent runtime', 'resolveMaxDepth')
 }
 
 function once(dispose: StartupDisposer): () => Promise<void> {
@@ -248,6 +249,15 @@ export class ModelSwitchSubagentRuntime extends OfficialSubagentRuntime {
 
   override startContinuable(spec: ContinuableStartSpec): Promise<ContinuableStart> {
     return super.startContinuable({ ...spec, request: this.routed(spec.provider, spec.request) })
+  }
+
+  /**
+   * Public depth policy expected by Host 0.1.6 agent-presets. Nested
+   * OfficialSubagentRuntime at the 0.1.5-rc.1 compile target does not declare it.
+   */
+  resolveMaxDepth(configured?: number | 'provider-managed'): number | undefined {
+    if (configured === 'provider-managed') return undefined
+    return configured ?? 1
   }
 }
 
