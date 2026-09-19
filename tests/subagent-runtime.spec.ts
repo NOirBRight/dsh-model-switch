@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
-import { routeSubagentRequest, SubagentRouteUnavailableError } from '../src/subagent-runtime.js'
+import { routeSubagentRequest } from '../src/subagent-runtime.js'
 
 function request(agentOptions?: { provider?: string; model?: string; reasoningEffort?: ReturnType<typeof ReasoningEffortId> }) {
   return {
@@ -64,14 +64,18 @@ describe('routeSubagentRequest Default Subagent route', () => {
     expect(routeSubagentRequest(request(), {} as never).agentOptions).toBeUndefined()
   })
 
-  it('rejects partial explicit routes and passes incomplete fixed through to Official inherit', () => {
-    expect(() => routeSubagentRequest(
+  it('leaves a partial spawn unchanged so Official inherit can fill it', () => {
+    expect(routeSubagentRequest(
       request({ provider: 'only-provider' }),
       { subagentMode: 'follow-main' },
-    )).toThrow(SubagentRouteUnavailableError)
+    ).agentOptions).toEqual({ provider: 'only-provider' })
     expect(routeSubagentRequest(
       request(),
       { subagentMode: 'fixed', subagentProvider: 'fixed-provider' },
     ).agentOptions).toBeUndefined()
+    expect(routeSubagentRequest(
+      request({ provider: 'only-provider' }),
+      { subagentMode: 'fixed', subagentProvider: 'fixed-provider', subagentModel: 'fixed-model' },
+    ).agentOptions).toEqual({ provider: 'only-provider' })
   })
 })

@@ -55,24 +55,8 @@ function present(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== ''
 }
 
-function effortOnlySpawn(options: AgentOptions | undefined): boolean {
-  return options?.reasoningEffort !== undefined
-}
-
-function explicitRoute(options: AgentOptions | undefined): ModelSelection | undefined {
-  const provider = options?.provider
-  const model = options?.model
-  if (present(provider) && present(model)) {
-    return {
-      provider,
-      model,
-      ...(options?.reasoningEffort === undefined ? {} : { reasoningEffort: options.reasoningEffort }),
-    }
-  }
-  if (present(provider) || present(model)) {
-    throw new SubagentRouteUnavailableError('explicit Subagent routes require both provider and model')
-  }
-  return undefined
+function spawnNamesRoute(options: AgentOptions | undefined): boolean {
+  return present(options?.provider) || present(options?.model) || options?.reasoningEffort !== undefined
 }
 
 function fixedRoute(settings: Config): ModelSelection | undefined {
@@ -89,8 +73,7 @@ export function routeSubagentRequest<T extends RoutableSubagentRequest>(
   request: T,
   settings: Config,
 ): T {
-  if (explicitRoute(request.agentOptions) !== undefined) return request
-  if (effortOnlySpawn(request.agentOptions)) return request
+  if (spawnNamesRoute(request.agentOptions)) return request
   if (settings.subagentMode !== 'fixed') return request
   const selected = fixedRoute(settings)
   if (selected === undefined) return request
