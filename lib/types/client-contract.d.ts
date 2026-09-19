@@ -35,6 +35,8 @@ export declare const SUBAGENT_SETTINGS_FIELDS: Readonly<{
     readonly model: "subagentModel";
     readonly effort: "subagentReasoningEffort";
 }>;
+/** Instant Subagent header toggle. Off keeps the stored `follow-main` unset token. */
+export declare function subagentModeForEnabled(enabled: boolean): SubagentSettingsView['mode'];
 export declare const SEARCH_SETTINGS_FIELDS: Readonly<{
     readonly provider: "searchProvider";
     readonly model: "searchModel";

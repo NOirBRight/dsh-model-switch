@@ -1,5 +1,4 @@
 import { type CapabilityCatalog, type ModelSelection, type ReasoningEffortId } from './capabilities.js';
-import type { MainSettingsDocument } from './main-settings.js';
 export type SubagentRoutePolicy = {
     mode: 'follow-main';
 } | {
@@ -11,15 +10,16 @@ export interface WorkflowRouteOverride {
     model: string;
     effort?: ReasoningEffortId;
 }
-export interface SubagentRouteSnapshot {
+export type SubagentRouteSnapshot = {
     version: 1;
-    source: 'parent-request-header' | 'main-fallback' | 'fixed-policy' | 'workflow-override';
+    source: 'fixed-policy' | 'workflow-override';
     selection: ModelSelection;
-}
+} | {
+    version: 1;
+    source: 'official-inherit';
+};
 export interface CreateSubagentRouteInput {
     policy: SubagentRoutePolicy;
-    parentRequestHeaderSelection?: ModelSelection;
-    main: MainSettingsDocument;
     workflowOverride?: WorkflowRouteOverride;
 }
 export declare function createSubagentRouteSnapshot(catalog: CapabilityCatalog, input: CreateSubagentRouteInput): SubagentRouteSnapshot;

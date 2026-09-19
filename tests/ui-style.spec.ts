@@ -48,6 +48,10 @@ describe('Model Switch Settings UI contract', () => {
     expect(block('.routeSummary')).toContain('font-size: 13px')
     expect(block('.routeSummary')).toContain('line-height: 18px')
 
+    expect(block('.rowCard')).toContain('background: var(--dsw-alias-bg-module-platform)')
+    expect(block('.switchOn')).toContain('background: var(--dsw-alias-button-primary-fill)')
+    expect(block('.switch i')).toContain('background: var(--dsw-alias-label-primary-foreground)')
+
     expect(block('.chevron')).toContain('width: 18px')
     expect(block('.chevron')).toContain('height: 18px')
     expect(block('.cardBody')).toContain('padding: 16px 14px 18px')

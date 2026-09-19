@@ -16,6 +16,11 @@ export interface SubagentSettingsView { mode: 'follow-main' | 'fixed'; provider?
 export interface CapabilityRouteView { provider?: string; model?: string }
 
 export const SUBAGENT_SETTINGS_FIELDS = Object.freeze({ mode: 'subagentMode', provider: 'subagentProvider', model: 'subagentModel', effort: 'subagentReasoningEffort' } as const)
+
+/** Instant Subagent header toggle. Off keeps the stored `follow-main` unset token. */
+export function subagentModeForEnabled(enabled: boolean): SubagentSettingsView['mode'] {
+  return enabled ? 'fixed' : 'follow-main'
+}
 export const SEARCH_SETTINGS_FIELDS = Object.freeze({ provider: 'searchProvider', model: 'searchModel' } as const)
 export const IMAGE_SETTINGS_FIELDS = Object.freeze({ provider: 'imageProvider', model: 'imageModel' } as const)
 

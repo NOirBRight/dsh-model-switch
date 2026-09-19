@@ -2,7 +2,7 @@ import { type ReactNode } from 'react';
 import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types';
 import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client';
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
-import type { CapabilityRouteView, MainSettingsView, ModelSwitchSettingsView, SubagentSettingsView } from '../client-contract.js';
+import { type CapabilityRouteView, type MainSettingsView, type ModelSwitchSettingsView, type SubagentSettingsView } from '../client-contract.js';
 import type { RuntimeCapabilities } from '../runtime-capabilities.js';
 import { type CapabilitiesSnapshot } from './search-capabilities.js';
 import type { ModelSwitchLocaleKey } from './locales.js';

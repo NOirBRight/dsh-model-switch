@@ -24,11 +24,6 @@ export class StartupIncompatibilityError extends Error {
   }
 }
 
-/** Raised when the selected policy cannot produce a complete provider/model route. */
-export class SubagentRouteUnavailableError extends Error {
-  override readonly name = 'SubagentRouteUnavailableError'
-}
-
 /** One idempotent cleanup operation tracked during runtime startup. */
 export type StartupDisposer = () => void | PromiseLike<void>
 
@@ -43,7 +38,6 @@ export interface MountedStartup<T> {
 
 interface ModelSwitchSurface {
   currentSettings(): Config
-  currentMainSelection(): ModelSelection
 }
 type RoutableSubagentRequest = Pick<SubagentStartRequest, 'parent' | 'agentOptions'>
 
@@ -56,37 +50,12 @@ function present(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== ''
 }
 
-function explicitRoute(options: AgentOptions | undefined): ModelSelection | undefined {
-  const provider = options?.provider
-  const model = options?.model
-  if (present(provider) && present(model)) {
-    return {
-      provider,
-      model,
-      ...(options?.reasoningEffort === undefined ? {} : { reasoningEffort: options.reasoningEffort }),
-    }
-  }
-  if (present(provider) || present(model)) {
-    throw new SubagentRouteUnavailableError('explicit Subagent routes require both provider and model')
-  }
-  return undefined
+function spawnHasAnyRouteField(options: AgentOptions | undefined): boolean {
+  return present(options?.provider) || present(options?.model) || options?.reasoningEffort !== undefined
 }
 
-function providerModel(selection: ModelSelection, source: string): ModelSelection {
-  if (!present(selection.provider) || !present(selection.model)) {
-    throw new SubagentRouteUnavailableError(source + ' must provide non-empty provider and model')
-  }
-  return {
-    provider: selection.provider,
-    model: selection.model,
-    ...(selection.reasoningEffort === undefined ? {} : { reasoningEffort: selection.reasoningEffort }),
-  }
-}
-
-function fixedRoute(settings: Config): ModelSelection {
-  if (!present(settings.subagentProvider) || !present(settings.subagentModel)) {
-    throw new SubagentRouteUnavailableError('fixed Subagent policy requires non-empty subagentProvider and subagentModel')
-  }
+function fixedRoute(settings: Config): ModelSelection | undefined {
+  if (!present(settings.subagentProvider) || !present(settings.subagentModel)) return undefined
   return {
     provider: settings.subagentProvider,
     model: settings.subagentModel,
@@ -94,29 +63,15 @@ function fixedRoute(settings: Config): ModelSelection {
   }
 }
 
-function parentRoute(request: RoutableSubagentRequest): ModelSelection | undefined {
-  const header = request.parent.session.requestHeader()?.config
-  if (header !== undefined && present(header.provider) && present(header.model)) {
-    return {
-      provider: header.provider,
-      model: header.model,
-      ...(header.reasoningEffort === undefined ? {} : { reasoningEffort: header.reasoningEffort }),
-    }
-  }
-  return explicitRoute(request.parent.options)
-}
-
-/** Resolve and snapshot the route that must exist before official descriptor creation. */
+/** Inject a fixed Default Subagent route, or leave the request for Official inherit. */
 export function routeSubagentRequest<T extends RoutableSubagentRequest>(
   request: T,
   settings: Config,
-  main: ModelSelection,
 ): T {
-  if (explicitRoute(request.agentOptions) !== undefined) return request
-  const fromParent = settings.subagentMode === 'follow-main' ? parentRoute(request) : undefined
-  const selected = settings.subagentMode === 'fixed'
-    ? fixedRoute(settings)
-    : providerModel(fromParent ?? main, fromParent === undefined ? 'Main default' : 'parent route')
+  if (spawnHasAnyRouteField(request.agentOptions)) return request
+  if (settings.subagentMode !== 'fixed') return request
+  const selected = fixedRoute(settings)
+  if (selected === undefined) return request
   return {
     ...request,
     agentOptions: {
@@ -158,7 +113,6 @@ function assertOfficialRuntimeSurface(): void {
 function assertRoutingSurface(ctx: Context): void {
   const modelSwitch = (ctx as ProfileContext).modelSwitch
   assertPublicMethod(modelSwitch, 'Model Switch runtime', 'currentSettings')
-  assertPublicMethod(modelSwitch, 'Model Switch runtime', 'currentMainSelection')
 }
 
 function routingSurface(ctx: Context): ModelSwitchSurface {
@@ -285,11 +239,7 @@ export class ModelSwitchSubagentRuntime extends OfficialSubagentRuntime {
     // Native continuable Subagents or inject a provider/model route.
     if (provider !== undefined && provider.capabilities.agentOptions !== true) return request
     const modelSwitch = routingSurface(this.ctx)
-    return routeSubagentRequest(
-      request,
-      modelSwitch.currentSettings(),
-      modelSwitch.currentMainSelection(),
-    )
+    return routeSubagentRequest(request, modelSwitch.currentSettings())
   }
 
   override start(name: string, request: SubagentStartRequest): Promise<SubagentRun> {

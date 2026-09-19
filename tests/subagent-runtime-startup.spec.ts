@@ -3,7 +3,6 @@ import { Context, Service } from '@deepseek-ai/cordis'
 import OfficialSubagentRuntime from '@deepseek-ai/dsh-subagent'
 import {
   ModelSwitchSubagentRuntime,
-  SubagentRouteUnavailableError,
   StartupIncompatibilityError,
   mountWithStartupFallback,
   profileSubagentRuntime,
@@ -21,7 +20,6 @@ describe('Subagent profile startup selection', () => {
     class IncompatibleModelSwitch extends Service {
       static inject = []
       constructor(ctx: Context) { super(ctx, 'modelSwitch') }
-      currentSettings(): { subagentMode: 'follow-main' } { return { subagentMode: 'follow-main' } }
     }
 
     context = new Context()
@@ -37,7 +35,6 @@ describe('Subagent profile startup selection', () => {
       static inject = []
       constructor(ctx: Context) { super(ctx, 'modelSwitch') }
       get currentSettings(): never { throw new TypeError('broken model switch') }
-      currentMainSelection(): never { throw new Error('not reached') }
     }
 
     context = new Context()
@@ -73,9 +70,9 @@ describe('typed startup fallback cleanup', () => {
   it('does not fall back for route errors', async () => {
     let fallbackStarted = false
     await expect(mountWithStartupFallback(
-      async () => { throw new SubagentRouteUnavailableError('invalid route') },
+      async () => { throw new Error('invalid route') },
       async () => { fallbackStarted = true; return undefined },
-    )).rejects.toBeInstanceOf(SubagentRouteUnavailableError)
+    )).rejects.toThrow('invalid route')
     expect(fallbackStarted).toBe(false)
   })
 
