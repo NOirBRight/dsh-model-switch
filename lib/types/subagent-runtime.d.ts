@@ -11,10 +11,6 @@ export declare class StartupIncompatibilityError extends Error {
      */
     constructor(surfaceOrMessage: string, message?: string);
 }
-/** Raised when the selected policy cannot produce a complete provider/model route. */
-export declare class SubagentRouteUnavailableError extends Error {
-    readonly name = "SubagentRouteUnavailableError";
-}
 /** One idempotent cleanup operation tracked during runtime startup. */
 export type StartupDisposer = () => void | PromiseLike<void>;
 /** Register one cleanup operation for a startup attempt. */

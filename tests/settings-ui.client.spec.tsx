@@ -37,13 +37,14 @@ const controller = (subagent: { mode: 'follow-main' | 'fixed'; provider?: string
 function face(options?: {
   subagent?: { mode: 'follow-main' | 'fixed'; provider?: string; model?: string }
   compactOnSwitch?: boolean
+  omitCompactOnSwitch?: true
   setSubagent?: ReturnType<typeof vi.fn>
   setCompactOnSwitch?: ReturnType<typeof vi.fn>
 }) {
   const subagent = options?.subagent ?? { mode: 'fixed', provider: 'codex', model: 'gpt-subagent' }
   const controllerState = controller(subagent)
   vi.mocked(useModelSwitchSettingsController).mockImplementation(() => controllerState as never)
-  const switchSettings = snapshot({ compactOnSwitch: options?.compactOnSwitch !== false })
+  const switchSettings = snapshot(options?.omitCompactOnSwitch === true ? {} : { compactOnSwitch: options?.compactOnSwitch !== false })
   const searchSettings = snapshot({ provider: 'codex', model: 'gpt-search' })
   const imageSettings = snapshot({ provider: 'grok', model: 'grok-imagine-image-quality' })
   return {
@@ -116,22 +117,7 @@ describe('Model Switch settings menu', () => {
   })
 
   it('treats missing compactOnSwitch as on in the Send protection switch', () => {
-    vi.mocked(useModelSwitchSettingsController).mockReturnValue(controller({ mode: 'fixed', provider: 'codex', model: 'gpt-subagent' }) as never)
-    const markup = renderToStaticMarkup(<ModelSwitchSettings {...({
-      t: (key: string) => key,
-      capabilities: {
-        centralSubagentRouting: { available: true },
-        searchProviderAdapters: { available: true, providers: ['codex'] },
-        imageProviderAdapters: { available: true, providers: ['codex', 'grok'] },
-      },
-      useSearchSettings: () => snapshot({ provider: 'codex', model: 'gpt-search' }),
-      useImageSettings: () => snapshot({ provider: 'grok', model: 'grok-imagine-image-quality' }),
-      useSwitchSettings: () => snapshot({}),
-      setSubagent: vi.fn(),
-      setCapability: vi.fn(),
-      setCompactOnSwitch: vi.fn(),
-      saveMain: vi.fn(),
-    } as never)} />)
+    const markup = renderSettings({ omitCompactOnSwitch: true })
     const compact = markup.match(/<button[^>]*aria-label="compactOnSwitch"[^>]*>/)?.[0]
     expect(compact).toContain('aria-checked="true"')
     expect(compact).toContain('role="switch"')

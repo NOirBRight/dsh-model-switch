@@ -24,11 +24,6 @@ export class StartupIncompatibilityError extends Error {
   }
 }
 
-/** Raised when the selected policy cannot produce a complete provider/model route. */
-export class SubagentRouteUnavailableError extends Error {
-  override readonly name = 'SubagentRouteUnavailableError'
-}
-
 /** One idempotent cleanup operation tracked during runtime startup. */
 export type StartupDisposer = () => void | PromiseLike<void>
 
@@ -55,7 +50,7 @@ function present(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== ''
 }
 
-function spawnNamesRoute(options: AgentOptions | undefined): boolean {
+function spawnHasNamedFields(options: AgentOptions | undefined): boolean {
   return present(options?.provider) || present(options?.model) || options?.reasoningEffort !== undefined
 }
 
@@ -73,7 +68,7 @@ export function routeSubagentRequest<T extends RoutableSubagentRequest>(
   request: T,
   settings: Config,
 ): T {
-  if (spawnNamesRoute(request.agentOptions)) return request
+  if (spawnHasNamedFields(request.agentOptions)) return request
   if (settings.subagentMode !== 'fixed') return request
   const selected = fixedRoute(settings)
   if (selected === undefined) return request
