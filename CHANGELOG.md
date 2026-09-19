@@ -1,3 +1,7 @@
+## v0.4.12
+
+Optional Default Subagent route (Official inherit when off) and Switch compaction as a Send protection B-row.
+
 ## v0.4.11
 
 Rank live catalogRoutes. Compact-on-switch uses previous-provider usage when present.

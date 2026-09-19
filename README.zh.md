@@ -100,7 +100,7 @@ dsh plugin --profile web add --force \
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-grok/releases/latest/download/dsh-llm-grok-0.3.16.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.11.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.12.tgz
 ```
 
 ### 搜索供应商统一接入（0.4.7）
@@ -146,7 +146,7 @@ Latest 安装命令（永久不含版本号）：
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.9.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.11.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.12.tgz
 ~~~
 
 固定版本安装命令：
@@ -155,7 +155,7 @@ dsh plugin --profile web add --force \
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.9/dsh-llm-providers-ui-0.2.9.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.11/dsh-model-switch-0.4.11.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.12/dsh-model-switch-0.4.12.tgz
 ~~~
 
 更新、卸载与验证：
@@ -165,7 +165,7 @@ dsh plugin --profile web add --force \
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.9.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.11.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.12.tgz
 # 验证加载与版本
 dsh plugin --profile web list
 dsh plugin --profile web doctor
@@ -177,4 +177,4 @@ dsh plugin --profile web remove dsh-model-switch
 
 回滚：重新执行固定版本 v0.4.11 命令，确认插件列表后只重启一次 Web 服务。失败时查看 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor，不要把源码 checkout 写入 production profile。
 
-Release 与完整性：[v0.4.11](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.11) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.11/SHA256SUMS)。
+Release 与完整性：[v0.4.12](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.12) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.12/SHA256SUMS)。
