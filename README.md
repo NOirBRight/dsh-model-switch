@@ -92,7 +92,7 @@ When a sent message will use a different model or context-tier id than the last 
 
 ## Installation
 
-Install Model Switch and only the provider adapters you use. The coordinated versions below target DeepSeek Harness 0.1.5-rc.1 and 0.1.5-rc.2:
+Install Model Switch and only the provider adapters you use. The coordinated versions below target DeepSeek Harness 0.1.5-rc.1, 0.1.5-rc.2, and 0.1.6-alpha.2:
 
 ```sh
 dsh plugin --profile web add --force \

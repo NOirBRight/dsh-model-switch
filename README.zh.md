@@ -90,7 +90,7 @@ Plan Review 拥有独立于 Main 的执行模型草稿。**确认执行**会先�
 
 ## 安装
 
-安装 Model Switch，以及实际使用的 Provider Adapter。以下协调版本面向 DeepSeek Harness 0.1.5-rc.1 与 0.1.5-rc.2：
+安装 Model Switch，以及实际使用的 Provider Adapter。以下协调版本面向 DeepSeek Harness 0.1.5-rc.1、0.1.5-rc.2 与 0.1.6-alpha.2：
 
 ```sh
 dsh plugin --profile web add --force \

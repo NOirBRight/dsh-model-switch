@@ -7,7 +7,7 @@ import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
-import { type ResolvedSubagentStartRequest, type SubagentCapabilities, type SubagentProvider, type SubagentRun } from '@deepseek-ai/dsh-subagent'
+import OfficialSubagentRuntime, { type ResolvedSubagentStartRequest, type SubagentCapabilities, type SubagentProvider, type SubagentRun } from '@deepseek-ai/dsh-subagent'
 import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
 import profileSubagentRuntime, { ModelSwitchSubagentRuntime } from '../src/subagent-runtime.js'
 import type { Config } from '../src/host-settings.js'
@@ -112,6 +112,17 @@ describe('public profile-patched Subagent replacement', () => {
       parent: parentWithRoute({ provider: 'parent-provider', model: 'parent-model' }),
     })
     expect(observed?.agentOptions).toMatchObject({ provider: 'fixed-provider', model: 'fixed-model' })
+  })
+
+  it('exposes public resolveMaxDepth on the routed runtime', async () => {
+    expect(typeof Reflect.get(OfficialSubagentRuntime.prototype, 'resolveMaxDepth')).not.toBe('function')
+    const context = await loadComposition()
+    expect(context.subagents).toBeInstanceOf(ModelSwitchSubagentRuntime)
+    const runtime = context.subagents as ModelSwitchSubagentRuntime
+    expect(typeof runtime.resolveMaxDepth).toBe('function')
+    expect(runtime.resolveMaxDepth('provider-managed')).toBeUndefined()
+    expect(runtime.resolveMaxDepth(3)).toBe(3)
+    expect(runtime.resolveMaxDepth()).toBe(1)
   })
 
   it('lets an explicit provider and model override fixed policy', async () => {
