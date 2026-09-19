@@ -21,7 +21,7 @@ DSH's fallback when a child spawn names no route: the parent session's latest re
 _Avoid_: follow-main, follow Main, Default Subagent route
 
 **Explicit child route**:
-A complete provider and model supplied on the spawn itself by the agent, a workflow, or a tool argument. It wins over the Default Subagent route.
+A complete provider and model supplied on the spawn itself by the agent, a workflow, or a tool argument. It wins over the Default Subagent route. Any named provider, model, or effort on the spawn also skips Default Subagent injection; Official inherit fills incomplete spawns.
 _Avoid_: override, lock
 
 **Switch compaction**:

@@ -50,7 +50,7 @@ function present(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== ''
 }
 
-function spawnHasNamedFields(options: AgentOptions | undefined): boolean {
+function spawnHasAnyRouteField(options: AgentOptions | undefined): boolean {
   return present(options?.provider) || present(options?.model) || options?.reasoningEffort !== undefined
 }
 
@@ -68,7 +68,7 @@ export function routeSubagentRequest<T extends RoutableSubagentRequest>(
   request: T,
   settings: Config,
 ): T {
-  if (spawnHasNamedFields(request.agentOptions)) return request
+  if (spawnHasAnyRouteField(request.agentOptions)) return request
   if (settings.subagentMode !== 'fixed') return request
   const selected = fixedRoute(settings)
   if (selected === undefined) return request
