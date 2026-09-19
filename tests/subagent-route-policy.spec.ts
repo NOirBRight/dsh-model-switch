@@ -31,7 +31,7 @@ describe('SubagentRoutePolicy', () => {
     expect(restoreSubagentRouteSnapshot(catalog, JSON.parse(JSON.stringify(frozen)))).toEqual(frozen)
     expect(restoreSubagentRouteSnapshot(catalog, { version: 1, source: 'official-inherit' })).toEqual({ version: 1, source: 'official-inherit' })
     expect(restoreSubagentRouteSnapshot(catalog, { version: 1, source: 'main-fallback', selection: { provider: 'deepseek', model: 'deep-chat' } }))
-      .toEqual({ version: 1, source: 'main-fallback', selection: { provider: 'deepseek', model: 'deep-chat' } })
+      .toEqual({ version: 1, source: 'official-inherit' })
   })
   it('rejects invalid fixed, workflow, and cold routes', () => {
     expect(() => createSubagentRouteSnapshot(catalog, { policy: { mode: 'fixed', route: { provider: 'bad', model: 'x' } }, main })).toThrow('unknown provider')

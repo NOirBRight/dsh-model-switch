@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { ModelSwitchSettings } from '../src/client/ModelSwitchSettings.js'
@@ -125,5 +126,17 @@ describe('Model Switch settings menu', () => {
     expect(en.compactOnSwitchHelp).toContain('/compact')
     expect(zh).not.toHaveProperty('subagentFollowMain')
     expect(en).not.toHaveProperty('subagentFollowMain')
+  })
+
+  it('wires instant compact and Subagent writes without clearing the stored route', () => {
+    const source = readFileSync(new URL('../src/client/ModelSwitchSettings.tsx', import.meta.url), 'utf8')
+    expect(source).toContain('props.setCompactOnSwitch(value)')
+    expect(source).toContain("props.setSubagent('mode', subagentModeForEnabled(enabled))")
+    expect(source).toContain("expandable={subagentOn}")
+    expect(source).toContain("props.t('subagentHelp')")
+    expect(source).toContain("props.t('provider')")
+    expect(source).toContain("props.t('effort')")
+    expect(source).not.toMatch(/setSubagent\('provider',\s*undefined\)/)
+    expect(source).not.toMatch(/setSubagent\('model',\s*undefined\)/)
   })
 })

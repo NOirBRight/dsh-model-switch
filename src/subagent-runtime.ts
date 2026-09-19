@@ -56,6 +56,10 @@ function present(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== ''
 }
 
+function namedEffort(options: AgentOptions | undefined): boolean {
+  return options?.reasoningEffort !== undefined
+}
+
 function explicitRoute(options: AgentOptions | undefined): ModelSelection | undefined {
   const provider = options?.provider
   const model = options?.model
@@ -72,10 +76,8 @@ function explicitRoute(options: AgentOptions | undefined): ModelSelection | unde
   return undefined
 }
 
-function fixedRoute(settings: Config): ModelSelection {
-  if (!present(settings.subagentProvider) || !present(settings.subagentModel)) {
-    throw new SubagentRouteUnavailableError('fixed Subagent policy requires non-empty subagentProvider and subagentModel')
-  }
+function fixedRoute(settings: Config): ModelSelection | undefined {
+  if (!present(settings.subagentProvider) || !present(settings.subagentModel)) return undefined
   return {
     provider: settings.subagentProvider,
     model: settings.subagentModel,
@@ -90,8 +92,10 @@ export function routeSubagentRequest<T extends RoutableSubagentRequest>(
   _main: ModelSelection,
 ): T {
   if (explicitRoute(request.agentOptions) !== undefined) return request
+  if (namedEffort(request.agentOptions)) return request
   if (settings.subagentMode !== 'fixed') return request
   const selected = fixedRoute(settings)
+  if (selected === undefined) return request
   return {
     ...request,
     agentOptions: {

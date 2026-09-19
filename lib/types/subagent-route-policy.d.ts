@@ -18,10 +18,6 @@ export type SubagentRouteSnapshot = {
 } | {
     version: 1;
     source: 'official-inherit';
-} | {
-    version: 1;
-    source: 'parent-request-header' | 'main-fallback';
-    selection: ModelSelection;
 };
 export interface CreateSubagentRouteInput {
     policy: SubagentRoutePolicy;

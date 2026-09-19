@@ -6,7 +6,6 @@ export interface WorkflowRouteOverride { provider: string; model: string; effort
 export type SubagentRouteSnapshot =
   | { version: 1; source: 'fixed-policy' | 'workflow-override'; selection: ModelSelection }
   | { version: 1; source: 'official-inherit' }
-  | { version: 1; source: 'parent-request-header' | 'main-fallback'; selection: ModelSelection }
 export interface CreateSubagentRouteInput {
   policy: SubagentRoutePolicy
   parentRequestHeaderSelection?: ModelSelection
@@ -44,8 +43,10 @@ export function restoreSubagentRouteSnapshot(catalog: CapabilityCatalog, input: 
   const value = input as Record<string, unknown>
   if (value.version !== 1) throw new Error('subagent route snapshot version must be 1')
   const source = String(value.source)
-  if (source === 'official-inherit') return { version: 1, source: 'official-inherit' }
-  if (source === 'parent-request-header' || source === 'main-fallback' || source === 'fixed-policy' || source === 'workflow-override') {
+  if (source === 'official-inherit' || source === 'parent-request-header' || source === 'main-fallback') {
+    return { version: 1, source: 'official-inherit' }
+  }
+  if (source === 'fixed-policy' || source === 'workflow-override') {
     return { version: 1, source, selection: validateModelSelection(catalog, value.selection) }
   }
   throw new Error('subagent route snapshot source is invalid')

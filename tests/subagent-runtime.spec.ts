@@ -38,6 +38,15 @@ describe('routeSubagentRequest Default Subagent route', () => {
     })
   })
 
+  it('leaves an effort-only spawn unchanged so Official inherit can fill provider and model', () => {
+    const routed = routeSubagentRequest(
+      request({ reasoningEffort: ReasoningEffortId('low') }),
+      { subagentMode: 'fixed', subagentProvider: 'fixed-provider', subagentModel: 'fixed-model', subagentReasoningEffort: 'high' },
+      main,
+    )
+    expect(routed.agentOptions).toEqual({ reasoningEffort: ReasoningEffortId('low') })
+  })
+
   it('does not inject parent or Main when follow-main is stored', () => {
     const withParent = routeSubagentRequest(
       {
@@ -61,16 +70,16 @@ describe('routeSubagentRequest Default Subagent route', () => {
     expect(routeSubagentRequest(request(), {} as never, main).agentOptions).toBeUndefined()
   })
 
-  it('rejects partial explicit and incomplete fixed routes', () => {
+  it('rejects partial explicit routes and passes incomplete fixed through to Official inherit', () => {
     expect(() => routeSubagentRequest(
       request({ provider: 'only-provider' }),
       { subagentMode: 'follow-main' },
       main,
     )).toThrow(SubagentRouteUnavailableError)
-    expect(() => routeSubagentRequest(
+    expect(routeSubagentRequest(
       request(),
       { subagentMode: 'fixed', subagentProvider: 'fixed-provider' },
       main,
-    )).toThrow('fixed Subagent policy requires')
+    ).agentOptions).toBeUndefined()
   })
 })
