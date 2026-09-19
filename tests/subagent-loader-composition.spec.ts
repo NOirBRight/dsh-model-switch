@@ -26,10 +26,8 @@ afterEach(async () => {
 class TestModelSwitch extends Service {
   static inject = []
   settings: Config = { subagentMode: 'follow-main' }
-  main: ModelSelection = { provider: 'main-provider', model: 'main-model' }
   constructor(context: Context) { super(context, 'modelSwitch') }
   currentSettings(): Config { return { ...this.settings } }
-  currentMainSelection(): ModelSelection { return { ...this.main } }
 }
 
 async function loadComposition(): Promise<Context> {

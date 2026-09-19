@@ -1,12 +1,14 @@
-import { readFileSync } from 'node:fs'
+import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 import { ModelSwitchSettings } from '../src/client/ModelSwitchSettings.js'
 import { useModelSwitchSettingsController } from '../src/client/main-row-controller.js'
 import { en, zh } from '../src/client/locales.js'
 
+;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+
 vi.mock('../src/client/main-row-controller.js', () => ({
-  deriveRouteChoices: () => ({ providers: [], models: [] }),
+  deriveRouteChoices: () => ({ providers: [{ id: 'codex', name: 'Codex' }], models: [{ id: 'gpt-subagent', name: 'GPT Subagent' }] }),
   selectRouteModel: () => ({ provider: 'codex', model: 'gpt-subagent' }),
   useModelSwitchSettingsController: vi.fn(),
 }))
@@ -19,7 +21,7 @@ const controller = (subagent: { mode: 'follow-main' | 'fixed'; provider?: string
   main: snapshot({ provider: 'codex', model: 'gpt-main' }),
   subagent: snapshot(subagent),
   draft: { provider: 'codex', model: 'gpt-main' },
-  groups: [],
+  groups: [{ id: 'codex', name: 'Codex', models: [{ id: 'gpt-subagent', name: 'GPT Subagent' }] }],
   providers: [],
   models: [],
   efforts: [],
@@ -32,28 +34,52 @@ const controller = (subagent: { mode: 'follow-main' | 'fixed'; provider?: string
   save: vi.fn(),
 })
 
-function renderSettings(options?: {
+function face(options?: {
   subagent?: { mode: 'follow-main' | 'fixed'; provider?: string; model?: string }
   compactOnSwitch?: boolean
   setSubagent?: ReturnType<typeof vi.fn>
   setCompactOnSwitch?: ReturnType<typeof vi.fn>
 }) {
-  vi.mocked(useModelSwitchSettingsController).mockReturnValue(controller(options?.subagent ?? { mode: 'fixed', provider: 'codex', model: 'gpt-subagent' }) as never)
-  return renderToStaticMarkup(<ModelSwitchSettings {...({
+  const subagent = options?.subagent ?? { mode: 'fixed', provider: 'codex', model: 'gpt-subagent' }
+  const controllerState = controller(subagent)
+  vi.mocked(useModelSwitchSettingsController).mockImplementation(() => controllerState as never)
+  const switchSettings = snapshot({ compactOnSwitch: options?.compactOnSwitch !== false })
+  const searchSettings = snapshot({ provider: 'codex', model: 'gpt-search' })
+  const imageSettings = snapshot({ provider: 'grok', model: 'grok-imagine-image-quality' })
+  return {
     t: (key: string) => key,
     capabilities: {
       centralSubagentRouting: { available: true },
       searchProviderAdapters: { available: true, providers: ['codex'] },
       imageProviderAdapters: { available: true, providers: ['codex', 'grok'] },
     },
-    useSearchSettings: () => snapshot({ provider: 'codex', model: 'gpt-search' }),
-    useImageSettings: () => snapshot({ provider: 'grok', model: 'grok-imagine-image-quality' }),
-    useSwitchSettings: () => snapshot({ compactOnSwitch: options?.compactOnSwitch !== false }),
-    setSubagent: options?.setSubagent ?? vi.fn(),
+    useSearchSettings: () => searchSettings,
+    useImageSettings: () => imageSettings,
+    useSwitchSettings: () => switchSettings,
+    setSubagent: options?.setSubagent ?? vi.fn(async () => undefined),
     setCapability: vi.fn(),
-    setCompactOnSwitch: options?.setCompactOnSwitch ?? vi.fn(),
+    setCompactOnSwitch: options?.setCompactOnSwitch ?? vi.fn(async () => undefined),
     saveMain: vi.fn(),
-  } as never)} />)
+  } as never
+}
+
+function renderSettings(options?: Parameters<typeof face>[0]) {
+  return renderToStaticMarkup(<ModelSwitchSettings {...face(options)} />)
+}
+
+function instanceText(node: { children?: readonly unknown[] }): string {
+  return (node.children ?? []).map(child => typeof child === 'string' ? child : instanceText(child as { children?: readonly unknown[] })).join('')
+}
+
+function mountSettings(options?: Parameters<typeof face>[0]) {
+  const setSubagent = options?.setSubagent ?? vi.fn(async () => undefined)
+  const setCompactOnSwitch = options?.setCompactOnSwitch ?? vi.fn(async () => undefined)
+  const props = face({ ...options, setSubagent, setCompactOnSwitch })
+  let renderer!: ReactTestRenderer
+  act(() => {
+    renderer = create(<ModelSwitchSettings {...props} />)
+  })
+  return { renderer, setSubagent, setCompactOnSwitch }
 }
 
 describe('Model Switch settings menu', () => {
@@ -79,10 +105,12 @@ describe('Model Switch settings menu', () => {
     expect(markup.indexOf('sendProtection')).toBeLessThan(markup.indexOf('conversationRoutes'))
   })
 
-  it('keeps the Subagent card collapsed and labelled Official inherit when the default is off', () => {
+  it('keeps the Subagent card collapsed, labelled Official inherit, and shows the Allowlist hint when the default is off', () => {
     const markup = renderSettings({ subagent: { mode: 'follow-main', provider: 'codex', model: 'gpt-subagent' } })
     expect(markup).toContain('>subagentOff<')
+    expect(markup).toContain('>subagentHelp<')
     expect(markup).not.toContain('aria-expanded="true"')
+    expect(markup).not.toContain('>provider<')
     expect(markup).toContain('>sendProtection<')
     expect(markup).toContain('role="switch"')
   })
@@ -128,15 +156,53 @@ describe('Model Switch settings menu', () => {
     expect(en).not.toHaveProperty('subagentFollowMain')
   })
 
-  it('wires instant compact and Subagent writes without clearing the stored route', () => {
-    const source = readFileSync(new URL('../src/client/ModelSwitchSettings.tsx', import.meta.url), 'utf8')
-    expect(source).toContain('props.setCompactOnSwitch(value)')
-    expect(source).toContain("props.setSubagent('mode', subagentModeForEnabled(enabled))")
-    expect(source).toContain("expandable={subagentOn}")
-    expect(source).toContain("props.t('subagentHelp')")
-    expect(source).toContain("props.t('provider')")
-    expect(source).toContain("props.t('effort')")
-    expect(source).not.toMatch(/setSubagent\('provider',\s*undefined\)/)
-    expect(source).not.toMatch(/setSubagent\('model',\s*undefined\)/)
+  it('writes compactOnSwitch immediately from the Send protection switch', async () => {
+    const { renderer, setCompactOnSwitch } = mountSettings()
+    const compact = renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'compactOnSwitch')
+    expect(compact?.props['aria-checked']).toBe(true)
+    await act(async () => {
+      compact?.props.onClick()
+    })
+    expect(setCompactOnSwitch).toHaveBeenCalledWith(false)
+    expect(setCompactOnSwitch).toHaveBeenCalledTimes(1)
+  })
+
+  it('writes follow-main on Subagent off without clearing the stored route', async () => {
+    const { renderer, setSubagent } = mountSettings({ subagent: { mode: 'fixed', provider: 'codex', model: 'gpt-subagent' } })
+    const toggle = renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'subagent')
+    expect(toggle?.props['aria-checked']).toBe(true)
+    await act(async () => {
+      toggle?.props.onClick()
+    })
+    expect(setSubagent).toHaveBeenCalledWith('mode', 'follow-main')
+    expect(setSubagent).not.toHaveBeenCalledWith('provider', undefined)
+    expect(setSubagent).not.toHaveBeenCalledWith('model', undefined)
+    expect(setSubagent).not.toHaveBeenCalledWith('effort', undefined)
+  })
+
+  it('writes fixed on Subagent on and keeps last provider/model', async () => {
+    const { renderer, setSubagent } = mountSettings({ subagent: { mode: 'follow-main', provider: 'codex', model: 'gpt-subagent' } })
+    const toggle = renderer.root.findAllByType('button').find(button => button.props['aria-label'] === 'subagent')
+    expect(toggle?.props['aria-checked']).toBe(false)
+    await act(async () => {
+      toggle?.props.onClick()
+    })
+    expect(setSubagent).toHaveBeenCalledWith('mode', 'fixed')
+    expect(setSubagent).not.toHaveBeenCalledWith('provider', undefined)
+    expect(setSubagent).not.toHaveBeenCalledWith('model', undefined)
+  })
+
+  it('expands provider, model, and effort when the Default Subagent route is on', () => {
+    const { renderer } = mountSettings({ subagent: { mode: 'fixed', provider: 'codex', model: 'gpt-subagent' } })
+    const header = renderer.root.findAllByType('button').find(button => button.props['aria-expanded'] === false && instanceText(button).includes('subagent'))
+    act(() => {
+      header?.props.onClick()
+    })
+    const labels = renderer.root.findAllByType('span').map(node => instanceText(node))
+    expect(labels).toContain('provider')
+    expect(labels).toContain('model')
+    expect(labels).toContain('effort')
+    expect(renderer.root.findAllByType('select').length).toBeGreaterThanOrEqual(3)
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('follow-main')
   })
 })

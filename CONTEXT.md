@@ -27,3 +27,9 @@ _Avoid_: override, lock
 **Switch compaction**:
 A send-time protection: when a sent message uses a different model than the last request, check the target window and, if needed, compact once with the previous model. Choosing a model in the picker does not compact.
 _Avoid_: compaction model, summarization route, /compact, global compaction
+
+## ADRs
+
+- [0001](docs/adr/0001-default-subagent-independent-of-allowlist.md): Default Subagent route is independent of the Allowlist.
+- [0002](docs/adr/0002-drop-follow-main-for-official-inherit.md): unset Default Subagent route means Official inherit.
+- [0003](docs/adr/0003-switch-compaction-send-protection-row.md): Switch compaction is not a summarization route; chrome is a Send protection B-row.

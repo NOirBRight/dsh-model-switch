@@ -9,14 +9,11 @@ function request(agentOptions?: { provider?: string; model?: string; reasoningEf
   } as never
 }
 
-const main = { provider: 'main-provider', model: 'main-model', reasoningEffort: ReasoningEffortId('max') }
-
 describe('routeSubagentRequest Default Subagent route', () => {
   it('injects the stored route when fixed and the spawn names none', () => {
     const routed = routeSubagentRequest(
       request(),
       { subagentMode: 'fixed', subagentProvider: 'fixed-provider', subagentModel: 'fixed-model', subagentReasoningEffort: 'high' },
-      main,
     )
     expect(routed.agentOptions).toEqual({
       provider: 'fixed-provider',
@@ -29,7 +26,6 @@ describe('routeSubagentRequest Default Subagent route', () => {
     const routed = routeSubagentRequest(
       request({ provider: 'named-provider', model: 'named-model', reasoningEffort: ReasoningEffortId('low') }),
       { subagentMode: 'fixed', subagentProvider: 'fixed-provider', subagentModel: 'fixed-model', subagentReasoningEffort: 'high' },
-      main,
     )
     expect(routed.agentOptions).toEqual({
       provider: 'named-provider',
@@ -42,7 +38,6 @@ describe('routeSubagentRequest Default Subagent route', () => {
     const routed = routeSubagentRequest(
       request({ reasoningEffort: ReasoningEffortId('low') }),
       { subagentMode: 'fixed', subagentProvider: 'fixed-provider', subagentModel: 'fixed-model', subagentReasoningEffort: 'high' },
-      main,
     )
     expect(routed.agentOptions).toEqual({ reasoningEffort: ReasoningEffortId('low') })
   })
@@ -60,26 +55,23 @@ describe('routeSubagentRequest Default Subagent route', () => {
         },
       } as never,
       { subagentMode: 'follow-main' },
-      main,
     )
     expect(withParent.agentOptions).toBeUndefined()
-    expect(routeSubagentRequest(request(), { subagentMode: 'follow-main' }, main).agentOptions).toBeUndefined()
+    expect(routeSubagentRequest(request(), { subagentMode: 'follow-main' }).agentOptions).toBeUndefined()
   })
 
   it('does not inject when mode is missing', () => {
-    expect(routeSubagentRequest(request(), {} as never, main).agentOptions).toBeUndefined()
+    expect(routeSubagentRequest(request(), {} as never).agentOptions).toBeUndefined()
   })
 
   it('rejects partial explicit routes and passes incomplete fixed through to Official inherit', () => {
     expect(() => routeSubagentRequest(
       request({ provider: 'only-provider' }),
       { subagentMode: 'follow-main' },
-      main,
     )).toThrow(SubagentRouteUnavailableError)
     expect(routeSubagentRequest(
       request(),
       { subagentMode: 'fixed', subagentProvider: 'fixed-provider' },
-      main,
     ).agentOptions).toBeUndefined()
   })
 })

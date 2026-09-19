@@ -1,5 +1,4 @@
 import { resolveDefaultEffort, validateModelSelection, type CapabilityCatalog, type ModelSelection, type ReasoningEffortId } from './capabilities.js'
-import type { MainSettingsDocument } from './main-settings.js'
 
 export type SubagentRoutePolicy = { mode: 'follow-main' } | { mode: 'fixed'; route: ModelSelection }
 export interface WorkflowRouteOverride { provider: string; model: string; effort?: ReasoningEffortId }
@@ -8,8 +7,6 @@ export type SubagentRouteSnapshot =
   | { version: 1; source: 'official-inherit' }
 export interface CreateSubagentRouteInput {
   policy: SubagentRoutePolicy
-  parentRequestHeaderSelection?: ModelSelection
-  main: MainSettingsDocument
   workflowOverride?: WorkflowRouteOverride
 }
 

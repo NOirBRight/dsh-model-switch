@@ -1,5 +1,4 @@
 import { Context } from '@deepseek-ai/cordis';
-import type { ModelSelection } from '@deepseek-ai/dsh-agent';
 import OfficialSubagentRuntime, { type ContinuableStart, type ContinuableStartSpec, type SubagentRun, type SubagentStartRequest } from '@deepseek-ai/dsh-subagent';
 import type { Config } from './host-settings.js';
 /** Raised only when an explicit startup check finds an unsupported public surface. */
@@ -27,7 +26,7 @@ export interface MountedStartup<T> {
 }
 type RoutableSubagentRequest = Pick<SubagentStartRequest, 'parent' | 'agentOptions'>;
 /** Inject a fixed Default Subagent route, or leave the request for Official inherit. */
-export declare function routeSubagentRequest<T extends RoutableSubagentRequest>(request: T, settings: Config, _main: ModelSelection): T;
+export declare function routeSubagentRequest<T extends RoutableSubagentRequest>(request: T, settings: Config): T;
 /**
  * Mount a candidate and use the fallback only for typed startup incompatibility.
  *

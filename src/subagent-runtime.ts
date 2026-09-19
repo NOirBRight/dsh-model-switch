@@ -43,7 +43,6 @@ export interface MountedStartup<T> {
 
 interface ModelSwitchSurface {
   currentSettings(): Config
-  currentMainSelection(): ModelSelection
 }
 type RoutableSubagentRequest = Pick<SubagentStartRequest, 'parent' | 'agentOptions'>
 
@@ -56,7 +55,7 @@ function present(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== ''
 }
 
-function namedEffort(options: AgentOptions | undefined): boolean {
+function effortOnlySpawn(options: AgentOptions | undefined): boolean {
   return options?.reasoningEffort !== undefined
 }
 
@@ -89,10 +88,9 @@ function fixedRoute(settings: Config): ModelSelection | undefined {
 export function routeSubagentRequest<T extends RoutableSubagentRequest>(
   request: T,
   settings: Config,
-  _main: ModelSelection,
 ): T {
   if (explicitRoute(request.agentOptions) !== undefined) return request
-  if (namedEffort(request.agentOptions)) return request
+  if (effortOnlySpawn(request.agentOptions)) return request
   if (settings.subagentMode !== 'fixed') return request
   const selected = fixedRoute(settings)
   if (selected === undefined) return request
@@ -137,7 +135,6 @@ function assertOfficialRuntimeSurface(): void {
 function assertRoutingSurface(ctx: Context): void {
   const modelSwitch = (ctx as ProfileContext).modelSwitch
   assertPublicMethod(modelSwitch, 'Model Switch runtime', 'currentSettings')
-  assertPublicMethod(modelSwitch, 'Model Switch runtime', 'currentMainSelection')
 }
 
 function routingSurface(ctx: Context): ModelSwitchSurface {
@@ -264,11 +261,7 @@ export class ModelSwitchSubagentRuntime extends OfficialSubagentRuntime {
     // Native continuable Subagents or inject a provider/model route.
     if (provider !== undefined && provider.capabilities.agentOptions !== true) return request
     const modelSwitch = routingSurface(this.ctx)
-    return routeSubagentRequest(
-      request,
-      modelSwitch.currentSettings(),
-      modelSwitch.currentMainSelection(),
-    )
+    return routeSubagentRequest(request, modelSwitch.currentSettings())
   }
 
   override start(name: string, request: SubagentStartRequest): Promise<SubagentRun> {

@@ -21,7 +21,6 @@ describe('Subagent profile startup selection', () => {
     class IncompatibleModelSwitch extends Service {
       static inject = []
       constructor(ctx: Context) { super(ctx, 'modelSwitch') }
-      currentSettings(): { subagentMode: 'follow-main' } { return { subagentMode: 'follow-main' } }
     }
 
     context = new Context()
@@ -37,7 +36,6 @@ describe('Subagent profile startup selection', () => {
       static inject = []
       constructor(ctx: Context) { super(ctx, 'modelSwitch') }
       get currentSettings(): never { throw new TypeError('broken model switch') }
-      currentMainSelection(): never { throw new Error('not reached') }
     }
 
     context = new Context()
