@@ -21,6 +21,8 @@ export declare const zh: {
     'effort.providerDefault': string;
     'status.loading': string;
     'settings.remoteUnavailable': string;
+    'settings.loading': string;
+    'settings.unavailable': string;
     'error.action': string;
     'error.picker': string;
     'action.reload': string;
@@ -67,6 +69,8 @@ export declare const en: {
     'effort.providerDefault': string;
     'status.loading': string;
     'settings.remoteUnavailable': string;
+    'settings.loading': string;
+    'settings.unavailable': string;
     'error.action': string;
     'error.picker': string;
     'action.reload': string;

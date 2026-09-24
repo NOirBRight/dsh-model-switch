@@ -88,12 +88,24 @@ interface PlanReviewStateProps {
   providerLock: RuntimeProviderLock
   agentLocked: boolean
   lockFailed: boolean
-  remoteUnavailable: boolean
+  settingsUnavailableReason?: string
   directory: PickerDirectoryView
   t: PlanReviewCardProps['t']
   resolveInteractionOperations?: () => PickerInteractionOperations | undefined
   /** Resolve a provider key to its ProviderDirectory role for runtime icons. */
   roleOf?: (providerKey: string) => string | undefined
+}
+
+/** Match the model seat's admission guard before letting either picker offer a change. */
+export function mainDefaultsUnavailableReason(
+  snapshot: ConfigFormSnapshot<MainSettingsView>,
+  t: PlanReviewCardProps['t'],
+): string | undefined {
+  if (snapshot.mode === 'memory') return t('settings.remoteUnavailable')
+  if (snapshot.status === 'loading') return t('settings.loading')
+  if (snapshot.status !== 'ready' || snapshot.mode !== 'host' || !snapshot.writable
+    || snapshot.value === undefined || snapshot.revision === undefined) return t('settings.unavailable')
+  return undefined
 }
 
 /** Inline failed lock-read status; history and log reading stay unaffected. */
@@ -109,7 +121,9 @@ export function ProviderLockHint(props: { t: PlanReviewCardProps['t'] }) {
 export function PlanReviewCard(props: PlanReviewCardProps) {
   const snapshot = props.useDirectory(value => value)
   const order = props.useProviderOrder(value => value)
-  const remoteUnavailable = useSyncExternalStore(props.subscribeMainDefaults, props.getMainDefaultsSnapshot).mode === 'memory'
+  const settingsUnavailableReason = mainDefaultsUnavailableReason(
+    useSyncExternalStore(props.subscribeMainDefaults, props.getMainDefaultsSnapshot), props.t,
+  )
   const lock = useSyncExternalStore(props.providerLockStore.subscribe, props.providerLockStore.getSnapshot)
   const phase = props.useInput(input => input.phase)
   const blank = props.useSession(session => session.blank)
@@ -136,7 +150,7 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
     providerLock={providerLock}
     agentLocked={agentLocked}
     lockFailed={lock.failed}
-    remoteUnavailable={remoteUnavailable}
+    {...(settingsUnavailableReason === undefined ? {} : { settingsUnavailableReason })}
     directory={pickerDirectoryViewOrdered(snapshot, props, order, props.catalogRoutes?.() ?? {})}
     t={props.t}
     {...props.resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations: props.resolveInteractionOperations }}
@@ -145,7 +159,7 @@ export function PlanReviewCard(props: PlanReviewCardProps) {
 }
 
 function PlanReviewState({
-  matched, review, available, providerLock, agentLocked, lockFailed, remoteUnavailable, directory, t, resolveInteractionOperations, roleOf,
+  matched, review, available, providerLock, agentLocked, lockFailed, settingsUnavailableReason, directory, t, resolveInteractionOperations, roleOf,
 }: PlanReviewStateProps) {
   const { snapshot, getDirectorySnapshot, load, select } = directory
   const [execution, setExecution] = useState<ModelSelection | undefined>(snapshot.current ?? undefined)
@@ -173,11 +187,11 @@ function PlanReviewState({
     })
   }
 
-  const remoteBlock = remoteUnavailable && execution !== undefined
+  const settingsBlock = settingsUnavailableReason !== undefined && execution !== undefined
     && (snapshot.current === null || execution.provider !== snapshot.current.provider
       || execution.model !== snapshot.current.model
       || execution.reasoningEffort !== snapshot.current.reasoningEffort)
-  const executionAllowed = execution !== undefined && !remoteBlock
+  const executionAllowed = execution !== undefined && !settingsBlock
     && runtimeChoiceAllowed(
       providerLock,
       agentLocked,
@@ -220,12 +234,12 @@ function PlanReviewState({
               retryLabel={t('retry')}
             >
             <ComposerPicker
-              locked={busy || blocked || remoteUnavailable}
+              locked={busy || blocked || settingsUnavailableReason !== undefined}
               providerLock={providerLock}
               agentLocked={agentLocked}
               {...(roleOf === undefined ? {} : { roleOf })}
               available={available}
-              {...(remoteUnavailable ? { unavailableReason: t('settings.remoteUnavailable') } : {})}
+              {...(settingsUnavailableReason === undefined ? {} : { unavailableReason: settingsUnavailableReason })}
               directory={directory}
               t={t}
               {...resolveInteractionOperations === undefined ? {} : { resolveInteractionOperations }}
@@ -241,7 +255,7 @@ function PlanReviewState({
           <MarkdownText text={review.plan} labels={{ code: { copyLabel: t('markdown.copy'), copiedLabel: t('markdown.copied') }, footnotes: t('markdown.footnotes') }} />
         </div>
         <div className={css.footer}>
-          <div className={css.feedback} role="status">{action.error ?? (remoteBlock ? t('settings.remoteUnavailable') : null)}</div>
+          <div className={css.feedback} role="status">{action.error ?? (settingsBlock ? settingsUnavailableReason : null)}</div>
           <div className={css.bar}>
             <div className={css.actions}>
               <Button

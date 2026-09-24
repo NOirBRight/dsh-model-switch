@@ -28,6 +28,8 @@ export interface PlanReviewFace extends PickerDirectoryFace {
 export type PlanReviewCardProps = PropsRuntime<'conversation.composer'> & PropsLocale<'composer-picker'> & InjectFace<PlanReviewFace> & {
     matched: PendingQuestion;
 };
+/** Match the model seat's admission guard before letting either picker offer a change. */
+export declare function mainDefaultsUnavailableReason(snapshot: ConfigFormSnapshot<MainSettingsView>, t: PlanReviewCardProps['t']): string | undefined;
 /** Inline failed lock-read status; history and log reading stay unaffected. */
 export declare function ProviderLockHint(props: {
     t: PlanReviewCardProps['t'];

@@ -38,6 +38,7 @@ const lockedLockSnapshot = { provider: 'antigravity', failed: false }
 const failedLockSnapshot = { provider: null, failed: true }
 const hostSettings = { status: 'ready', mode: 'host', writable: true, value: selection, revision: 1 }
 const remoteSettings = { status: 'unavailable', mode: 'memory', writable: false, value: undefined, revision: undefined }
+const loadingSettings = { status: 'loading', mode: 'host', writable: false, value: undefined, revision: undefined }
 function props(overrides: Record<string, unknown> = {}) {
   let snapshot = baseSnapshot
   return {
@@ -99,6 +100,20 @@ describe('PlanReviewCard', () => {
     await act(async () => { chooseExecution(card) })
     expect(approve(card, zh['plan.approve']).props.disabled).toBe(true)
     expect(card.root.findByProps({ role: 'status' }).children.join('')).toBe(zh['settings.remoteUnavailable'])
+    expect(fixture.select).not.toHaveBeenCalled()
+    await act(async () => { card.unmount() })
+  })
+
+  it('explains Main settings loading before Plan execution can switch models', async () => {
+    const fixture = props({ getMainDefaultsSnapshot: () => loadingSettings, t: locale(en) })
+    let card!: ReactTestRenderer
+    await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+    const picker = card.root.findByType(ComposerPicker)
+    expect(picker.props.locked).toBe(true)
+    expect(picker.props.unavailableReason).toBe(en['settings.loading'])
+    await act(async () => { chooseExecution(card) })
+    expect(approve(card, en['plan.approve']).props.disabled).toBe(true)
+    expect(card.root.findByProps({ role: 'status' }).children.join('')).toBe(en['settings.loading'])
     expect(fixture.select).not.toHaveBeenCalled()
     await act(async () => { card.unmount() })
   })

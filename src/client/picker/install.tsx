@@ -16,7 +16,7 @@ import { ComposerPicker } from './ComposerPicker.tsx'
 import type { ProviderOrderSettings } from 'dsh-llm-providers-ui/order'
 import { pickerDirectoryViewOrdered, type PickerDirectoryFace } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
-import { PlanReviewCard, ProviderLockHint } from './PlanReviewCard.tsx'
+import { mainDefaultsUnavailableReason, PlanReviewCard, ProviderLockHint } from './PlanReviewCard.tsx'
 import { PickerSeatBoundary } from './PickerSeatBoundary.tsx'
 import {
   agentProviderLocked,
@@ -145,7 +145,7 @@ function ModelSeat(
   const directory = props.useDirectory(snapshot => snapshot)
   const order = props.useProviderOrder(value => value)
   const mainDefaults = useSyncExternalStore(props.subscribeMainDefaults, props.getMainDefaultsSnapshot)
-  const remoteUnavailable = mainDefaults.mode === 'memory'
+  const settingsUnavailableReason = mainDefaultsUnavailableReason(mainDefaults, props.t)
   const lock = useSyncExternalStore(props.providerLockStore.subscribe, props.providerLockStore.getSnapshot)
   const phase = props.useInput(input => input.phase)
   const blank = props.useSession(session => session.blank)
@@ -156,12 +156,12 @@ function ModelSeat(
     <>
     {lock.failed && <ProviderLockHint t={props.t} />}
     <ComposerPicker
-      locked={props.locked || remoteUnavailable || (lock.failed && directory.current === null)}
+      locked={props.locked || settingsUnavailableReason !== undefined || (lock.failed && directory.current === null)}
       providerLock={providerLock}
       agentLocked={agentProviderLocked(blank, providerLock, active)}
       {...(props.roleOf === undefined ? {} : { roleOf: props.roleOf })}
       available={props.available}
-      {...(remoteUnavailable ? { unavailableReason: props.t('settings.remoteUnavailable') } : {})}
+      {...(settingsUnavailableReason === undefined ? {} : { unavailableReason: settingsUnavailableReason })}
       directory={pickerDirectoryViewOrdered(directory, props, order, props.catalogRoutes?.() ?? {})}
       t={props.t}
       {...props.resolveInteractionOperations === undefined

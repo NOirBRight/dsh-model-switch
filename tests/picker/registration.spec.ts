@@ -116,10 +116,13 @@ describe('composer picker seat ownership', () => {
     expect(mainForm.mutate).not.toHaveBeenCalled()
   })
 
-  it('disables the remote memory-only composer picker with an actionable reason', async () => {
+  it.each([
+    ['remote memory-only', { status: 'unavailable', mode: 'memory', writable: false, value: undefined, revision: undefined }, 'settings.remoteUnavailable'],
+    ['loading Main settings', { status: 'loading', mode: 'host', writable: false, value: undefined, revision: undefined }, 'settings.loading'],
+    ['read-only Main settings', { status: 'ready', mode: 'host', writable: false, value: { provider: 'deepseek', model: 'deep-chat' }, revision: 1 }, 'settings.unavailable'],
+  ])('disables the %s composer picker with an actionable reason', async (_status, mainSnapshot, reason) => {
     const { entries, directory, mainForm } = bench()
-    const remote = { status: 'unavailable', mode: 'memory', writable: false, value: undefined, revision: undefined }
-    mainForm.getSnapshot = () => remote
+    mainForm.getSnapshot = () => mainSnapshot
     const snapshot = { current: { provider: 'deepseek', model: 'deep-chat' }, routable: true, groups: [], failures: [], status: 'ready', error: null }
     directory.store.getSnapshot.mockReturnValue(snapshot)
     directory.store.subscribe.mockReturnValue(() => undefined)
@@ -139,8 +142,8 @@ describe('composer picker seat ownership', () => {
     await act(async () => { picker = create(React.createElement(model.component as React.ComponentType<typeof props>, props)) })
     const trigger = picker.root.findByProps({ 'aria-haspopup': 'menu' })
     expect(trigger.props.disabled).toBe(true)
-    expect(trigger.props.title).toBe('settings.remoteUnavailable')
-    expect(trigger.props['aria-label']).toContain('settings.remoteUnavailable')
+    expect(trigger.props.title).toBe(reason)
+    expect(trigger.props['aria-label']).toContain(reason)
     await act(async () => { trigger.props.onClick() })
     expect(directory.select).not.toHaveBeenCalled()
     expect(picker.root.findAllByProps({ role: 'menu' })).toHaveLength(0)
