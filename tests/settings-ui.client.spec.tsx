@@ -38,13 +38,16 @@ function face(options?: {
   subagent?: { mode: 'follow-main' | 'fixed'; provider?: string; model?: string }
   compactOnSwitch?: boolean
   omitCompactOnSwitch?: true
+  memoryOnly?: true
   setSubagent?: ReturnType<typeof vi.fn>
   setCompactOnSwitch?: ReturnType<typeof vi.fn>
 }) {
   const subagent = options?.subagent ?? { mode: 'fixed', provider: 'codex', model: 'gpt-subagent' }
   const controllerState = controller(subagent)
   vi.mocked(useModelSwitchSettingsController).mockImplementation(() => controllerState as never)
-  const switchSettings = snapshot(options?.omitCompactOnSwitch === true ? {} : { compactOnSwitch: options?.compactOnSwitch !== false })
+  const switchSettings = options?.memoryOnly
+    ? { status: 'unavailable' as const, value: undefined, base: undefined, user: {}, revision: undefined, writable: false, mode: 'memory' as const }
+    : snapshot(options?.omitCompactOnSwitch === true ? {} : { compactOnSwitch: options?.compactOnSwitch !== false })
   const searchSettings = snapshot({ provider: 'codex', model: 'gpt-search' })
   const imageSettings = snapshot({ provider: 'grok', model: 'grok-imagine-image-quality' })
   return {
@@ -105,6 +108,18 @@ describe('Model Switch settings menu', () => {
     expect(markup).not.toContain('subagentFollowMain')
     expect(markup.indexOf('sendProtection')).toBeLessThan(markup.indexOf('conversationRoutes'))
   })
+  it('shows a final unavailable state instead of controls or endless loading under the official remote memory policy', () => {
+    const markup = renderSettings({ memoryOnly: true })
+    expect(markup).toContain('role="status"')
+    expect(markup).toContain('>remoteSettingsUnavailable<')
+    expect(markup).not.toContain('>loading<')
+    expect(markup).not.toContain('settingsSynced')
+    expect(markup).not.toContain('role="switch"')
+    expect(markup).not.toContain('<select')
+    expect(zh.remoteSettingsUnavailable).toContain('非本机')
+    expect(en.remoteSettingsUnavailable).toContain('non-loopback')
+  })
+
 
   it('keeps the Subagent card collapsed, labelled Official inherit, and shows the Allowlist hint when the default is off', () => {
     const markup = renderSettings({ subagent: { mode: 'follow-main', provider: 'codex', model: 'gpt-subagent' } })

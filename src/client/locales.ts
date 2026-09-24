@@ -1,6 +1,6 @@
 export const zh = {
   nav: '模型切换', title: '模型切换', subtitle: '为主会话、子代理和能力工具设置默认模型。修改只影响新请求。',
-  conversationRoutes: '对话路由', capabilityRoutes: '能力路由', sendProtection: '发送保护', settingsSynced: '设置已同步', defaultBadge: '默认', cancel: '取消',
+  conversationRoutes: '对话路由', capabilityRoutes: '能力路由', sendProtection: '发送保护', settingsSynced: '设置已同步', remoteSettingsUnavailable: '官方 DSH 在非本机浏览器禁用配置读取与写入；请在 Host 的 127.0.0.1 页面打开设置。', defaultBadge: '默认', cancel: '取消',
   compactOnSwitch: '切换时压缩', compactOnSwitchHelp: '发送且换了模型时，先按目标窗口检查上下文；超了就用切换前的模型压一次历史，再继续请求。只选模型、不发送，不会压缩。官方自动压缩和 /compact 不受影响。压缩会产生额外模型用量，摘要可能省略细节。',
   main: '主模型', provider: '提供商', model: '模型', providerDefault: '使用提供商默认值', providerDefaultShort: 'Provider 默认', effort: '推理强度', save: '保存', saving: '保存中…', saved: '已保存',
   subagent: '子代理默认路由', subagentHelp: 'DSH 已有官方子代理模型白名单：模型自己点名 provider/model 时以它为准。这里只在未点名时使用。', subagentOff: '未指定时使用官方继承', agentBadge: 'Agent',
@@ -11,7 +11,7 @@ export const zh = {
 
 export const en: Record<keyof typeof zh, string> = {
   nav: 'Model Switch', title: 'Model Switch', subtitle: 'Set default models for Main, Subagents, and capability tools. Changes affect new requests only.',
-  conversationRoutes: 'Conversation routes', capabilityRoutes: 'Capability routes', sendProtection: 'Send protection', settingsSynced: 'Settings synced', defaultBadge: 'Default', cancel: 'Cancel',
+  conversationRoutes: 'Conversation routes', capabilityRoutes: 'Capability routes', sendProtection: 'Send protection', settingsSynced: 'Settings synced', remoteSettingsUnavailable: 'Official DSH disables settings reads and writes in non-loopback browsers. Open Settings on the Host loopback URL to edit model routes.', defaultBadge: 'Default', cancel: 'Cancel',
   compactOnSwitch: 'Compact on switch', compactOnSwitchHelp: 'When a sent message uses a new model, check the target window first. If needed, compact history with the previous model, then continue. Choosing a model does not compact. Official automatic compaction and /compact are unchanged. Compaction uses extra model quota and may omit details.',
   main: 'Main model', provider: 'Provider', model: 'Model', providerDefault: 'Provider default', providerDefaultShort: 'Provider default', effort: 'Reasoning effort', save: 'Save', saving: 'Saving…', saved: 'Saved',
   subagent: 'Default Subagent route', subagentHelp: 'DSH already has an official Allowlist for child models the agent names. This default applies only when the spawn names none.', subagentOff: 'Official inherit when unnamed', agentBadge: 'Agent',

@@ -1,3 +1,7 @@
+## v0.4.14
+
+Target official DSH `0.1.7-alpha.2`, pin Provider UI `0.2.12`, and move Main, Subagent, search, image, and compaction controls to published ConfigForms. On non-loopback browsers the official forms are memory-only: Settings shows an explicit unavailable state and the picker refuses selections that would otherwise persist a deployment-wide default without a safe restoration path.
+
 ## v0.4.13
 
 Replacement Subagent runtime exposes public `resolveMaxDepth` so Host 0.1.6-alpha.2 Standard remount keeps Model Switch routing. Compile target stays `0.1.5-rc.1`.

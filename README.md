@@ -26,6 +26,7 @@ The existing 3082 lab replay probe is `node scripts/check-lab-runtime-lock.mjs [
 ## Configure Main and Subagents
 
 Open **Settings → Model Switch**. Main changes affect new sessions only. Subagents may follow Main or use a fixed provider, model, and effort.
+Official DSH `0.1.7-alpha.2` makes ConfigForms memory-only in non-loopback browsers. This page shows an unavailable message there; open Settings on the Host loopback URL instead. The composer picker refuses model changes in that mode because the published `session.selectModel` also persists the deployment default, which cannot be safely restored without a writable Main ConfigForm. Remote editing and session-only selection require an upstream authenticated ConfigForm seam and a session-only selection API; this plugin does not bypass the official policy.
 
 Changing the Main or fixed Subagent provider/model replaces the previous model's effort with the target model's default. Models without reasoning support receive no effort.
 
@@ -92,17 +93,17 @@ When a sent message will use a different model or context-tier id than the last 
 
 ## Installation
 
-Install Model Switch and only the provider adapters you use. The coordinated versions below target DeepSeek Harness 0.1.5-rc.1, 0.1.5-rc.2, and 0.1.6-alpha.2:
+Install Model Switch and only the provider adapters you use. These coordinated releases target official DeepSeek Harness `0.1.7-alpha.2`:
 
 ```sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.9.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.12.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-codex/releases/latest/download/dsh-llm-codex-0.3.19.tgz
+  https://github.com/NOirBRight/dsh-llm-codex/releases/latest/download/dsh-llm-codex-0.3.23.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-grok/releases/latest/download/dsh-llm-grok-0.3.16.tgz
+  https://github.com/NOirBRight/dsh-llm-grok/releases/latest/download/dsh-llm-grok-0.3.19.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.13.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.14.tgz
 ```
 
 ### Search routing (0.4.7)
@@ -123,9 +124,9 @@ Production profiles must use released GitHub tags rather than workspace-local de
 
 ## Compatibility
 
-Host `@deepseek-ai/dsh-*` packages are not version-locked: peers are `*` and optional. `devDependencies` pin the compile target (`0.1.5-rc.1`). Cordis stays `>=4.0.2 <5.0.0`.
+This release pins official DSH `0.1.7-alpha.2` Host peers and build dependencies, plus Cordis `~4.0.4`. It does not declare compatibility with older DSH releases.
 
-Verified Hosts in `package.json#dsh.compatibility.dshReleases` are evidence, not an allowlist. Unknown newer Hosts warn once and keep the normal mount path. Only a reproduced failure is blocklisted.
+Only DSH `0.1.7-alpha.2` is verified in `package.json#dsh.compatibility.dshReleases`; test another official Host release before declaring it compatible.
 
 ## Development
 
@@ -140,24 +141,24 @@ pnpm run check
 
 ## Release installation (Latest)
 
-Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools. The release artifact targets the verified runtimes listed above and contains built Host/Client files only; it has no sibling-repository source, workstation path, or local protocol dependency.
+Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools on official DeepSeek Harness `0.1.7-alpha.2`. The release artifact contains built Host/Client files, not sibling source or local paths.
 
-Latest installation (the URL never contains a version):
+Latest installation (the asset filename must match the current latest release):
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.9.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.12.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.13.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.14.tgz
 ~~~
 
 Fixed-version installation:
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.9/dsh-llm-providers-ui-0.2.9.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.12/dsh-llm-providers-ui-0.2.12.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.13/dsh-model-switch-0.4.13.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.14/dsh-model-switch-0.4.14.tgz
 ~~~
 
 Update, uninstall, and verify:
@@ -165,9 +166,9 @@ Update, uninstall, and verify:
 ~~~sh
 # Update to the latest Release
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.9.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.12.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.13.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.14.tgz
 # Verify the loaded version
 dsh plugin --profile web list
 dsh plugin --profile web doctor
@@ -177,6 +178,6 @@ dsh plugin --profile web remove dsh-model-switch
 
 Configuration: use the plugin section in Settings for Web UI plugins, or the profile dsh.profile.bundles entry for Host-only plugins. Start with this README's minimal YAML/JSON example and provide credentials/backend addresses explicitly.
 
-Rollback: rerun the fixed v0.4.12 command, verify the profile list, then restart the Web service once. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never put a source checkout in the production profile.
+Rollback: restore the previous official Host and matching profile together; previous Model Switch releases are not compatible with this Alpha.2 Host. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never link a checkout into production.
 
-Release and integrity: [v0.4.13](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.13) · [SHA256SUMS](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.13/SHA256SUMS).
+Release and integrity: [v0.4.14](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.14) · [SHA256](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.14/dsh-model-switch-0.4.14.tgz.sha256).

@@ -154,6 +154,12 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
     void poll(undefined)
     return () => { live = false; scope.abort(); if (timer !== undefined) clearTimeout(timer) }
   }, [loadSearchCapabilities])
+  if ([controller.main, controller.subagent, search, image, switchSettings].some(form => form.mode === 'memory')) {
+    return <main className={css.section}>
+      <h1 className={css.title}>{props.t('title')}</h1>
+      <p role="status" className={css.hint}>{props.t('remoteSettingsUnavailable')}</p>
+    </main>
+  }
   const unavailable = (key: keyof RuntimeCapabilities): string => { const reason = props.capabilities[key].reason; return reason === undefined ? props.t('unavailable') : props.t(('reason.' + reason) as ModelSwitchLocaleKey) }
   const toggle = (route: RouteId): void => { setOpen(current => current === route ? undefined : route); setMessage(undefined) }
   const subagentRoute = subagentDraft === undefined ? undefined : { ...(subagentDraft.provider === undefined ? {} : { provider: subagentDraft.provider }), ...(subagentDraft.model === undefined ? {} : { model: subagentDraft.model }) }
