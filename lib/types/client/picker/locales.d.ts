@@ -20,6 +20,7 @@ export declare const zh: {
     'thinking.off': string;
     'effort.providerDefault': string;
     'status.loading': string;
+    'settings.remoteUnavailable': string;
     'error.action': string;
     'error.picker': string;
     'action.reload': string;
@@ -65,6 +66,7 @@ export declare const en: {
     'thinking.off': string;
     'effort.providerDefault': string;
     'status.loading': string;
+    'settings.remoteUnavailable': string;
     'error.action': string;
     'error.picker': string;
     'action.reload': string;

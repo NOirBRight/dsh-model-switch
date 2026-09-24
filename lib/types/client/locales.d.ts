@@ -6,6 +6,7 @@ export declare const zh: {
     readonly capabilityRoutes: "能力路由";
     readonly sendProtection: "发送保护";
     readonly settingsSynced: "设置已同步";
+    readonly remoteSettingsUnavailable: "官方 DSH 在非本机浏览器禁用配置读取与写入；请在 Host 的 127.0.0.1 页面打开设置。";
     readonly defaultBadge: "默认";
     readonly cancel: "取消";
     readonly compactOnSwitch: "切换时压缩";

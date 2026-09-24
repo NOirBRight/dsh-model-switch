@@ -13,6 +13,8 @@ interface ComposerPickerBaseProps {
     /** Hide/disable Agent-role groups on existing DSH sessions that are not native-bound. */
     agentLocked?: boolean;
     available: boolean;
+    /** Explain a disabled picker when the official Host has no persistent settings channel. */
+    unavailableReason?: string;
     directory: PickerDirectoryView;
     t: (key: PickerKey, params?: Record<string, string>) => string;
     embedded?: boolean;
@@ -42,4 +44,4 @@ export interface ModelPaneHeaderProps {
     onQueryChange: (query: string) => void;
 }
 export declare function ModelPaneHeader({ title, backLabel, searchLabel, closeSearchLabel, searchable, searching, query, onBack, onStartSearch, onCloseSearch, onQueryChange, }: ModelPaneHeaderProps): import("react").JSX.Element;
-export declare function ComposerPicker({ locked, providerLock, agentLocked, available, directory, t, draft, onDraftChange, embedded, tone, resolveInteractionOperations, roleOf, }: ComposerPickerProps): import("react").JSX.Element | null;
+export declare function ComposerPicker({ locked, providerLock, agentLocked, available, unavailableReason, directory, t, draft, onDraftChange, embedded, tone, resolveInteractionOperations, roleOf, }: ComposerPickerProps): import("react").JSX.Element | null;

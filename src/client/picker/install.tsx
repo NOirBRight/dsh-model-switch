@@ -87,6 +87,9 @@ interface DirectoryFace extends PickerDirectoryFace {
   providerLockStore: ProviderLockStore
   /** Re-read the native binding now (mount, turn transitions, pre-selection). */
   refreshProviderLock: () => void
+  /** Subscribe to official Main ConfigForm availability before offering a model switch. */
+  subscribeMainDefaults: (listener: () => void) => () => void
+  getMainDefaultsSnapshot: () => ConfigFormSnapshot<MainSettingsView>
   /** Resolve a provider key to its ProviderDirectory role for runtime icons. */
   roleOf?: (key: string) => string | undefined
   /** Live catalog-group-id → card-key map from ProviderDirectory. */
@@ -141,6 +144,8 @@ function ModelSeat(
 ) {
   const directory = props.useDirectory(snapshot => snapshot)
   const order = props.useProviderOrder(value => value)
+  const mainDefaults = useSyncExternalStore(props.subscribeMainDefaults, props.getMainDefaultsSnapshot)
+  const remoteUnavailable = mainDefaults.mode === 'memory'
   const lock = useSyncExternalStore(props.providerLockStore.subscribe, props.providerLockStore.getSnapshot)
   const phase = props.useInput(input => input.phase)
   const blank = props.useSession(session => session.blank)
@@ -151,11 +156,12 @@ function ModelSeat(
     <>
     {lock.failed && <ProviderLockHint t={props.t} />}
     <ComposerPicker
-      locked={props.locked || (lock.failed && directory.current === null)}
+      locked={props.locked || remoteUnavailable || (lock.failed && directory.current === null)}
       providerLock={providerLock}
       agentLocked={agentProviderLocked(blank, providerLock, active)}
       {...(props.roleOf === undefined ? {} : { roleOf: props.roleOf })}
       available={props.available}
+      {...(remoteUnavailable ? { unavailableReason: props.t('settings.remoteUnavailable') } : {})}
       directory={pickerDirectoryViewOrdered(directory, props, order, props.catalogRoutes?.() ?? {})}
       t={props.t}
       {...props.resolveInteractionOperations === undefined
@@ -221,6 +227,8 @@ export function installComposerPicker(ctx: ClientContext): void {
         refreshProviderLock: () => {
           void providerLockStore.refresh()
         },
+        subscribeMainDefaults: listener => mainDefaults.subscribe(listener),
+        getMainDefaultsSnapshot: () => mainDefaults.getSnapshot(),
         hooks: { directory: directory.store, providerOrder: orderStore },
         getDirectorySnapshot: directory.store.getSnapshot,
         resolveInteractionOperations,

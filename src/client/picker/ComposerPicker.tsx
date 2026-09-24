@@ -58,6 +58,8 @@ interface ComposerPickerBaseProps {
   /** Hide/disable Agent-role groups on existing DSH sessions that are not native-bound. */
   agentLocked?: boolean
   available: boolean
+  /** Explain a disabled picker when the official Host has no persistent settings channel. */
+  unavailableReason?: string
   directory: PickerDirectoryView
   t: (key: PickerKey, params?: Record<string, string>) => string
   embedded?: boolean
@@ -147,7 +149,7 @@ function RuntimeIcon({ provider, roleOf }: { provider: string, roleOf?: (provide
 }
 
 export function ComposerPicker({
-  locked, providerLock = null, agentLocked = false, available, directory, t, draft, onDraftChange, embedded,
+  locked, providerLock = null, agentLocked = false, available, unavailableReason, directory, t, draft, onDraftChange, embedded,
   tone,
   resolveInteractionOperations,
   roleOf,
@@ -565,11 +567,11 @@ export function ComposerPicker({
         ref={triggerRef}
         type="button"
         className={css.trigger}
-        aria-label={triggerAria}
+        aria-label={unavailableReason === undefined ? triggerAria : `${triggerAria}: ${unavailableReason}`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? `${id}-menu` : undefined}
-        title={triggerLabel}
+        title={unavailableReason ?? triggerLabel}
         disabled={locked}
         onPointerDown={onTriggerPointerDown}
         onClick={onTriggerClick}

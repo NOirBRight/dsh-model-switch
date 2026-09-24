@@ -1,3 +1,5 @@
+import React from 'react'
+import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
@@ -112,6 +114,37 @@ describe('composer picker seat ownership', () => {
     await expect(face.select({ provider: 'codex', model: 'gpt-switched' })).resolves.toBe(false)
     expect(directory.select).not.toHaveBeenCalled()
     expect(mainForm.mutate).not.toHaveBeenCalled()
+  })
+
+  it('disables the remote memory-only composer picker with an actionable reason', async () => {
+    const { entries, directory, mainForm } = bench()
+    const remote = { status: 'unavailable', mode: 'memory', writable: false, value: undefined, revision: undefined }
+    mainForm.getSnapshot = () => remote
+    const snapshot = { current: { provider: 'deepseek', model: 'deep-chat' }, routable: true, groups: [], failures: [], status: 'ready', error: null }
+    directory.store.getSnapshot.mockReturnValue(snapshot)
+    directory.store.subscribe.mockReturnValue(() => undefined)
+    const model = entries.find(({ spec }) => spec.name === 'conversation.input.model')!
+    const face = (model.spec.inject as (sessionId: string) => Record<string, unknown>)('session-1')
+    const props = {
+      ...face,
+      locked: false,
+      t: (key: string) => key,
+      useDirectory: (select: (value: typeof snapshot) => unknown) => select(snapshot),
+      useProviderOrder: (select: (value: string[]) => unknown) => select([]),
+      useInput: (select: (value: { phase: string }) => unknown) => select({ phase: 'idle' }),
+      useSession: (select: (value: { blank: boolean; running: boolean; awaitingFirstTurn: boolean }) => unknown) =>
+        select({ blank: true, running: false, awaitingFirstTurn: false }),
+    }
+    let picker!: ReactTestRenderer
+    await act(async () => { picker = create(React.createElement(model.component as React.ComponentType<typeof props>, props)) })
+    const trigger = picker.root.findByProps({ 'aria-haspopup': 'menu' })
+    expect(trigger.props.disabled).toBe(true)
+    expect(trigger.props.title).toBe('settings.remoteUnavailable')
+    expect(trigger.props['aria-label']).toContain('settings.remoteUnavailable')
+    await act(async () => { trigger.props.onClick() })
+    expect(directory.select).not.toHaveBeenCalled()
+    expect(picker.root.findAllByProps({ role: 'menu' })).toHaveLength(0)
+    await act(async () => { picker.unmount() })
   })
 
   it('refuses a provider change when one declared native binding cannot be read', async () => {
