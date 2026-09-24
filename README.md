@@ -93,7 +93,7 @@ When a sent message will use a different model or context-tier id than the last 
 
 ## Installation
 
-Install Model Switch and only the provider adapters you use. These coordinated releases target official DeepSeek Harness `0.1.7-alpha.2`:
+Install Model Switch and only the provider adapters you use. This release was checked against official DeepSeek Harness `0.1.7-rc.1`:
 
 ```sh
 dsh plugin --profile web add --force \
@@ -103,7 +103,7 @@ dsh plugin --profile web add --force \
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-grok/releases/latest/download/dsh-llm-grok-0.3.19.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.14.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.15.tgz
 ```
 
 ### Search routing (0.4.7)
@@ -124,9 +124,9 @@ Production profiles must use released GitHub tags rather than workspace-local de
 
 ## Compatibility
 
-This release pins official DSH `0.1.7-alpha.2` Host peers and build dependencies, plus Cordis `~4.0.4`. It does not declare compatibility with older DSH releases.
+DSH Host peers and development dependencies accept `>=0.1.7-alpha.2`, including rc.1 and later releases. The development lockfile resolves to rc.1. Cordis accepts `>=4.0.4 <5.0.0`.
 
-Only DSH `0.1.7-alpha.2` is verified in `package.json#dsh.compatibility.dshReleases`; test another official Host release before declaring it compatible.
+The verified releases in `package.json#dsh.compatibility.dshReleases` are evidence, not an allowlist. Review public API changes and test new Host releases before adding a verification claim.
 
 ## Development
 
@@ -141,7 +141,7 @@ pnpm run check
 
 ## Release installation (Latest)
 
-Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools on official DeepSeek Harness `0.1.7-alpha.2`. The release artifact contains built Host/Client files, not sibling source or local paths.
+Explicit model routing for Main, Subagent, Composer, Plan Review, and capability tools, checked on official DeepSeek Harness `0.1.7-rc.1`. The release artifact contains built Host/Client files, not sibling source or local paths.
 
 Latest installation (the asset filename must match the current latest release):
 
@@ -149,7 +149,7 @@ Latest installation (the asset filename must match the current latest release):
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.12.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.14.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.15.tgz
 ~~~
 
 Fixed-version installation:
@@ -158,7 +158,7 @@ Fixed-version installation:
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.12/dsh-llm-providers-ui-0.2.12.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.14/dsh-model-switch-0.4.14.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.15/dsh-model-switch-0.4.15.tgz
 ~~~
 
 Update, uninstall, and verify:
@@ -168,7 +168,7 @@ Update, uninstall, and verify:
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.12.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.14.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.15.tgz
 # Verify the loaded version
 dsh plugin --profile web list
 dsh plugin --profile web doctor
@@ -180,4 +180,4 @@ Configuration: use the plugin section in Settings for Web UI plugins, or the pro
 
 Rollback: restore the previous official Host and matching profile together; previous Model Switch releases are not compatible with this Alpha.2 Host. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never link a checkout into production.
 
-Release and integrity: [v0.4.14](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.14) · [SHA256](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.14/dsh-model-switch-0.4.14.tgz.sha256).
+Release and integrity: [v0.4.15](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.15) · [SHA256](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.15/dsh-model-switch-0.4.15.tgz.sha256).

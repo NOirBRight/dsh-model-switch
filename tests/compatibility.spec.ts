@@ -37,16 +37,19 @@ describe('DSH forward compatibility policy', () => {
     expect(warnings).toEqual([])
   })
 
-  it('declares exact alpha2 optional DSH peers', () => {
+  it('declares open-ended DSH dependencies and optional peers', () => {
     const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+      devDependencies?: Record<string, string>
       peerDependencies?: Record<string, string>
       peerDependenciesMeta?: Record<string, { optional?: boolean }>
     }
-    const peers = Object.entries(manifest.peerDependencies ?? {}).filter(([name]) => name.startsWith('@deepseek-ai/dsh-'))
-    expect(peers.length).toBeGreaterThan(0)
-    for (const [name, range] of peers) {
-      expect(range).toBe('0.1.7-alpha.2')
-      expect(manifest.peerDependenciesMeta?.[name]?.optional).toBe(true)
+    for (const section of ['peerDependencies', 'devDependencies'] as const) {
+      const dependencies = Object.entries(manifest[section] ?? {}).filter(([name]) => name.startsWith('@deepseek-ai/dsh-'))
+      expect(dependencies.length).toBeGreaterThan(0)
+      for (const [name, range] of dependencies) {
+        expect(range).toMatch(/^>=\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u)
+        if (section === 'peerDependencies') expect(manifest.peerDependenciesMeta?.[name]?.optional).toBe(true)
+      }
     }
   })
 })

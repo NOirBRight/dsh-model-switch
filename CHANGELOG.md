@@ -1,3 +1,7 @@
+## v0.4.15
+
+Accept DSH releases from 0.1.7-alpha.2 onward through open-ended peer and development ranges. Rebuild and verify against official 0.1.7-rc.1 without changing model routing behavior.
+
 ## v0.4.14
 
 Target official DSH `0.1.7-alpha.2`, pin Provider UI `0.2.12`, and move Main, Subagent, search, image, and compaction controls to published ConfigForms. On non-loopback browsers the official forms are memory-only: Settings shows an explicit unavailable state and the picker refuses selections that would otherwise persist a deployment-wide default without a safe restoration path.
