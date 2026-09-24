@@ -20,7 +20,7 @@ function bench(strictOptionalLookup = false) {
     select: vi.fn(async () => undefined),
   }
   const mainForm = {
-    getSnapshot: () => ({ status: 'loading' }),
+    getSnapshot: () => ({ status: 'ready', mode: 'host', writable: true, value: { provider: 'deepseek', model: 'deep-chat' }, revision: 1 }),
     subscribe: () => () => undefined,
     mutate: vi.fn(async () => true),
   }
@@ -72,7 +72,7 @@ function bench(strictOptionalLookup = false) {
       : register(ctx)
   }
   installComposerPicker(ctx as never)
-  return { entries, injections, raw, directory, directInteractionReads: () => directInteractionReads }
+  return { entries, injections, raw, directory, mainForm, directInteractionReads: () => directInteractionReads }
 }
 
 describe('composer picker seat ownership', () => {
@@ -98,6 +98,20 @@ describe('composer picker seat ownership', () => {
     expect(directory.select).not.toHaveBeenCalled()
     session = { blank: true, running: false, awaitingFirstTurn: false, pendingSubmissions: [] }
     await expect(face.select(choice)).resolves.toBe(true)
+  })
+
+  it('refuses remote memory-only model selection rather than persisting a new profile-wide default', async () => {
+    const { entries, raw, directory, mainForm } = bench()
+    mainForm.getSnapshot = () => ({ status: 'ready', mode: 'memory', writable: false, value: { provider: 'deepseek', model: 'deep-chat' }, revision: 1 })
+    raw.get = (name: string) => name === 'connection'
+      ? { rpc: { call: async () => ({ ok: true, value: { provider: null } }) } }
+      : undefined
+    directory.store.getSnapshot.mockReturnValue({ current: { provider: 'deepseek', model: 'deep-chat' } })
+    const model = entries.find(({ spec }) => spec.name === 'conversation.input.model')!
+    const face = (model.spec.inject as (id: string) => { select(selection: { provider: string; model: string }): Promise<boolean> })('session-1')
+    await expect(face.select({ provider: 'codex', model: 'gpt-switched' })).resolves.toBe(false)
+    expect(directory.select).not.toHaveBeenCalled()
+    expect(mainForm.mutate).not.toHaveBeenCalled()
   })
 
   it('refuses a provider change when one declared native binding cannot be read', async () => {

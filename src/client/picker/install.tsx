@@ -237,6 +237,9 @@ export function installComposerPicker(ctx: ClientContext): void {
             currentAgent: currentProvider !== undefined && isAgentRole(roleOf(currentProvider)),
           })) return false
           const defaultBeforeSwitch = mainDefaults.getSnapshot()
+          if (defaultBeforeSwitch.status !== 'ready' || defaultBeforeSwitch.mode !== 'host'
+            || !defaultBeforeSwitch.writable || defaultBeforeSwitch.value === undefined
+            || defaultBeforeSwitch.revision === undefined) return false
           try {
             await directory.select(selection)
             await restoreMainDefault(mainDefaults, defaultBeforeSwitch)
