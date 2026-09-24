@@ -1,19 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Context, Service } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
-import { SettingsProvider, type SettingsNamespace } from '@deepseek-ai/dsh-settings'
+import { Config as DeepSeekSearchConfig, WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE } from '@deepseek-ai/dsh-web-search-deepseek'
 import { WebRuntime } from '@deepseek-ai/dsh-web'
 import { ModelSwitchAdapterRegistry } from '../src/adapter-registry.js'
 import { ModelSwitchSearchProvider } from '../src/search-provider.js'
 import { DeepSeekSearchAdapter, installDeepSeekSearchAdapter } from '../src/deepseek-search-adapter.js'
 
-class MemorySettings extends SettingsProvider {
-  document: Record<string, unknown> = {}
-  get writable(): boolean { return true }
-  protected load(): Promise<Record<string, unknown>> { return Promise.resolve(structuredClone(this.document)) }
-  protected persist(ns: SettingsNamespace, section: Record<string, unknown>): Promise<void> {
-    this.document[String(ns)] = structuredClone(section)
-    return Promise.resolve()
+class TestLoader extends Service {
+  constructor(ctx: Context, private readonly config: unknown) { super(ctx, 'loader') }
+  *entries() {
+    yield { id: WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE, fiber: { config: this.config } }
   }
 }
 
@@ -78,11 +74,10 @@ async function bootWeb(ctx: Context, adapters: ModelSwitchAdapterRegistry, route
 describe('DeepSeekSearchAdapter', () => {
   it('routes WebRuntime.search through the official provider with section endpoint and per-call model', async () => {
     const ctx = new Context()
-    const settingsFiber = ctx.plugin(MemorySettings)
-    await settingsFiber
-    ctx.settings.register('web-search-deepseek', z.object({ baseURL: z.string(), maxUses: z.number() }), {
-      base: { baseURL: 'https://search.example.test/anthropic/v1', maxUses: 7 },
-    })
+    const loaderFiber = ctx.plugin(TestLoader, DeepSeekSearchConfig({
+      baseURL: 'https://search.example.test/anthropic/v1', maxUses: 7,
+    }))
+    await loaderFiber
     process.env[KEY_ENV] = 'test-key-1'
     const adapters = new ModelSwitchAdapterRegistry()
     adapters.register({ provider: 'deepseek-official', search: new DeepSeekSearchAdapter(ctx) })
@@ -105,7 +100,7 @@ describe('DeepSeekSearchAdapter', () => {
       truncated: false,
     })
     await web.webFiber.dispose()
-    await settingsFiber.dispose()
+    await loaderFiber.dispose()
   })
 
   it('falls back to launch environment and official defaults without a settings section', async () => {
@@ -147,20 +142,8 @@ describe('DeepSeekSearchAdapter', () => {
     await web.webFiber.dispose()
   })
 
-  it('rejects an invalid official section without dispatching', async () => {
-    const ctx = new Context()
-    const settingsFiber = ctx.plugin(MemorySettings)
-    await settingsFiber
-    ctx.settings.register('web-search-deepseek', z.object({ maxUses: z.number() }), { base: { maxUses: 0 } })
-    process.env[KEY_ENV] = 'test-key-9'
-    const adapters = new ModelSwitchAdapterRegistry()
-    adapters.register({ provider: 'deepseek-official', search: new DeepSeekSearchAdapter(ctx) })
-    const web = await bootWeb(ctx, adapters, { provider: 'deepseek-official', model: 'deepseek-v4-flash' })
-    const fetchMock = stubAnthropic()
-    await expect(web.ctx.web.search({ query: 'bad section' })).rejects.toThrow('invalid web-search-deepseek settings section')
-    expect(fetchMock).not.toHaveBeenCalled()
-    await web.webFiber.dispose()
-    await settingsFiber.dispose()
+  it('rejects invalid provider configuration at its official schema boundary', () => {
+    expect(() => DeepSeekSearchConfig({ maxUses: 0 } as never)).toThrow()
   })
 
   it('installs into the modelSwitch registry and unregisters on disposal', async () => {

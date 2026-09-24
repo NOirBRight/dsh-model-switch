@@ -8,13 +8,13 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
     createElement('button', props, icon, children),
   Input: ({ icon, ...props }: { icon?: ReactNode } & InputHTMLAttributes<HTMLInputElement>) =>
     createElement('span', null, icon, createElement('input', props)),
-  IconCheckOutline16: () => createElement('svg'),
-  IconChevronDownOutline14: () => createElement('svg'),
-  IconChevronLeftOutline14: () => createElement('svg'),
-  IconChevronRightOutline14: () => createElement('svg'),
-  IconCloseOutline16: () => createElement('svg'),
-  IconSearchOutline16: () => createElement('svg'),
-  IconWarningOutline16: () => createElement('svg'),
+  IconCheckOutlineRegular: () => createElement('svg'),
+  IconChevronDownOutlineRegular: () => createElement('svg'),
+  IconChevronLeftOutlineRegular: () => createElement('svg'),
+  IconChevronRightOutlineRegular: () => createElement('svg'),
+  IconCloseOutlineRegular: () => createElement('svg'),
+  IconSearchOutlineRegular: () => createElement('svg'),
+  IconWarningOutlineRegular: () => createElement('svg'),
   Toast: () => null,
 }))
 

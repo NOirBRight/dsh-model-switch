@@ -1,3 +1,4 @@
+import { callPluginRpc, type PluginRpcClient } from './plugin-rpc.ts'
 /** Session execution-runtime lock from native binding and request activity. */
 
 /** Native binding query declared by an installed Agent provider. */
@@ -15,9 +16,6 @@ export interface ProviderLockState {
   readonly failed: boolean
 }
 
-interface BindingRpc {
-  call(channel: string, endpoint: string, payload: unknown, extra: undefined): Promise<{ ok: boolean; value?: unknown }>
-}
 
 /** Decode a wire reply only for the provider that owns the query. */
 export function decodeBindingProvider(value: unknown, provider: string): RuntimeProviderLock | undefined {
@@ -28,7 +26,7 @@ export function decodeBindingProvider(value: unknown, provider: string): Runtime
 
 /** Query installed declarations; one failed query must never become a successful unbound read. */
 export async function fetchSessionBinding(
-  rpc: BindingRpc | undefined,
+  rpc: PluginRpcClient | undefined,
   sessionId: string,
   sources: readonly NativeBindingSource[],
 ): Promise<ProviderLockState> {
@@ -36,7 +34,7 @@ export async function fetchSessionBinding(
   if (rpc === undefined) return { provider: null, failed: true }
   const replies = await Promise.all(sources.map(async source => {
     try {
-      const result = await rpc.call(source.channel, source.endpoint, { sessionId }, undefined)
+      const result = await callPluginRpc(rpc, source.channel, source.endpoint, { sessionId })
       return result.ok ? decodeBindingProvider(result.value, source.provider) : undefined
     } catch {
       return undefined // An unavailable binding query is not proof of an unbound session.

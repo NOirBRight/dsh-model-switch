@@ -7,7 +7,7 @@ import OfficialSubagentRuntime, {
   type SubagentRun,
   type SubagentStartRequest,
 } from '@deepseek-ai/dsh-subagent'
-import type { Config } from './host-settings.js'
+import type { ModelSwitchSettings } from './host-settings.js'
 
 /** Raised only when an explicit startup check finds an unsupported public surface. */
 export class StartupIncompatibilityError extends Error {
@@ -37,7 +37,7 @@ export interface MountedStartup<T> {
 }
 
 interface ModelSwitchSurface {
-  currentSettings(): Config
+  currentSettings(): ModelSwitchSettings
 }
 type RoutableSubagentRequest = Pick<SubagentStartRequest, 'parent' | 'agentOptions'>
 
@@ -54,7 +54,7 @@ function spawnHasAnyRouteField(options: AgentOptions | undefined): boolean {
   return present(options?.provider) || present(options?.model) || options?.reasoningEffort !== undefined
 }
 
-function fixedRoute(settings: Config): ModelSelection | undefined {
+function fixedRoute(settings: ModelSwitchSettings): ModelSelection | undefined {
   if (!present(settings.subagentProvider) || !present(settings.subagentModel)) return undefined
   return {
     provider: settings.subagentProvider,
@@ -66,7 +66,7 @@ function fixedRoute(settings: Config): ModelSelection | undefined {
 /** Inject a fixed Default Subagent route, or leave the request for Official inherit. */
 export function routeSubagentRequest<T extends RoutableSubagentRequest>(
   request: T,
-  settings: Config,
+  settings: ModelSwitchSettings,
 ): T {
   if (spawnHasAnyRouteField(request.agentOptions)) return request
   if (settings.subagentMode !== 'fixed') return request
@@ -251,14 +251,6 @@ export class ModelSwitchSubagentRuntime extends OfficialSubagentRuntime {
     return super.startContinuable({ ...spec, request: this.routed(spec.provider, spec.request) })
   }
 
-  /**
-   * Public depth policy expected by Host 0.1.6 agent-presets. Nested
-   * OfficialSubagentRuntime at the 0.1.5-rc.1 compile target does not declare it.
-   */
-  resolveMaxDepth(configured?: number | 'provider-managed'): number | undefined {
-    if (configured === 'provider-managed') return undefined
-    return configured ?? 1
-  }
 }
 
 export default profileSubagentRuntime

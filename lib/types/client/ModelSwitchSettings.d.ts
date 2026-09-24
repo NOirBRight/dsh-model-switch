@@ -1,23 +1,24 @@
 import { type ReactNode } from 'react';
 import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types';
-import type { SettingsScope } from '@deepseek-ai/dsh-client-ui-settings/client';
+import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client';
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
 import { type CapabilityRouteView, type MainSettingsView, type ModelSwitchSettingsView, type SubagentSettingsView } from '../client-contract.js';
 import type { RuntimeCapabilities } from '../runtime-capabilities.js';
 import { type CapabilitiesSnapshot } from './search-capabilities.js';
 import type { ModelSwitchLocaleKey } from './locales.js';
+import type { ConfigViewForm } from './derived-config-form.js';
 export interface ModelSwitchSettingsFace {
     t: (key: ModelSwitchLocaleKey) => string;
     hooks: {
-        mainSettings: SettingsScope<MainSettingsView>;
-        subagentSettings: SettingsScope<SubagentSettingsView>;
-        searchSettings: SettingsScope<CapabilityRouteView>;
-        imageSettings: SettingsScope<CapabilityRouteView>;
-        switchSettings: SettingsScope<ModelSwitchSettingsView>;
+        mainSettings: ConfigViewForm<MainSettingsView>;
+        subagentSettings: ConfigViewForm<SubagentSettingsView>;
+        searchSettings: ConfigViewForm<CapabilityRouteView>;
+        imageSettings: ConfigViewForm<CapabilityRouteView>;
+        switchSettings: Pick<ConfigForm<ModelSwitchSettingsView>, 'getSnapshot' | 'subscribe'>;
     };
     capabilities: RuntimeCapabilities;
     saveMain: (next: MainSettingsView, expectedRevision: number) => Promise<number>;
-    setSubagent: (field: 'mode' | 'provider' | 'model' | 'effort', value: string | undefined) => Promise<void>;
+    setSubagent: (field: 'mode' | 'provider' | 'model' | 'reasoningEffort', value: string | undefined) => Promise<void>;
     setCapability: (route: 'search' | 'image', field: 'provider' | 'model', value: string | undefined) => Promise<void>;
     setCompactOnSwitch: (value: boolean) => Promise<void>;
     loadCatalog: () => Promise<readonly ModelProviderGroup[]>;

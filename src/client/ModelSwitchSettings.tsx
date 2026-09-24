@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types'
-import type { SettingsScope, SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm, ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { subagentModeForEnabled, type CapabilityRouteView, type MainSettingsView, type ModelSwitchSettingsView, type SubagentSettingsView } from '../client-contract.js'
 import type { RuntimeCapabilities } from '../runtime-capabilities.js'
@@ -9,13 +9,14 @@ import type { ModelSwitchLocaleKey } from './locales.js'
 import { isAgentRole, matchCatalogModel } from './antigravity-catalog.ts'
 import { deriveRouteChoices, selectRouteModel, useModelSwitchSettingsController, type Choice } from './main-row-controller.js'
 import css from './ModelSwitchSettings.module.css'
+import type { ConfigViewForm } from './derived-config-form.js'
 
 export interface ModelSwitchSettingsFace {
   t: (key: ModelSwitchLocaleKey) => string
-  hooks: { mainSettings: SettingsScope<MainSettingsView>; subagentSettings: SettingsScope<SubagentSettingsView>; searchSettings: SettingsScope<CapabilityRouteView>; imageSettings: SettingsScope<CapabilityRouteView>; switchSettings: SettingsScope<ModelSwitchSettingsView> }
+  hooks: { mainSettings: ConfigViewForm<MainSettingsView>; subagentSettings: ConfigViewForm<SubagentSettingsView>; searchSettings: ConfigViewForm<CapabilityRouteView>; imageSettings: ConfigViewForm<CapabilityRouteView>; switchSettings: Pick<ConfigForm<ModelSwitchSettingsView>, 'getSnapshot' | 'subscribe'> }
   capabilities: RuntimeCapabilities
   saveMain: (next: MainSettingsView, expectedRevision: number) => Promise<number>
-  setSubagent: (field: 'mode' | 'provider' | 'model' | 'effort', value: string | undefined) => Promise<void>
+  setSubagent: (field: 'mode' | 'provider' | 'model' | 'reasoningEffort', value: string | undefined) => Promise<void>
   setCapability: (route: 'search' | 'image', field: 'provider' | 'model', value: string | undefined) => Promise<void>
   setCompactOnSwitch: (value: boolean) => Promise<void>
   loadCatalog: () => Promise<readonly ModelProviderGroup[]>
@@ -75,7 +76,7 @@ function Actions({ t, busy, disabled, message, onCancel, onSave }: { t: ModelSwi
   return <div className={css.cardFooter}>{message === undefined ? null : <p className={cx(css.hint, css.message)}>{message}</p>}<button type="button" className={cx(css.button, css.secondaryButton)} disabled={busy} onClick={onCancel}>{t('cancel')}</button><button type="button" className={cx(css.button, css.primaryButton)} disabled={disabled} onClick={onSave}>{busy ? t('saving') : t('save')}</button></div>
 }
 
-function useDraft<T>(snapshot: SettingsScopeSnapshot<T>): [T | undefined, (value: T | undefined) => void, () => void] {
+function useDraft<T>(snapshot: ConfigFormSnapshot<T>): [T | undefined, (value: T | undefined) => void, () => void] {
   const [draft, setDraft] = useState<T | undefined>(snapshot.value)
   useEffect(() => { setDraft(snapshot.value) }, [snapshot.revision, snapshot.value])
   return [draft, setDraft, () => { setDraft(snapshot.value) }]
@@ -185,7 +186,7 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
     const nextModel = matched?.model.id ?? subagentDraft.model
     const nextEffort = subagentDraft.reasoningEffort === '' ? undefined : subagentDraft.reasoningEffort || matched?.effort
     if (subagent.value?.model !== nextModel) await props.setSubagent('model', nextModel)
-    if (subagent.value?.reasoningEffort !== nextEffort) await props.setSubagent('effort', nextEffort)
+    if (subagent.value?.reasoningEffort !== nextEffort) await props.setSubagent('reasoningEffort', nextEffort)
   }) }
   const persistSubagentEnabled = (enabled: boolean): void => {
     if (subagentDraft === undefined || busy === 'subagent' || !subagent.writable) return
@@ -204,7 +205,7 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
       },
     )
   }
-  const saveCapability = (route: 'search' | 'image', current: SettingsScopeSnapshot<CapabilityRouteView>, next: CapabilityRouteView | undefined): void => { if (next === undefined) return; void run(route, async () => {
+  const saveCapability = (route: 'search' | 'image', current: ConfigFormSnapshot<CapabilityRouteView>, next: CapabilityRouteView | undefined): void => { if (next === undefined) return; void run(route, async () => {
     if (current.value?.provider !== next.provider) await props.setCapability(route, 'provider', next.provider)
     if (current.value?.model !== next.model) await props.setCapability(route, 'model', next.model)
   }) }
@@ -215,7 +216,7 @@ export function ModelSwitchSettings(props: ModelSwitchSettingsProps): ReactNode 
     ? compact(routeName(groups, subagentRoute), isAgentRole(subagentRole) ? props.t('agentBadge') : undefined, defaultEffort === undefined ? props.t('providerDefaultShort') : compact(props.t('providerDefaultShort'), defaultEffort))
     : props.t('subagentOff')
   const subagentDisabled = subagent.status !== 'ready' || !subagent.writable || subagentDraft === undefined || busy === 'subagent' || !subagentOn || (subagentDraft.provider ?? '').trim() === '' || (subagentDraft.model ?? '').trim() === ''
-  const capabilityDisabled = (route: 'search' | 'image', snapshot: SettingsScopeSnapshot<CapabilityRouteView>, next: CapabilityRouteView | undefined): boolean => snapshot.status !== 'ready' || !snapshot.writable || next === undefined || busy === route || (next.provider ?? '').trim() === '' || (next.model ?? '').trim() === ''
+  const capabilityDisabled = (route: 'search' | 'image', snapshot: ConfigFormSnapshot<CapabilityRouteView>, next: CapabilityRouteView | undefined): boolean => snapshot.status !== 'ready' || !snapshot.writable || next === undefined || busy === route || (next.provider ?? '').trim() === '' || (next.model ?? '').trim() === ''
 
   return <main className={css.section}>
     <h1 className={css.title}>{props.t('title')}</h1>

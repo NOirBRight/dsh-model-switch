@@ -1,6 +1,15 @@
 /** Send-time context check and optional old-model compaction before a switched request. */
 import type { Context } from '@deepseek-ai/cordis';
 import { type UserMessage } from '@deepseek-ai/dsh-llm';
+declare module '@deepseek-ai/dsh-llm' {
+    interface MessageSourceMap {
+        'model-switch': {
+            kind: 'model-switch';
+            form: 'notice';
+            summary: string;
+        };
+    }
+}
 /** Provider and model selected for one model-routed request. */
 export interface SwitchRoute {
     readonly provider: string;

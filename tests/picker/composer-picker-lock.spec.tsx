@@ -9,8 +9,8 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
     Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => <button {...props}>{children}</button>,
     Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
     Toast: () => null,
-    IconCheckOutline16: Icon, IconChevronDownOutline14: Icon, IconChevronLeftOutline14: Icon,
-    IconChevronRightOutline14: Icon, IconCloseOutline16: Icon, IconSearchOutline16: Icon, IconWarningOutline16: Icon,
+    IconCheckOutlineRegular: Icon, IconChevronDownOutlineRegular: Icon, IconChevronLeftOutlineRegular: Icon,
+    IconChevronRightOutlineRegular: Icon, IconCloseOutlineRegular: Icon, IconSearchOutlineRegular: Icon, IconWarningOutlineRegular: Icon,
   }
 })
 vi.mock('../../src/client/picker/popup-dismissal.ts', () => ({ installPickerDismissal: () => () => undefined }))

@@ -1,8 +1,8 @@
 import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types';
-import type { SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client';
+import type { ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client';
 import { type CapabilityRouteView, type MainSettingsView, type SubagentSettingsView } from '../client-contract.js';
 import type { ModelSwitchLocaleKey } from './locales.js';
-type Share<T> = (selector: (snapshot: SettingsScopeSnapshot<T>) => SettingsScopeSnapshot<T>) => SettingsScopeSnapshot<T>;
+type Share<T> = (selector: (snapshot: ConfigFormSnapshot<T>) => ConfigFormSnapshot<T>) => ConfigFormSnapshot<T>;
 export interface SettingsControllerInputs {
     useMainSettings: Share<MainSettingsView>;
     useSubagentSettings: Share<SubagentSettingsView>;
@@ -30,8 +30,8 @@ export declare function deriveMainChoices(groups: readonly ModelProviderGroup[],
     efforts: Choice[];
 };
 export declare function useModelSwitchSettingsController(input: SettingsControllerInputs): {
-    main: SettingsScopeSnapshot<MainSettingsView>;
-    subagent: SettingsScopeSnapshot<SubagentSettingsView>;
+    main: ConfigFormSnapshot<MainSettingsView>;
+    subagent: ConfigFormSnapshot<SubagentSettingsView>;
     draft: MainSettingsView | undefined;
     groups: readonly ModelProviderGroup[];
     providers: Choice[];

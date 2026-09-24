@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
-  ANTIGRAVITY_CATALOG_CHANNEL,
+  ANTIGRAVITY_CATALOG_METHOD,
   ANTIGRAVITY_CATALOG_ENDPOINT,
   decodeAntigravityCatalogGroups,
   fetchAntigravityCatalogGroups,
@@ -15,7 +15,7 @@ const llm = { id: 'deepseek', name: 'DeepSeek', models: [{ id: 'v3', name: 'V3' 
 
 describe('Antigravity enabled catalog', () => {
   it('publishes the released catalog RPC seam', () => {
-    expect(ANTIGRAVITY_CATALOG_CHANNEL).toBe('/dsh-acp-antigravity')
+    expect(ANTIGRAVITY_CATALOG_METHOD).toBe('plugin-rpc/antigravity')
     expect(ANTIGRAVITY_CATALOG_ENDPOINT).toBe('catalog')
   })
 
@@ -48,7 +48,7 @@ describe('Antigravity enabled catalog', () => {
   it('fetches the catalog and fails open when the seam is absent', async () => {
     const call = vi.fn(async () => ({ ok: true as const, value: { groups: [agy] } }))
     expect(await fetchAntigravityCatalogGroups({ call })).toEqual([agy])
-    expect(call).toHaveBeenCalledWith('/dsh-acp-antigravity', 'catalog', {}, undefined)
+    expect(call).toHaveBeenCalledWith('/api', 'plugin-rpc/antigravity', { endpoint: 'catalog', payload: {} }, undefined)
     expect(await fetchAntigravityCatalogGroups(undefined)).toEqual([])
     expect(await fetchAntigravityCatalogGroups({ call: async () => { throw new Error('down') } })).toEqual([])
     expect(await fetchAntigravityCatalogGroups({ call: async () => ({ ok: false as const }) })).toEqual([])

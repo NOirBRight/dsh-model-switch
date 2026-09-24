@@ -1,4 +1,4 @@
-export { Config, MODEL_SWITCH_SETTINGS_NAMESPACE, type Config as ModelSwitchSettings } from './host-settings.js';
+export { Config, readConfig, type ModelSwitchSettings } from './host-settings.js';
 export { mainDefaultPort, ModelSwitchRuntime, type MainDefaultPort } from './host-runtime.js';
 export { ModelSwitchAdapterRegistry, type ModelSwitchProviderAdapters, type ModelSwitchSearchAdapter, type ModelSwitchImageAdapter, type ModelSwitchImageRequest, type ModelSwitchGeneratedImage } from './adapter-registry.js';
 export { RUNTIME_CAPABILITIES, type RuntimeCapabilities, type RuntimeCapability } from './runtime-capabilities.js';

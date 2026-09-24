@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } fro
 import type { ModelSelection } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { PendingQuestion, PlanReview } from '@deepseek-ai/dsh-client-ui-user-questions/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { Button, IconEditOutline16, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconEditOutlineRegular, MarkdownText } from '@deepseek-ai/dsh-client-ui-primitives'
 import {
   PlanApprovalResponseError, approvePlanReview, planActionView, planReviewOf, settlePlanAction,
 } from '../../picker/plan-review.ts'
@@ -235,7 +235,7 @@ function PlanReviewState({
               <Button
                 variant="ghost"
                 className={css.discuss}
-                icon={<IconEditOutline16 size={14} />}
+                icon={<IconEditOutlineRegular size={14} />}
                 disabled={busy || blocked}
                 onClick={() => {
                   settle(() => respondCancel(matched, t('plan.cancelRejected')))

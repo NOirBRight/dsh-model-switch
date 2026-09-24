@@ -6,8 +6,8 @@ import {
 } from '../src/client/runtime-lock.ts'
 
 const sources = [
-  { provider: 'antigravity', channel: '/dsh-acp-antigravity', endpoint: 'activity/binding' },
-  { provider: 'cursor-agent', channel: '/dsh-acp-cursor', endpoint: 'activity/binding' },
+  { provider: 'antigravity', channel: 'plugin-rpc/antigravity', endpoint: 'activity/binding' },
+  { provider: 'cursor-agent', channel: 'plugin-rpc/cursor', endpoint: 'activity/binding' },
 ]
 
 describe('declared native binding queries', () => {
@@ -24,11 +24,11 @@ describe('declared native binding queries', () => {
     expect(await fetchSessionBinding(undefined, 's', sources)).toEqual({ provider: null, failed: true })
     const rpc = { call: vi.fn(async () => ({ ok: true, value: { provider: 'cursor-agent' } })) }
     expect(await fetchSessionBinding(rpc, 's', [sources[1]!])).toEqual({ provider: 'cursor-agent', failed: false })
-    expect(rpc.call).toHaveBeenCalledExactlyOnceWith('/dsh-acp-cursor', 'activity/binding', { sessionId: 's' }, undefined)
+    expect(rpc.call).toHaveBeenCalledExactlyOnceWith('/api', 'plugin-rpc/cursor', { endpoint: 'activity/binding', payload: { sessionId: 's' } }, undefined)
   })
 
   it('does not turn one unbound reply plus a failed query into a successful unlock', async () => {
-    const rpc = { call: vi.fn(async (channel: string) => channel === sources[0]!.channel
+    const rpc = { call: vi.fn(async (_channel: string, method: string) => method === sources[0]!.channel
       ? { ok: true, value: { provider: null } } : { ok: false }) }
     expect(await fetchSessionBinding(rpc, 's', sources)).toEqual({ provider: null, failed: true })
     const throwing = { call: vi.fn(async () => { throw new Error('offline') }) }
@@ -36,11 +36,11 @@ describe('declared native binding queries', () => {
   })
 
   it('retains a proven binding on partial failure and rejects conflicting bindings', async () => {
-    const rpc = { call: vi.fn(async (channel: string) => channel === sources[0]!.channel
+    const rpc = { call: vi.fn(async (_channel: string, method: string) => method === sources[0]!.channel
       ? { ok: true, value: { provider: 'antigravity' } } : { ok: false }) }
     expect(await fetchSessionBinding(rpc, 's', sources)).toEqual({ provider: 'antigravity', failed: true })
-    const conflict = { call: vi.fn(async (channel: string) => ({ ok: true, value: {
-      provider: sources.find(source => source.channel === channel)!.provider,
+    const conflict = { call: vi.fn(async (_channel: string, method: string) => ({ ok: true, value: {
+      provider: sources.find(source => source.channel === method)!.provider,
     } })) }
     expect(await fetchSessionBinding(conflict, 's', sources)).toEqual({ provider: null, failed: true })
   })

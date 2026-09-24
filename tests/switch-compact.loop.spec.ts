@@ -49,7 +49,7 @@ function pluginNoticeTexts(session: Session | undefined): string[] {
   for (const event of session.snapshotEvents()) {
     if (event.type !== 'user/message') continue
     const message = event.data
-    if (message.source.kind !== 'plugin' || message.source.plugin !== 'model-switch') continue
+    if (message.source.kind !== 'model-switch') continue
     const block = message.content[0]
     if (block?.type === 'text') texts.push(block.text)
   }
@@ -71,7 +71,7 @@ function userTexts(session: Session): string[] {
 function modelSelectionNotices(session: Session): SessionEvent[] {
   return session.snapshotEvents().filter(event => {
     if (event.type !== 'user/message') return false
-    return event.data.source.kind === 'plugin' && event.data.source.plugin === 'model-selection'
+    return event.data.source.kind === 'model-selection'
   })
 }
 
@@ -151,8 +151,8 @@ describe('send-time switch protection through the real agent loop', () => {
     await agent.whenIdle()
     const live: string[] = []
     ctx.on('session/event', (session, event) => {
-      if (session !== agent.session || event.type !== 'user/message' || event.data.source.kind !== 'plugin') return
-      if (event.data.source.plugin !== 'model-switch' && event.data.source.plugin !== 'model-selection') return
+      if (session !== agent.session || event.type !== 'user/message') return
+      if (event.data.source.kind !== 'model-switch' && event.data.source.kind !== 'model-selection') return
       for (const block of event.data.content) if (block.type === 'text') live.push(block.text)
     })
     let release!: () => void

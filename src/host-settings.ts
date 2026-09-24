@@ -1,8 +1,10 @@
+import type { Volatile } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { MODEL_SWITCH_SETTINGS_ID } from './client-contract.js'
 
 export type SubagentMode = 'follow-main' | 'fixed'
-export interface Config {
+
+/** Resolved live values consumed by Model Switch. */
+export interface ModelSwitchSettings {
   subagentMode: SubagentMode
   subagentProvider?: string
   subagentModel?: string
@@ -11,21 +13,51 @@ export interface Config {
   searchModel?: string
   imageProvider?: string
   imageModel?: string
-  compactOnSwitch?: boolean
+  compactOnSwitch: boolean
 }
 
-/** Stable lowercase namespace required by the Alpha.4 Settings provider. */
-export const MODEL_SWITCH_SETTINGS_NAMESPACE = MODEL_SWITCH_SETTINGS_ID
-export const Config: z<Config> = z.object({
-  subagentMode: z.union(['follow-main', 'fixed'] as const).default('follow-main'),
-  subagentProvider: z.string(),
-  subagentModel: z.string(),
-  subagentReasoningEffort: z.string(),
-  searchProvider: z.string(),
-  searchModel: z.string(),
-  imageProvider: z.string(),
-  imageModel: z.string(),
-  compactOnSwitch: z.boolean().default(true),
+/** Loader-owned references; every field is directly editable in the profile form. */
+export interface Config {
+  subagentMode: Volatile<SubagentMode>
+  subagentProvider: Volatile<string | undefined>
+  subagentModel: Volatile<string | undefined>
+  subagentReasoningEffort: Volatile<string | undefined>
+  searchProvider: Volatile<string | undefined>
+  searchModel: Volatile<string | undefined>
+  imageProvider: Volatile<string | undefined>
+  imageModel: Volatile<string | undefined>
+  compactOnSwitch: Volatile<boolean>
+}
+
+export const Config = z.object({
+  subagentMode: z.union(['follow-main', 'fixed'] as const).default('follow-main').volatile(),
+  subagentProvider: z.string().volatile(),
+  subagentModel: z.string().volatile(),
+  subagentReasoningEffort: z.string().volatile(),
+  searchProvider: z.string().volatile(),
+  searchModel: z.string().volatile(),
+  imageProvider: z.string().volatile(),
+  imageModel: z.string().volatile(),
+  compactOnSwitch: z.boolean().default(true).volatile(),
 })
 
-export const DEFAULT_CONFIG: Config = { subagentMode: 'follow-main', compactOnSwitch: true }
+export function readConfig(config: Config): ModelSwitchSettings {
+  const subagentProvider = config.subagentProvider.get()
+  const subagentModel = config.subagentModel.get()
+  const subagentReasoningEffort = config.subagentReasoningEffort.get()
+  const searchProvider = config.searchProvider.get()
+  const searchModel = config.searchModel.get()
+  const imageProvider = config.imageProvider.get()
+  const imageModel = config.imageModel.get()
+  return {
+    subagentMode: config.subagentMode.get(),
+    ...(subagentProvider === undefined ? {} : { subagentProvider }),
+    ...(subagentModel === undefined ? {} : { subagentModel }),
+    ...(subagentReasoningEffort === undefined ? {} : { subagentReasoningEffort }),
+    ...(searchProvider === undefined ? {} : { searchProvider }),
+    ...(searchModel === undefined ? {} : { searchModel }),
+    ...(imageProvider === undefined ? {} : { imageProvider }),
+    ...(imageModel === undefined ? {} : { imageModel }),
+    compactOnSwitch: config.compactOnSwitch.get(),
+  }
+}

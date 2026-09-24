@@ -14,12 +14,20 @@ import {
 import { canonicalHeader, type EpochHeader, type Session } from '@deepseek-ai/dsh-session'
 import type { TokenMeter } from '@deepseek-ai/dsh-token-meter'
 
-const PLUGIN = 'model-switch'
+declare module '@deepseek-ai/dsh-llm' {
+  interface MessageSourceMap {
+    'model-switch': {
+      kind: 'model-switch'
+      form: 'notice'
+      summary: string
+    }
+  }
+}
+
 /** Fraction of the target window reserved for output plus estimator error. */
 const OUTPUT_RESERVE = 0.2
 /** Extra tokens on top of the ratio; the meter heuristic is not exact. */
 const ESTIMATE_MARGIN = 64
-const SYSTEM_PROMPT_PLUGIN = '@deepseek-ai/dsh-system-prompt'
 
 /** Provider and model selected for one model-routed request. */
 export interface SwitchRoute {
@@ -82,7 +90,7 @@ export function overSwitchBudget(tokens: number, budget: number): boolean {
 export function switchNotice(text: string, summary: string): UserMessage {
   return createUserMessage({
     content: [{ type: 'text', text }],
-    source: { kind: 'plugin', plugin: PLUGIN, form: 'notice', summary: boundContextSummary(summary) },
+    source: { kind: 'model-switch', form: 'notice', summary: boundContextSummary(summary) },
   })
 }
 
@@ -333,7 +341,7 @@ function systemPromptTokens(meter: TokenMeter, assembly: PromptAssembly): number
   return meter.estimateMessage(createMessage({
     role: 'system',
     content: [{ type: 'text', text }],
-    source: { kind: 'plugin', plugin: SYSTEM_PROMPT_PLUGIN },
+    source: { kind: 'system-prompt' },
   }))
 }
 

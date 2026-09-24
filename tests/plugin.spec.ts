@@ -1,16 +1,17 @@
 import { describe, expect, it, vi } from 'vitest'
 import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
-import ModelSwitchRuntime, { Config, MODEL_SWITCH_SETTINGS_NAMESPACE, RUNTIME_CAPABILITIES, mainDefaultPort, name } from '../src/index.js'
+import ModelSwitchRuntime, { Config, readConfig, RUNTIME_CAPABILITIES, mainDefaultPort, name } from '../src/index.js'
 
 describe('Host runtime surface', () => {
   it('preserves package identity and released injection contract', () => {
     expect(name).toBe('dsh-model-switch')
     expect(ModelSwitchRuntime.inject).toEqual(['agentDefaultModel'])
-    expect(String(MODEL_SWITCH_SETTINGS_NAMESPACE)).toBe('model-switch')
   })
-  it('defaults Subagent to follow-main and retains unavailable choices', () => {
-    expect(Config({})).toEqual({ subagentMode: 'follow-main', compactOnSwitch: true })
-    expect(Config({ subagentMode: 'fixed', subagentProvider: 'not-installed', subagentModel: 'remember-me' })).toMatchObject({ subagentProvider: 'not-installed', subagentModel: 'remember-me' })
+  it('defaults Subagent to follow-main and retains unavailable choices in volatile config', () => {
+    expect(readConfig(Config({}))).toEqual({ subagentMode: 'follow-main', compactOnSwitch: true })
+    expect(readConfig(Config({ subagentMode: 'fixed', subagentProvider: 'not-installed', subagentModel: 'remember-me' }))).toMatchObject({
+      subagentMode: 'fixed', subagentProvider: 'not-installed', subagentModel: 'remember-me',
+    })
     expect(() => Config({ subagentMode: 'other' } as never)).toThrow()
   })
   it('adapts the public Main service without changing picker/global state', async () => {

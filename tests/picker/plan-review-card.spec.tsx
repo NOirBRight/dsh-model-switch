@@ -7,7 +7,7 @@ const composerStub = vi.hoisted(() => ({ crash: false }))
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => ({
   Button: ({ children, icon, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { icon?: React.ReactNode }) => <button {...props}>{icon}{children}</button>,
   MarkdownText: ({ text }: { text: string }) => <span>{text}</span>,
-  IconEditOutline16: () => <span data-icon-edit />,
+  IconEditOutlineRegular: () => <span data-icon-edit />,
 }))
 vi.mock('../../src/client/picker/ComposerPicker.tsx', () => ({
   ComposerPicker: (props: { tone?: string; embedded?: boolean }) => {

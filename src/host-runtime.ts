@@ -1,8 +1,9 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import type { ModelSelection } from '@deepseek-ai/dsh-agent'
 import type { AgentDefaultModelConfig } from '@deepseek-ai/dsh-agent-default-model'
-import type SettingsProvider from '@deepseek-ai/dsh-settings'
-import { Config, MODEL_SWITCH_SETTINGS_NAMESPACE, type Config as ModelSwitchSettings } from './host-settings.js'
+import type {} from '@deepseek-ai/dsh-settings'
+import type {} from '@deepseek-ai/cordis-plugin-loader'
+import { Config, readConfig, type Config as ModelSwitchSettingsConfig, type ModelSwitchSettings } from './host-settings.js'
 import { RUNTIME_CAPABILITIES } from './runtime-capabilities.js'
 import { ModelSwitchAdapterRegistry } from './adapter-registry.js'
 import { installModelSwitchSearchProvider } from './search-provider.js'
@@ -27,24 +28,25 @@ export class ModelSwitchRuntime extends Service {
   readonly adapters = new ModelSwitchAdapterRegistry()
   private source: () => ModelSwitchSettings
 
-  constructor(ctx: Context, entry: ModelSwitchSettings) {
+  constructor(ctx: Context, entry: ModelSwitchSettingsConfig) {
     super(ctx, 'modelSwitch')
-    this.source = () => entry
+    this.source = () => readConfig(entry)
+    ctx.inject(['settings'], scope => scope.effect(
+      () => scope.settings.configure({ auto: false }, ctx.fiber),
+      'Model Switch: disable automatic settings form',
+    ))
     if (!allowDshRuntime(ctx.logger, 'dsh-model-switch', ['@deepseek-ai/dsh-agent'])) return
     installSwitchCompaction(ctx, () => this.source(), provider => this.adapters.get(provider)?.role)
     installDeepSeekSearchAdapter(ctx)
     installModelSwitchSearchProvider(ctx, this)
     installCapabilitiesRpc(ctx, this.adapters, () => this.capabilities)
     const imageTool = installGenerateImageTool(ctx, this)
-    const install = (settings: SettingsProvider): void => {
-      settings.installSection(ctx, MODEL_SWITCH_SETTINGS_NAMESPACE, Config, entry, {
-        setSource: (current) => { this.source = current },
-        onChange: () => { void imageTool.reconcile().catch(error => { ctx.logger.error('Model Switch: failed to regenerate generate_image schema'); ctx.logger.error(error) }) },
+    ctx.on('loader/volatile-update', () => {
+      void imageTool.reconcile().catch(error => {
+        ctx.logger.error('Model Switch: failed to regenerate generate_image schema')
+        ctx.logger.error(error)
       })
-    }
-    const settings = ctx.get('settings')
-    if (settings === undefined) ctx.inject(['settings'], settingsCtx => install(settingsCtx.settings))
-    else install(settings)
+    })
   }
 
   currentSettings(): ModelSwitchSettings { return { ...this.source() } }

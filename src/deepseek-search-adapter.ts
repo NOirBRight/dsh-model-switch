@@ -1,3 +1,4 @@
+import type { Loader } from '@deepseek-ai/cordis-plugin-loader'
 import type { Context } from '@deepseek-ai/cordis'
 import { credentialRef, isCredentialRefName } from '@deepseek-ai/dsh-credentials'
 import type { CredentialRef } from '@deepseek-ai/dsh-credentials'
@@ -32,21 +33,39 @@ export const DEEPSEEK_SEARCH_MODELS: readonly SearchModel[] = [
   { id: 'deepseek-v4-pro', name: 'DeepSeek-V4-Pro' },
 ]
 
-// Host-only read validated by the official schema: same-process get returns the
-// full value (redaction lives only on the describe wire path), so a literal apiKey
-// stays usable here and is passed only into the official provider options.
-// The official ValidationError can echo values, so invalid sections fail static.
-// An unregistered namespace resolves through schema defaults.
-function readDeepSeekSection(ctx: Context): DeepSeekSearchSection {
-  const raw = ctx.get('settings')?.get(WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE)
-  try {
-    return DeepSeekSearchConfig(raw ?? {})
-  } catch {
-    throw new Error('invalid web-search-deepseek settings section')
+interface DeepSeekSearchValues {
+  apiKey?: string
+  apiKeyEnv: string
+  baseURL?: string
+  model: string
+  apiVersion: string
+  maxTokens: number
+  maxUses: number
+}
+
+function readDeepSeekSection(ctx: Context): DeepSeekSearchValues {
+  const loader: Loader | undefined = ctx.get('loader', false)
+  let configured: DeepSeekSearchSection | undefined
+  for (const entry of loader?.entries() ?? []) {
+    if (entry.id !== WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE) continue
+    configured = entry.fiber?.config
+    break
+  }
+  const section = configured ?? DeepSeekSearchConfig({})
+  const apiKey = section.apiKey.get()
+  const baseURL = section.baseURL.get()
+  return {
+    ...(apiKey === undefined ? {} : { apiKey }),
+    apiKeyEnv: section.apiKeyEnv.get(),
+    ...(baseURL === undefined ? {} : { baseURL }),
+    model: section.model.get(),
+    apiVersion: section.apiVersion.get(),
+    maxTokens: section.maxTokens.get(),
+    maxUses: section.maxUses.get(),
   }
 }
 
-function keyRef(section: DeepSeekSearchSection): CredentialRef {
+function keyRef(section: DeepSeekSearchValues): CredentialRef {
   const name = section.apiKeyEnv ?? DEFAULT_API_KEY_REF
   // Static diagnostic: the official credentialRef TypeError echoes its input, and a
   // mistyped apiKeyEnv may itself be pasted secret material.
@@ -64,7 +83,7 @@ function recordSearchRequest(ctx: Context, request: DeepSeekSearchLlmRequest): v
 // One-search binding: section supplies endpoint/keys/limits (launch env, then public
 // official defaults, like the official private resolver); the per-call model wins.
 // No HTTP/auth copied: these options feed the public DeepSeekSearchProvider.
-function toProviderOptions(ctx: Context, section: DeepSeekSearchSection, model: string): DeepSeekSearchProviderOptions {
+function toProviderOptions(ctx: Context, section: DeepSeekSearchValues, model: string): DeepSeekSearchProviderOptions {
   const apiKeyEnv = keyRef(section)
   const literalApiKey = section.apiKey !== undefined && section.apiKey.length > 0 ? section.apiKey : undefined
   return {

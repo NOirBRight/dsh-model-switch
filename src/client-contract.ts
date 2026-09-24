@@ -1,5 +1,6 @@
-export const MODEL_SWITCH_SETTINGS_ID = 'model-switch'
-export const MAIN_SETTINGS_ID = 'agent-default-model'
+export const MODEL_SWITCH_CONFIG_ID = 'model-switch'
+export const MAIN_DEFAULT_CONFIG_ID = 'agent-default-model'
+export const PROVIDERS_CONFIG_ID = 'llm-providers-ui'
 
 export interface MainSettingsView { provider: string; model: string; reasoningEffort?: string }
 export class MainSettingsConflictError extends Error {
@@ -15,7 +16,7 @@ export interface ModelSwitchSettingsView {
 export interface SubagentSettingsView { mode: 'follow-main' | 'fixed'; provider?: string; model?: string; reasoningEffort?: string }
 export interface CapabilityRouteView { provider?: string; model?: string }
 
-export const SUBAGENT_SETTINGS_FIELDS = Object.freeze({ mode: 'subagentMode', provider: 'subagentProvider', model: 'subagentModel', effort: 'subagentReasoningEffort' } as const)
+export const SUBAGENT_SETTINGS_FIELDS = Object.freeze({ mode: 'subagentMode', provider: 'subagentProvider', model: 'subagentModel', reasoningEffort: 'subagentReasoningEffort' } as const)
 
 /** Instant Subagent header toggle. Off keeps the stored `follow-main` unset token. */
 export function subagentModeForEnabled(enabled: boolean): SubagentSettingsView['mode'] {
@@ -24,24 +25,6 @@ export function subagentModeForEnabled(enabled: boolean): SubagentSettingsView['
 export const SEARCH_SETTINGS_FIELDS = Object.freeze({ provider: 'searchProvider', model: 'searchModel' } as const)
 export const IMAGE_SETTINGS_FIELDS = Object.freeze({ provider: 'imageProvider', model: 'imageModel' } as const)
 
-function record(value: unknown): Record<string, unknown> | undefined { return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : undefined }
-function optionalString(value: unknown): string | undefined { return typeof value === 'string' ? value : undefined }
-export function decodeMainSettings(value: unknown): MainSettingsView | undefined {
-  const item = record(value)
-  if (item === undefined || typeof item.provider !== 'string' || typeof item.model !== 'string') return undefined
-  const effort = optionalString(item.reasoningEffort)
-  return { provider: item.provider, model: item.model, ...(effort === undefined ? {} : { reasoningEffort: effort }) }
-}
-export function decodeModelSwitchSettings(value: unknown): ModelSwitchSettingsView | undefined {
-  const item = record(value)
-  if (item === undefined || (item.subagentMode !== 'follow-main' && item.subagentMode !== 'fixed')) return undefined
-  return {
-    subagentMode: item.subagentMode,
-    compactOnSwitch: item.compactOnSwitch !== false,
-    ...Object.fromEntries(['subagentProvider','subagentModel','subagentReasoningEffort','searchProvider','searchModel','imageProvider','imageModel']
-      .flatMap((key) => { const field = optionalString(item[key]); return field === undefined ? [] : [[key, field]] })) as Omit<ModelSwitchSettingsView, 'subagentMode' | 'compactOnSwitch'>,
-  }
-}
 export function deriveSubagentSettings(settings: ModelSwitchSettingsView): SubagentSettingsView {
   return { mode: settings.subagentMode, ...(settings.subagentProvider === undefined ? {} : { provider: settings.subagentProvider }), ...(settings.subagentModel === undefined ? {} : { model: settings.subagentModel }), ...(settings.subagentReasoningEffort === undefined ? {} : { reasoningEffort: settings.subagentReasoningEffort }) }
 }

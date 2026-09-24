@@ -1,3 +1,4 @@
+import { type PluginRpcClient } from './plugin-rpc.ts';
 /** Session execution-runtime lock from native binding and request activity. */
 /** Native binding query declared by an installed Agent provider. */
 export interface NativeBindingSource {
@@ -11,16 +12,10 @@ export interface ProviderLockState {
     readonly provider: RuntimeProviderLock;
     readonly failed: boolean;
 }
-interface BindingRpc {
-    call(channel: string, endpoint: string, payload: unknown, extra: undefined): Promise<{
-        ok: boolean;
-        value?: unknown;
-    }>;
-}
 /** Decode a wire reply only for the provider that owns the query. */
 export declare function decodeBindingProvider(value: unknown, provider: string): RuntimeProviderLock | undefined;
 /** Query installed declarations; one failed query must never become a successful unbound read. */
-export declare function fetchSessionBinding(rpc: BindingRpc | undefined, sessionId: string, sources: readonly NativeBindingSource[]): Promise<ProviderLockState>;
+export declare function fetchSessionBinding(rpc: PluginRpcClient | undefined, sessionId: string, sources: readonly NativeBindingSource[]): Promise<ProviderLockState>;
 /** Whether one provider remains selectable under a known lock read. */
 export declare function providerSelectable(lock: RuntimeProviderLock, provider: string): boolean;
 /** Extra facts for Agent-role selection on blank vs existing DSH sessions. */
@@ -71,4 +66,3 @@ export interface ProviderLockStore {
  * throws (failures resolve to failed reads); refresh never rejects.
  */
 export declare function createProviderLockStore(query: (previous: ProviderLockState) => Promise<ProviderLockState>): ProviderLockStore;
-export {};

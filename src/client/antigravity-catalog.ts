@@ -1,3 +1,4 @@
+import { callPluginRpc, type PluginRpcClient } from './plugin-rpc.ts'
 /** DSH-parent subagent access to the Antigravity Enabled catalog. */
 
 import type { ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types'
@@ -10,16 +11,10 @@ export const ANTIGRAVITY_PROVIDER_KEY = 'antigravity'
 export const AGENT_ROLE = 'agent'
 
 /**
- * Released Antigravity settings RPC seam (dsh-acp-antigravity client-contract).
- * Kept as literals: the Antigravity plugin is not a Model Switch dependency.
+ * Antigravity's authenticated plugin route; this plugin has no build dependency on its owner.
  */
-export const ANTIGRAVITY_CATALOG_CHANNEL = '/dsh-acp-antigravity'
+export const ANTIGRAVITY_CATALOG_METHOD = 'plugin-rpc/antigravity'
 export const ANTIGRAVITY_CATALOG_ENDPOINT = 'catalog'
-
-interface CatalogRpc {
-  call(channel: string, endpoint: string, payload: unknown, extra: undefined): Promise<{ ok: boolean; value?: unknown }>
-}
-
 function record(value: unknown): Record<string, unknown> | undefined {
   return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : undefined
 }
@@ -102,10 +97,10 @@ export function decodeAntigravityCatalogGroups(value: unknown): ModelProviderGro
  * Read the Enabled catalog; resolves to no groups when Antigravity is absent,
  * unreachable, or malformed. Never throws: the Host catalog stays authoritative.
  */
-export async function fetchAntigravityCatalogGroups(rpc: CatalogRpc | undefined): Promise<ModelProviderGroup[]> {
+export async function fetchAntigravityCatalogGroups(rpc: PluginRpcClient | undefined): Promise<ModelProviderGroup[]> {
   if (rpc === undefined) return []
   try {
-    const result = await rpc.call(ANTIGRAVITY_CATALOG_CHANNEL, ANTIGRAVITY_CATALOG_ENDPOINT, {}, undefined)
+    const result = await callPluginRpc(rpc, ANTIGRAVITY_CATALOG_METHOD, ANTIGRAVITY_CATALOG_ENDPOINT, {})
     return result.ok ? decodeAntigravityCatalogGroups(result.value) : []
   } catch {
     return []

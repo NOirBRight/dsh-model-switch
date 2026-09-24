@@ -37,7 +37,7 @@ describe('DSH forward compatibility policy', () => {
     expect(warnings).toEqual([])
   })
 
-  it('declares unbounded optional DSH peers', () => {
+  it('declares exact alpha2 optional DSH peers', () => {
     const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
       peerDependencies?: Record<string, string>
       peerDependenciesMeta?: Record<string, { optional?: boolean }>
@@ -45,7 +45,7 @@ describe('DSH forward compatibility policy', () => {
     const peers = Object.entries(manifest.peerDependencies ?? {}).filter(([name]) => name.startsWith('@deepseek-ai/dsh-'))
     expect(peers.length).toBeGreaterThan(0)
     for (const [name, range] of peers) {
-      expect(range).toBe('*')
+      expect(range).toBe('0.1.7-alpha.2')
       expect(manifest.peerDependenciesMeta?.[name]?.optional).toBe(true)
     }
   })

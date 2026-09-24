@@ -9,8 +9,8 @@ import {
 import { createPortal } from 'react-dom'
 import type { ModelSelection } from '@deepseek-ai/dsh-api-session-controller/types'
 import {
-  Button, IconCheckOutline16, IconChevronDownOutline14, IconChevronLeftOutline14,
-  IconChevronRightOutline14, IconCloseOutline16, IconSearchOutline16, IconWarningOutline16,
+  Button, IconCheckOutlineRegular, IconChevronDownOutlineRegular, IconChevronLeftOutlineRegular,
+  IconChevronRightOutlineRegular, IconCloseOutlineRegular, IconSearchOutlineRegular, IconWarningOutlineRegular,
   Input, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { FamilyMember, ModelFamily } from '../../picker/family.ts'
@@ -102,7 +102,7 @@ export function ModelPaneHeader({
         variant="ghost"
         size="sm"
         className={css.headerButton}
-        icon={<IconChevronLeftOutline14 />}
+        icon={<IconChevronLeftOutlineRegular size={14} />}
         aria-label={backLabel}
         onClick={onBack}
       />
@@ -127,7 +127,7 @@ export function ModelPaneHeader({
               variant="ghost"
               size="sm"
               className={css.headerButton}
-              icon={searching ? <IconCloseOutline16 /> : <IconSearchOutline16 />}
+              icon={searching ? <IconCloseOutlineRegular size={16} /> : <IconSearchOutlineRegular size={16} />}
               aria-label={searching ? closeSearchLabel : searchLabel}
               onClick={searching ? onCloseSearch : onStartSearch}
             />
@@ -370,34 +370,34 @@ export function ComposerPicker({
           <button type="button" role="menuitem" className={css.cell} onClick={() => { setPane('model'); setSearching(false); setQuery('') }}>
             <span className={css.cellLabel}>{t('menu.model')}</span>
             <span className={css.cellValue}>{family?.name ?? modelLabel}</span>
-            <IconChevronRightOutline14 className={css.cellChevron} />
+            <IconChevronRightOutlineRegular size={14} className={css.cellChevron} />
           </button>
           {reasoning !== undefined && (
             <button type="button" role="menuitem" className={css.cell} onClick={() => { setPane('effort') }}>
               <span className={css.cellLabel}>{t('menu.effort')}</span>
               <span className={css.cellValue}>{effortLabel}</span>
-              <IconChevronRightOutline14 className={css.cellChevron} />
+              <IconChevronRightOutlineRegular size={14} className={css.cellChevron} />
             </button>
           )}
           {family !== undefined && familyHasContextChoices(family) && (
             <button type="button" role="menuitem" className={css.cell} onClick={() => { setPane('context') }}>
               <span className={css.cellLabel}>{t('menu.context')}</span>
               <span className={css.cellValue}>{contextDisplay(contextLabel ?? '')}</span>
-              <IconChevronRightOutline14 className={css.cellChevron} />
+              <IconChevronRightOutlineRegular size={14} className={css.cellChevron} />
             </button>
           )}
           {family !== undefined && familyHasFast(family) && (
             <button type="button" role="menuitem" className={css.cell} onClick={() => { setPane('fast') }}>
               <span className={css.cellLabel}>{t('menu.fast')}</span>
               <span className={css.cellValue}>{member?.fast === true ? t('fast.on') : t('fast.off')}</span>
-              <IconChevronRightOutline14 className={css.cellChevron} />
+              <IconChevronRightOutlineRegular size={14} className={css.cellChevron} />
             </button>
           )}
           {thinkingPair !== null && (
             <button type="button" role="menuitem" className={css.cell} onClick={() => { setPane('thinking') }}>
               <span className={css.cellLabel}>{t('menu.thinking')}</span>
               <span className={css.cellValue}>{member?.thinking === true ? t('thinking.on') : t('thinking.off')}</span>
-              <IconChevronRightOutline14 className={css.cellChevron} />
+              <IconChevronRightOutlineRegular size={14} className={css.cellChevron} />
             </button>
           )}
         </>
@@ -447,7 +447,7 @@ export function ComposerPicker({
                         <span className={css.optionCopy}>
                           <span className={css.modelName}>{item.name}</span>
                         </span>
-                        <span className={css.check}>{selected ? <IconCheckOutline16 /> : null}</span>
+                        <span className={css.check}>{selected ? <IconCheckOutlineRegular size={16} /> : null}</span>
                       </button>
                     )
                   })}
@@ -477,7 +477,7 @@ export function ComposerPicker({
               <span className={css.optionCopy}>
                 <span className={css.modelName}>{level.name}</span>
               </span>
-              <span className={css.check}>{effectiveEffort === level.id ? <IconCheckOutline16 /> : null}</span>
+              <span className={css.check}>{effectiveEffort === level.id ? <IconCheckOutlineRegular size={16} /> : null}</span>
             </button>
           ))
       )}
@@ -502,7 +502,7 @@ export function ComposerPicker({
               <span className={css.optionCopy}>
                 <span className={css.modelName}>{contextDisplay(row.label)}</span>
               </span>
-              <span className={css.check}>{selected ? <IconCheckOutline16 /> : null}</span>
+              <span className={css.check}>{selected ? <IconCheckOutlineRegular size={16} /> : null}</span>
             </button>
           )
         })
@@ -528,7 +528,7 @@ export function ComposerPicker({
               <span className={css.optionCopy}>
                 <span className={css.modelName}>{fast ? t('fast.on') : t('fast.off')}</span>
               </span>
-              <span className={css.check}>{selected ? <IconCheckOutline16 /> : null}</span>
+              <span className={css.check}>{selected ? <IconCheckOutlineRegular size={16} /> : null}</span>
             </button>
           )
         })
@@ -550,7 +550,7 @@ export function ComposerPicker({
               <span className={css.optionCopy}>
                 <span className={css.modelName}>{choice.on ? t('thinking.on') : t('thinking.off')}</span>
               </span>
-              <span className={css.check}>{selected ? <IconCheckOutline16 /> : null}</span>
+              <span className={css.check}>{selected ? <IconCheckOutlineRegular size={16} /> : null}</span>
             </button>
           )
         })
@@ -575,14 +575,14 @@ export function ComposerPicker({
         onClick={onTriggerClick}
       >
         <span className={css.triggerLabel}>{currentSelection !== null ? <RuntimeIcon provider={currentSelection.provider} {...(roleOf === undefined ? {} : { roleOf })} /> : null}{triggerLabel}</span>
-        <IconChevronDownOutline14 className={classNames(css.chevron, open && css.chevronOpen)} />
+        <IconChevronDownOutlineRegular size={14} className={classNames(css.chevron, open && css.chevronOpen)} />
       </button>
       {menu !== null && (tone === 'capsule' ? menu : createPortal(menu, document.body))}
       {toast !== null && (
         <Toast
           key={toast.seq}
           text={toast.text}
-          icon={<IconWarningOutline16 />}
+          icon={<IconWarningOutlineRegular size={16} />}
           anchor={triggerRef.current?.closest<HTMLElement>('[data-composer-card]') ?? null}
           onDone={() => { setToast(null) }}
         />

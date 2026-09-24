@@ -1,5 +1,6 @@
-export declare const MODEL_SWITCH_SETTINGS_ID = "model-switch";
-export declare const MAIN_SETTINGS_ID = "agent-default-model";
+export declare const MODEL_SWITCH_CONFIG_ID = "model-switch";
+export declare const MAIN_DEFAULT_CONFIG_ID = "agent-default-model";
+export declare const PROVIDERS_CONFIG_ID = "llm-providers-ui";
 export interface MainSettingsView {
     provider: string;
     model: string;
@@ -33,7 +34,7 @@ export declare const SUBAGENT_SETTINGS_FIELDS: Readonly<{
     readonly mode: "subagentMode";
     readonly provider: "subagentProvider";
     readonly model: "subagentModel";
-    readonly effort: "subagentReasoningEffort";
+    readonly reasoningEffort: "subagentReasoningEffort";
 }>;
 /** Instant Subagent header toggle. Off keeps the stored `follow-main` unset token. */
 export declare function subagentModeForEnabled(enabled: boolean): SubagentSettingsView['mode'];
@@ -45,8 +46,6 @@ export declare const IMAGE_SETTINGS_FIELDS: Readonly<{
     readonly provider: "imageProvider";
     readonly model: "imageModel";
 }>;
-export declare function decodeMainSettings(value: unknown): MainSettingsView | undefined;
-export declare function decodeModelSwitchSettings(value: unknown): ModelSwitchSettingsView | undefined;
 export declare function deriveSubagentSettings(settings: ModelSwitchSettingsView): SubagentSettingsView;
 export declare function deriveSearchSettings(settings: ModelSwitchSettingsView): CapabilityRouteView;
 export declare function deriveImageSettings(settings: ModelSwitchSettingsView): CapabilityRouteView;

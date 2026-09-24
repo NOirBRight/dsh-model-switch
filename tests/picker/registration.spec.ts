@@ -4,8 +4,8 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
   const Stub = () => null
   return {
     Button: Stub, Input: Stub, Toast: Stub, MarkdownText: Stub,
-    IconCheckOutline16: Stub, IconChevronDownOutline14: Stub, IconChevronLeftOutline14: Stub,
-    IconChevronRightOutline14: Stub, IconCloseOutline16: Stub, IconSearchOutline16: Stub, IconWarningOutline16: Stub,
+    IconCheckOutlineRegular: Stub, IconChevronDownOutlineRegular: Stub, IconChevronLeftOutlineRegular: Stub,
+    IconChevronRightOutlineRegular: Stub, IconCloseOutlineRegular: Stub, IconSearchOutlineRegular: Stub, IconWarningOutlineRegular: Stub,
   }
 })
 
@@ -19,12 +19,21 @@ function bench(strictOptionalLookup = false) {
     load: vi.fn(async () => undefined),
     select: vi.fn(async () => undefined),
   }
+  const mainForm = {
+    getSnapshot: () => ({ status: 'loading' }),
+    subscribe: () => () => undefined,
+    mutate: vi.fn(async () => true),
+  }
+  const providerForm = {
+    getSnapshot: () => ({ status: 'ready', value: { order: [] } }),
+    subscribe: () => () => undefined,
+  }
   const raw: Record<string, unknown> = {
     providerDirectory: {
       roleOf: (key: string) => ['antigravity', 'cursor-agent'].includes(key) ? 'agent' : 'llm',
       nativeBindings: () => [
-        { provider: 'antigravity', channel: '/dsh-acp-antigravity', endpoint: 'activity/binding' },
-        { provider: 'cursor-agent', channel: '/dsh-acp-cursor', endpoint: 'activity/binding' },
+        { provider: 'antigravity', channel: 'plugin-rpc/antigravity', endpoint: 'activity/binding' },
+        { provider: 'cursor-agent', channel: 'plugin-rpc/cursor', endpoint: 'activity/binding' },
       ],
       catalogRoutes: () => ({ antigravity: 'antigravity', 'cursor-agent': 'cursor-agent' }),
       subscribe: () => () => undefined,
@@ -40,8 +49,7 @@ function bench(strictOptionalLookup = false) {
     uiConversation: { views: { register: vi.fn(() => vi.fn()) }, events: { register: vi.fn(() => vi.fn()) } },
     modelDirectories: { directoryFor: vi.fn(() => directory) },
     sessions: { subagentAddress: vi.fn(() => undefined) },
-    settingsScope: { bind: vi.fn(() => ({ getSnapshot: () => ({ status: 'loading' }) })) },
-    remote: { settings: { mutate: vi.fn(async () => ({ ok: true, value: { revision: 9 } })) } },
+    configForms: { get: (id: string) => id === 'agent-default-model' ? mainForm : providerForm },
     effect: (register: () => unknown) => register(),
     get: vi.fn(() => undefined),
   }
@@ -96,7 +104,7 @@ describe('composer picker seat ownership', () => {
     const { entries, raw, directory } = bench()
     directory.store.getSnapshot.mockReturnValue({ current: { provider: 'cursor-agent', model: 'm' } })
     raw.get = (name: string) => name === 'connection' ? { rpc: {
-      call: async (channel: string) => channel === '/dsh-acp-antigravity'
+      call: async (_channel: string, method: string) => method === 'plugin-rpc/antigravity'
         ? { ok: true, value: { provider: null } } : { ok: false },
     } } : undefined
     const model = entries.find(({ spec }) => spec.name === 'conversation.input.model')!
@@ -117,9 +125,13 @@ describe('composer picker seat ownership', () => {
 
   it('publishes a new stable snapshot when provider declarations change without a reorder', () => {
     const order = ['antigravity', 'llm-codex']
-    const store = providerOrderStore({ bind: () => ({
-      getSnapshot: () => ({ value: { order } }), subscribe: () => () => undefined,
-    }) })
+    const store = providerOrderStore({
+      getSnapshot: () => ({ status: 'ready', value: { order }, base: {}, user: {}, revision: 1, writable: true, mode: 'host' }),
+      subscribe: () => () => undefined,
+      set: async () => true,
+      unset: async () => true,
+      mutate: async () => true,
+    })
     const before = store.getSnapshot()
     const changed = vi.fn()
     const dispose = store.subscribe(changed)
@@ -136,7 +148,7 @@ describe('composer picker seat ownership', () => {
 
   it('uses the official model-seat service gate and an unambiguous winning priority', () => {
     const { entries, injections } = bench()
-    expect(injections).toContainEqual(['slots', 'modelDirectories', 'settingsScope', 'remote.settings'])
+    expect(injections).toContainEqual(['slots', 'modelDirectories', 'configForms'])
     expect(entries.find(({ spec }) => spec.name === 'conversation.input.model')?.spec.priority).toBe(-10)
   })
 
@@ -145,7 +157,9 @@ describe('composer picker seat ownership', () => {
       status: 'ready', value: { provider: 'deepseek', model: 'deep-chat' },
       base: {}, user: {}, revision: 7, writable: true, mode: 'host',
     }
-    const mutate = vi.fn(async () => ({ ok: true as const, value: { revision: 9 } }))
+    const mutate = vi.fn(async () => true)
+    const mainDefaults = { getSnapshot: () => mainSnapshot, subscribe: () => () => undefined, mutate }
+    const providerForm = { getSnapshot: () => ({ status: 'ready', value: { order: [] } }), subscribe: () => () => undefined }
     const directory = {
       store: { subscribe: vi.fn(), getSnapshot: vi.fn() },
       load: vi.fn(async () => undefined),
@@ -164,8 +178,7 @@ describe('composer picker seat ownership', () => {
       uiConversation: { views: { register: vi.fn(() => vi.fn()) }, events: { register: vi.fn(() => vi.fn()) } },
       modelDirectories: { directoryFor: vi.fn(() => directory) },
       sessions: { subagentAddress: vi.fn(() => undefined) },
-      settingsScope: { bind: vi.fn(() => ({ getSnapshot: () => mainSnapshot, subscribe: vi.fn(() => vi.fn()) })) },
-      remote: { settings: { mutate } },
+      configForms: { get: (id: string) => id === 'agent-default-model' ? mainDefaults : providerForm },
       effect: (register: () => unknown) => register(),
       get: vi.fn(() => undefined),
       inject: (services: string[], register: (scope: unknown) => unknown) => services.includes('providerDirectory') ? undefined : register(ctx),
@@ -175,7 +188,7 @@ describe('composer picker seat ownership', () => {
     const face = (model?.spec.inject as (sessionId: string) => { select(selection: { provider: string; model: string }): Promise<boolean> })('session-1')
 
     await expect(face.select({ provider: 'codex', model: 'gpt-switched' })).resolves.toBe(true)
-    expect(mutate).toHaveBeenCalledWith('agent-default-model', [
+    expect(mutate).toHaveBeenCalledWith([
       { op: 'set', path: ['provider'], value: 'deepseek' },
       { op: 'set', path: ['model'], value: 'deep-chat' },
       { op: 'unset', path: ['reasoningEffort'] },

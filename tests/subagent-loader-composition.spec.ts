@@ -114,8 +114,8 @@ describe('public profile-patched Subagent replacement', () => {
     expect(observed?.agentOptions).toMatchObject({ provider: 'fixed-provider', model: 'fixed-model' })
   })
 
-  it('exposes public resolveMaxDepth on the routed runtime', async () => {
-    expect(typeof Reflect.get(OfficialSubagentRuntime.prototype, 'resolveMaxDepth')).not.toBe('function')
+  it('inherits the official public resolveMaxDepth policy on the routed runtime', async () => {
+    expect(typeof Reflect.get(OfficialSubagentRuntime.prototype, 'resolveMaxDepth')).toBe('function')
     const context = await loadComposition()
     expect(context.subagents).toBeInstanceOf(ModelSwitchSubagentRuntime)
     const runtime = context.subagents as ModelSwitchSubagentRuntime

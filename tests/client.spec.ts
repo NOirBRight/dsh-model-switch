@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
-import { decodeMainSettings, decodeModelSwitchSettings, MAIN_SETTINGS_ID, MODEL_SWITCH_SETTINGS_ID, subagentModeForEnabled } from '../src/client-contract.js'
+import type { ConfigForm, ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
+import { MAIN_DEFAULT_CONFIG_ID, MODEL_SWITCH_CONFIG_ID, PROVIDERS_CONFIG_ID, MainSettingsConflictError, subagentModeForEnabled, type MainSettingsView, type ModelSwitchSettingsView } from '../src/client-contract.js'
 
 vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
   const Stub = () => null
   return {
     Button: Stub, Input: Stub, Toast: Stub, MarkdownText: Stub,
-    IconCheckOutline16: Stub, IconChevronDownOutline14: Stub, IconChevronLeftOutline14: Stub,
-    IconChevronRightOutline14: Stub, IconCloseOutline16: Stub, IconSearchOutline16: Stub, IconWarningOutline16: Stub,
+    IconCheckOutlineRegular: Stub, IconChevronDownOutlineRegular: Stub, IconChevronLeftOutlineRegular: Stub,
+    IconChevronRightOutlineRegular: Stub, IconCloseOutlineRegular: Stub, IconSearchOutlineRegular: Stub, IconWarningOutlineRegular: Stub,
   }
 })
 
@@ -17,24 +18,64 @@ vi.mock('../src/client/picker/install.tsx', async importOriginal => ({
 import { apply, inject, name } from '../src/client/index.js'
 import { installComposerPicker } from '../src/client/picker/install.tsx'
 
-function ctxWith(settingsMutate: ReturnType<typeof vi.fn>) {
+function form<T>(value: T, revision = 7) {
+  let snapshot: ConfigFormSnapshot<T> = { status: 'ready', value, base: {}, user: {}, revision, writable: true, mode: 'host' }
+  const listeners = new Set<() => void>()
+  const mutate = vi.fn(async (_ops: Parameters<ConfigForm<T>['mutate']>[0], _revision?: number) => true)
+  const set = vi.fn(async (_field: string, _value: unknown) => true)
+  const unset = vi.fn(async (_field: string) => true)
+  const result: ConfigForm<T> = {
+    getSnapshot: () => snapshot,
+    subscribe(listener) { listeners.add(listener); return () => { listeners.delete(listener) } },
+    set,
+    unset,
+    async mutate(...args: Parameters<ConfigForm<T>['mutate']>) {
+      const accepted = await mutate(...args)
+      if (accepted) {
+        snapshot = { ...snapshot, revision: (snapshot.revision ?? 0) + 1 }
+        for (const listener of listeners) listener()
+      }
+      return accepted
+    },
+  }
+  return {
+    form: result,
+    mutate,
+    set,
+    unset,
+    setRevision(next: number) { snapshot = { ...snapshot, revision: next } },
+  }
+}
+
+function ctxWith(mainMutation: ConfigForm<MainSettingsView>['mutate'] = async () => true) {
   let registration: Record<string, unknown> | undefined
   const directoryMounts: Array<(scope: unknown) => unknown> = []
+  const main = form<MainSettingsView>({ provider: 'deepseek', model: 'deep-chat' })
+  const owned = form<ModelSwitchSettingsView>({ subagentMode: 'follow-main', compactOnSwitch: true })
+  const providers = form<{ order: string[] }>({ order: ['native-card', 'llm-codex'] })
+  const rpc = { call: vi.fn(async () => ({ ok: true as const, value: { revision: 0, capabilities: { searchProviderAdapters: { available: true, providers: [], catalog: [] } } } })) }
   const ctx = {
     inject: (_deps: string[], callback: (scope: unknown) => unknown) => { directoryMounts.push(callback) },
     effect(factory: () => unknown) { factory() },
     locale: { register: vi.fn(() => vi.fn()), bind: vi.fn(() => (key: string) => key) },
-    remote: { settings: { mutate: settingsMutate }, session: { modelCatalog: vi.fn(async () => ({ ok: true, value: { groups: [{ id: 'codex', name: 'Codex', models: [] }, { id: 'new-native', name: 'Native', models: [] }] } })) } },
-    settingsScope: { bind: () => ({ getSnapshot: () => ({ revision: 7, value: { order: ['native-card', 'llm-codex'] } }), subscribe: () => () => undefined, set: vi.fn(), unset: vi.fn() }) },
+    remote: { session: { modelCatalog: vi.fn(async () => ({ ok: true, value: { groups: [{ id: 'codex', name: 'Codex', models: [] }, { id: 'new-native', name: 'Native', models: [] }] } })) } },
+    configForms: {
+      get: vi.fn((id: string) => id === MAIN_DEFAULT_CONFIG_ID ? main.form : id === MODEL_SWITCH_CONFIG_ID ? owned.form : providers.form),
+    },
     slots: { inject(_name: string, factory: () => unknown) { factory() }, register(options: Record<string, unknown>) { registration = options; return vi.fn() } },
+    get: vi.fn((name: string) => name === 'connection' ? { rpc } : undefined),
   }
+  main.mutate.mockImplementation(async (...args) => {
+    const accepted = await mainMutation(...args)
+    return accepted
+  })
   apply(ctx as never)
-  return { registration, ctx, directoryMounts }
+  return { registration, ctx, directoryMounts, main, owned, rpc }
 }
 
-describe('Client Settings surface', () => {
+describe('Client ConfigForms surface', () => {
   it('refreshes catalog order and role when the optional directory mounts and unmounts', async () => {
-    const { registration, directoryMounts } = ctxWith(vi.fn())
+    const { registration, directoryMounts } = ctxWith()
     const face = (registration!.inject as () => {
       loadCatalog(): Promise<Array<{ id: string }>>
       providerRoleOf(key: string): string
@@ -66,12 +107,9 @@ describe('Client Settings surface', () => {
   })
 
   it('keeps catalog loading available with an older directory lacking catalogRoutes', async () => {
-    const { registration, directoryMounts } = ctxWith(vi.fn())
+    const { registration, directoryMounts } = ctxWith()
     const face = (registration!.inject as () => { loadCatalog(): Promise<Array<{ id: string }>> })()
-    const directory = {
-      roleOf: () => 'llm',
-      subscribe: () => () => undefined,
-    }
+    const directory = { roleOf: () => 'llm', subscribe: () => () => undefined }
     const disposers: Array<() => void> = []
     for (const mount of directoryMounts) mount({
       get: () => directory,
@@ -81,39 +119,47 @@ describe('Client Settings surface', () => {
     for (const dispose of disposers.reverse()) dispose()
   })
 
-  it('decodes unavailable stored choices without hiding them', () => {
-    expect(decodeMainSettings({ provider: 'missing', model: 'remember', reasoningEffort: 'custom' })).toEqual({ provider: 'missing', model: 'remember', reasoningEffort: 'custom' })
-    expect(decodeModelSwitchSettings({ subagentMode: 'fixed', subagentProvider: 'missing', subagentModel: 'remember' })).toMatchObject({ subagentMode: 'fixed', subagentProvider: 'missing' })
-    expect(decodeModelSwitchSettings({ subagentMode: 'follow-main', searchProvider: 'codex', searchModel: 'gpt-search', imageProvider: 'grok', imageModel: 'grok-imagine-1.0', visionProvider: 'hidden' })).toEqual({ subagentMode: 'follow-main', compactOnSwitch: true, searchProvider: 'codex', searchModel: 'gpt-search', imageProvider: 'grok', imageModel: 'grok-imagine-1.0' })
-    expect(decodeModelSwitchSettings({ subagentMode: 'invalid' })).toBeUndefined()
-    expect(subagentModeForEnabled(true)).toBe('fixed')
-    expect(subagentModeForEnabled(false)).toBe('follow-main')
-  })
-  it('declares the Remote namespaces instead of the removed runtime package', () => {
+  it('preserves the Client entry dependencies and uses actual Loader entry ids', () => {
+    const { ctx } = ctxWith()
     expect(name).toBe('dsh-model-switch-client')
-    expect(inject).toEqual(['slots', 'locale', 'sessions', 'modelDirectories', 'settingsScope', 'remote', 'remote.settings', 'remote.session'])
+    expect(inject).toEqual(['slots', 'locale', 'sessions', 'modelDirectories', 'configForms', 'remote', 'remote.session'])
+    expect(ctx.configForms.get).toHaveBeenCalledWith(MAIN_DEFAULT_CONFIG_ID)
+    expect(ctx.configForms.get).toHaveBeenCalledWith(MODEL_SWITCH_CONFIG_ID)
+    expect(ctx.configForms.get).toHaveBeenCalledWith(PROVIDERS_CONFIG_ID)
   })
-  it('registers one localized section and atomically saves the Main row through the settings Remote', async () => {
-    const mutate = vi.fn(async () => ({ ok: true as const, value: { revision: 8 } }))
-    const { registration } = ctxWith(mutate)
+
+  it('saves the Main row atomically through ConfigForm and maps false refusal to conflict', async () => {
+    const { registration, main, rpc } = ctxWith()
     expect(installComposerPicker).toHaveBeenCalled()
     expect(registration).toMatchObject({ name: 'settings.section', id: 'model-switch', order: 9 })
-    const face = (registration?.inject as () => { saveMain(next: unknown, expectedRevision: number): Promise<number> })()
-    await face.saveMain({ provider: 'codex', model: 'gpt' }, 7)
-    expect(mutate).toHaveBeenCalledWith(MAIN_SETTINGS_ID, [
-      { op: 'set', path: ['provider'], value: 'codex' }, { op: 'set', path: ['model'], value: 'gpt' }, { op: 'unset', path: ['reasoningEffort'] },
+    const face = (registration?.inject as () => {
+      saveMain(next: MainSettingsView, expectedRevision: number): Promise<number>
+      loadCapabilities(revision?: number, signal?: AbortSignal): Promise<unknown>
+      setCompactOnSwitch(value: boolean): Promise<void>
+    })()
+    await expect(face.saveMain({ provider: 'codex', model: 'gpt' }, 7)).resolves.toBe(8)
+    expect(main.mutate).toHaveBeenCalledWith([
+      { op: 'set', path: ['provider'], value: 'codex' },
+      { op: 'set', path: ['model'], value: 'gpt' },
+      { op: 'unset', path: ['reasoningEffort'] },
     ], 7)
+    await face.loadCapabilities(4)
+    expect(rpc.call).toHaveBeenCalledWith('/api', 'plugin-rpc/model-switch', { endpoint: 'capabilities', payload: { revision: 4 } }, undefined)
+    const rejected = ctxWith(vi.fn(async () => false))
+    const rejectedFace = (rejected.registration?.inject as () => { saveMain(next: MainSettingsView, expectedRevision: number): Promise<number> })()
+    await expect(rejectedFace.saveMain({ provider: 'codex', model: 'gpt' }, 7)).rejects.toThrow('settings-rejected')
+    rejected.main.setRevision(8)
+    await expect(rejectedFace.saveMain({ provider: 'codex', model: 'gpt' }, 7)).rejects.toBeInstanceOf(MainSettingsConflictError)
   })
-  it('fails the whole Main row on a revision conflict', async () => {
-    const mutate = vi.fn(async () => ({ ok: false as const, error: { code: 'settings-conflict', message: 'stale revision' } }))
-    const { registration } = ctxWith(mutate)
-    const face = (registration?.inject as () => { saveMain(next: unknown, expectedRevision: number): Promise<number> })()
-    await expect(face.saveMain({ provider: 'a', model: 'b' }, 1)).rejects.toThrow('conflict')
-  })
-  it('preserves non-conflict Settings rejection diagnostics', async () => {
-    const mutate = vi.fn(async () => ({ ok: false as const, error: { code: 'settings-rejected', message: 'schema refused the route' } }))
-    const { registration } = ctxWith(mutate)
-    const face = (registration?.inject as () => { saveMain(next: unknown, expectedRevision: number): Promise<number> })()
-    await expect(face.saveMain({ provider: 'a', model: 'b' }, 1)).rejects.toThrow('settings-rejected: schema refused the route')
+
+  it('maps compact switch edits through the owned ConfigForm and surfaces refusal', async () => {
+    const { registration, owned } = ctxWith()
+    const face = (registration?.inject as () => { setCompactOnSwitch(value: boolean): Promise<void> })()
+    await expect(face.setCompactOnSwitch(false)).resolves.toBeUndefined()
+    expect(owned.set).toHaveBeenCalledWith('compactOnSwitch', false)
+    owned.set.mockResolvedValue(false)
+    await expect(face.setCompactOnSwitch(true)).rejects.toThrow('settings-rejected')
+    expect(subagentModeForEnabled(true)).toBe('fixed')
+    expect(subagentModeForEnabled(false)).toBe('follow-main')
   })
 })

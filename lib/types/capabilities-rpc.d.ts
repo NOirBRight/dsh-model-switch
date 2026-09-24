@@ -1,8 +1,8 @@
 import type { Context } from '@deepseek-ai/cordis';
-import type { ConnectionRpcHandler } from '@deepseek-ai/dsh-client-connection';
+import { type ConnectionRpcHandler } from '@deepseek-ai/dsh-client-connection';
 import type { ModelSwitchAdapterRegistry } from './adapter-registry.js';
 import type { RuntimeCapabilities } from './runtime-capabilities.js';
-export declare const CAPABILITIES_CHANNEL = "/model-switch";
+export declare const CAPABILITIES_RPC_METHOD = "plugin-rpc/model-switch";
 export interface CapabilitiesSnapshot {
     readonly revision: number;
     readonly capabilities: RuntimeCapabilities;

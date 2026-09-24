@@ -1,6 +1,6 @@
 import { expect, it, vi } from 'vitest'
 import { ModelSwitchAdapterRegistry } from '../src/adapter-registry.js'
-import { capabilitiesRpc } from '../src/capabilities-rpc.js'
+import { capabilitiesRpc, installCapabilitiesRpc } from '../src/capabilities-rpc.js'
 import { RUNTIME_CAPABILITIES } from '../src/runtime-capabilities.js'
 
 it('delivers registration changes through the Host RPC and closes subscriptions on abort', async () => {
@@ -42,4 +42,45 @@ it('advances the wire revision when a provider changes its model declaration in 
     const result = await next
     expect(result).toMatchObject({ ok: true, value: { revision: revision + 1, capabilities: { searchProviderAdapters: { catalog: [{ models: [{ id: 'after' }] }] } } } })
   } finally { lifetime.abort(); vi.useRealTimers() }
+})
+it('uses the authenticated Fetch path and accepts an omitted JSON payload field', async () => {
+  const registry = new ModelSwitchAdapterRegistry()
+  const unregister = vi.fn()
+  let registration: { path: string; methods: readonly string[]; requestBody: string } | undefined
+  let fetchRoute: ((request: Request) => Promise<Response>) | undefined
+  let dispose: (() => Promise<void>) | undefined
+  const scope = {
+    connection: {
+      operator: {},
+      fetch: {
+        register(options: { path: string; methods: readonly string[]; requestBody: string; fetch: (request: Request) => Promise<Response> }) {
+          registration = options
+          fetchRoute = options.fetch
+          return unregister
+        },
+      },
+    },
+    effect(factory: () => () => Promise<void>) { dispose = factory() },
+  }
+  const ctx = { inject: (_dependencies: string[], attach: (scope: unknown) => unknown) => attach(scope) }
+  installCapabilitiesRpc(ctx as never, registry, () => RUNTIME_CAPABILITIES)
+  expect(registration).toEqual({
+    path: '/api/plugin-rpc/model-switch', methods: ['POST'], requestBody: 'buffered', fetch: expect.any(Function),
+  })
+  const fetch = fetchRoute
+  if (fetch === undefined) throw new Error('Fetch route was not installed')
+  const response = await fetch(new Request('http://host/api/plugin-rpc/model-switch', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      type: 'client-request', rpcId: 'client-1', method: 'plugin-rpc/model-switch',
+      payload: { endpoint: 'capabilities' },
+    }),
+  }))
+  expect(response.status).toBe(200)
+  expect(await response.json()).toMatchObject({
+    type: 'server-response', rpcId: 'client-1', result: { ok: false, error: { code: 'invalid-request' } },
+  })
+  await dispose?.()
+  expect(unregister).toHaveBeenCalledOnce()
 })

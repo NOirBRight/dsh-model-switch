@@ -4,16 +4,16 @@
 
 import type { ModelSelection } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
-import type { SettingsScopeSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
+import type { ConfigForm, ConfigFormSnapshot } from '@deepseek-ai/dsh-client-ui-settings/client'
 import type { ComposerChainProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-model-selection/client'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import { useEffect, useSyncExternalStore } from 'react'
-import { decodeMainSettings, MAIN_SETTINGS_ID, type MainSettingsView } from '../../client-contract.ts'
+import { MAIN_DEFAULT_CONFIG_ID, PROVIDERS_CONFIG_ID, type MainSettingsView } from '../../client-contract.ts'
 import { selectPlanReview } from '../../picker/plan-review.ts'
 import { ComposerPicker } from './ComposerPicker.tsx'
-import { decodeProviderOrder, PROVIDERS_SETTINGS_NS } from 'dsh-llm-providers-ui/order'
+import type { ProviderOrderSettings } from 'dsh-llm-providers-ui/order'
 import { pickerDirectoryViewOrdered, type PickerDirectoryFace } from './PickerDirectory.ts'
 import type { PickerInteractionOperations } from './popup-dismissal.ts'
 import { PlanReviewCard, ProviderLockHint } from './PlanReviewCard.tsx'
@@ -56,30 +56,20 @@ function interactionOperationsFrom(ctx: ClientContext): PickerInteractionOperati
 const EMPTY_ORDER: readonly string[] = []
 
 /**
- * Bind the optional Providers page order as a React external store.
- * @param settingsScope - Settings registry that may expose the Providers order namespace.
+ * Bind the optional Providers entry order as a React external store.
  * @returns A subscribable order snapshot with an invalidation hook for directory changes.
  */
-export function providerOrderStore(
-  settingsScope: { bind(options: { namespace: string, decode: (value: unknown) => { order: string[] } }): { getSnapshot(): { value?: { order: string[] } | undefined }, subscribe(listener: () => void): () => void } },
-) {
-  let bound: ReturnType<typeof settingsScope.bind> | undefined
-  try {
-    bound = settingsScope.bind({ namespace: PROVIDERS_SETTINGS_NS, decode: decodeProviderOrder })
-  } catch {
-    // The optional Providers page may not have registered its settings namespace.
-    bound = undefined
-  }
+export function providerOrderStore(form: ConfigForm<ProviderOrderSettings>) {
   const listeners = new Set<() => void>()
   let last: readonly string[] = EMPTY_ORDER
   return {
     subscribe: (listener: () => void) => {
       listeners.add(listener)
-      const stop = bound?.subscribe(listener) ?? (() => {})
+      const stop = form.subscribe(listener)
       return () => { listeners.delete(listener); stop() }
     },
     getSnapshot: () => {
-      const next = bound?.getSnapshot().value?.order ?? EMPTY_ORDER
+      const next = form.getSnapshot().value?.order ?? EMPTY_ORDER
       if (next.length !== last.length || next.some((key, index) => key !== last[index])) last = [...next]
       return last
     },
@@ -113,31 +103,20 @@ function mainDefaultOps(selection: MainSettingsView) {
   ]
 }
 
-interface RemoteSettingsFace {
-  mutate(ns: string, ops: readonly unknown[], expectedRevision: number | undefined): Promise<{
-    ok: boolean
-    value?: { revision: number }
-    error?: { code: string; message: string }
-  }>
-}
-
 async function restoreMainDefault(
-  remoteSettings: RemoteSettingsFace,
-  before: SettingsScopeSnapshot<MainSettingsView>,
+  mainDefaults: ConfigForm<MainSettingsView>,
+  before: ConfigFormSnapshot<MainSettingsView>,
 ): Promise<void> {
   if (before.status !== 'ready' || before.mode !== 'host' || !before.writable
     || before.value === undefined || before.revision === undefined) return
-  const response = await remoteSettings.mutate(
-    MAIN_SETTINGS_ID,
+  const expectedRevision = before.revision + 1
+  const accepted = await mainDefaults.mutate(
     mainDefaultOps(before.value),
     // session.selectModel performs exactly one complete-section default write
-    // before its RPC resolves. Fence the compensating write so a concurrent
-    // Settings-page edit wins instead of being overwritten.
-    before.revision + 1,
+    // before its RPC resolves. Fence the compensation so a concurrent edit wins.
+    expectedRevision,
   )
-  if (!response.ok && response.error?.code !== 'settings-conflict') {
-    throw new Error(`${response.error?.code}: ${response.error?.message}`)
-  }
+  if (!accepted && mainDefaults.getSnapshot().revision === expectedRevision) throw new Error('settings-rejected')
 }
 
 function readSessionState(sessions: unknown, sessionId: unknown): { blank?: boolean; active: boolean } | undefined {
@@ -199,15 +178,15 @@ function ModelSeatEntry(props: Parameters<typeof ModelSeat>[0]) {
 export function installComposerPicker(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'dsh-model-switch: composer picker dictionaries')
 
-  ctx.inject(['slots', 'modelDirectories', 'settingsScope', 'remote.settings'], (scope: ClientContext) => {
+  ctx.inject(['slots', 'modelDirectories', 'configForms'], (scope: ClientContext) => {
     const models = scope.modelDirectories
     const sessions = scope.sessions as {
       subagentAddress?: (id: unknown) => unknown
       get?: (id: unknown) => { getSnapshot?: () => { blank?: boolean } }
     } | undefined
-    const mainDefaults = scope.settingsScope.bind({ namespace: MAIN_SETTINGS_ID, decode: decodeMainSettings })
+    const mainDefaults = scope.configForms.get<MainSettingsView>(MAIN_DEFAULT_CONFIG_ID)
     let directoryService: ProviderDirectoryFace | undefined
-    const orderStore = providerOrderStore(scope.settingsScope)
+    const orderStore = providerOrderStore(scope.configForms.get<ProviderOrderSettings>(PROVIDERS_CONFIG_ID))
     scope.inject(['providerDirectory'], directoryScope => {
       const directory = directoryScope.get('providerDirectory', false) as ProviderDirectoryFace | undefined
       if (directory === undefined || typeof directory.subscribe !== 'function') return
@@ -219,7 +198,6 @@ export function installComposerPicker(ctx: ClientContext): void {
         orderStore.invalidate()
       })
     })
-    const remoteSettings = (scope as unknown as { remote: { settings: RemoteSettingsFace } }).remote.settings
     const resolveInteractionOperations = (): PickerInteractionOperations | undefined => interactionOperationsFrom(scope)
     type SessionRpc = Parameters<typeof fetchSessionBinding>[0]
     const rpcOf = (): SessionRpc => {
@@ -261,7 +239,7 @@ export function installComposerPicker(ctx: ClientContext): void {
           const defaultBeforeSwitch = mainDefaults.getSnapshot()
           try {
             await directory.select(selection)
-            await restoreMainDefault(remoteSettings, defaultBeforeSwitch)
+            await restoreMainDefault(mainDefaults, defaultBeforeSwitch)
             return true
           } catch {
             return false

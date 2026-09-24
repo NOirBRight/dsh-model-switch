@@ -1,6 +1,6 @@
 import { Context } from '@deepseek-ai/cordis';
 import OfficialSubagentRuntime, { type ContinuableStart, type ContinuableStartSpec, type SubagentRun, type SubagentStartRequest } from '@deepseek-ai/dsh-subagent';
-import type { Config } from './host-settings.js';
+import type { ModelSwitchSettings } from './host-settings.js';
 /** Raised only when an explicit startup check finds an unsupported public surface. */
 export declare class StartupIncompatibilityError extends Error {
     readonly name = "StartupIncompatibilityError";
@@ -22,7 +22,7 @@ export interface MountedStartup<T> {
 }
 type RoutableSubagentRequest = Pick<SubagentStartRequest, 'parent' | 'agentOptions'>;
 /** Inject a fixed Default Subagent route, or leave the request for Official inherit. */
-export declare function routeSubagentRequest<T extends RoutableSubagentRequest>(request: T, settings: Config): T;
+export declare function routeSubagentRequest<T extends RoutableSubagentRequest>(request: T, settings: ModelSwitchSettings): T;
 /**
  * Mount a candidate and use the fallback only for typed startup incompatibility.
  *
@@ -47,10 +47,5 @@ export declare class ModelSwitchSubagentRuntime extends OfficialSubagentRuntime 
     private routed;
     start(name: string, request: SubagentStartRequest): Promise<SubagentRun>;
     startContinuable(spec: ContinuableStartSpec): Promise<ContinuableStart>;
-    /**
-     * Public depth policy expected by Host 0.1.6 agent-presets. Nested
-     * OfficialSubagentRuntime at the 0.1.5-rc.1 compile target does not declare it.
-     */
-    resolveMaxDepth(configured?: number | 'provider-managed'): number | undefined;
 }
 export default profileSubagentRuntime;
