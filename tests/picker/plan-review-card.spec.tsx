@@ -1,5 +1,5 @@
 import React from 'react'
-import { act, create } from 'react-test-renderer'
+import { act, create, type ReactTestRenderer } from 'react-test-renderer'
 import { describe, expect, it, vi } from 'vitest'
 
 const composerStub = vi.hoisted(() => ({ crash: false }))
@@ -36,6 +36,8 @@ function wait(answer = vi.fn(async () => undefined), key = 'plan-1', cancel = vi
 const unlockedLockSnapshot = { provider: null, failed: false }
 const lockedLockSnapshot = { provider: 'antigravity', failed: false }
 const failedLockSnapshot = { provider: null, failed: true }
+const hostSettings = { status: 'ready', mode: 'host', writable: true, value: selection, revision: 1 }
+const remoteSettings = { status: 'unavailable', mode: 'memory', writable: false, value: undefined, revision: undefined }
 function props(overrides: Record<string, unknown> = {}) {
   let snapshot = baseSnapshot
   return {
@@ -45,6 +47,8 @@ function props(overrides: Record<string, unknown> = {}) {
     useProviderOrder: (selector: (value: readonly string[]) => unknown) => selector([]),
     useInput: (selector: (value: { phase: string }) => unknown) => selector({ phase: 'plain' }),
     useSession: (selector: (value: { blank: boolean }) => unknown) => selector({ blank: false }),
+    subscribeMainDefaults: () => () => undefined,
+    getMainDefaultsSnapshot: () => hostSettings,
     providerLockStore: {
       subscribe: () => () => undefined,
       getSnapshot: () => unlockedLockSnapshot,
@@ -73,6 +77,32 @@ function locale(dictionary: Record<PickerKey, string>) {
 }
 
 describe('PlanReviewCard', () => {
+  it('keeps same-model remote Plan approval usable while explaining disabled execution switching', async () => {
+    const answer = vi.fn(async () => undefined)
+    const fixture = props({ matched: wait(answer), getMainDefaultsSnapshot: () => remoteSettings, t: locale(en) })
+    let card!: ReactTestRenderer
+    await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+    const picker = card.root.findByType(ComposerPicker)
+    expect(picker.props.locked).toBe(true)
+    expect(picker.props.unavailableReason).toBe(en['settings.remoteUnavailable'])
+    expect(approve(card, en['plan.approve']).props.disabled).toBe(false)
+    await act(async () => { approve(card, en['plan.approve']).props.onClick() })
+    expect(answer).toHaveBeenCalledOnce()
+    expect(fixture.select).not.toHaveBeenCalled()
+    await act(async () => { card.unmount() })
+  })
+
+  it('explains and blocks a previously drafted Plan model if settings become memory-only', async () => {
+    const fixture = props({ getMainDefaultsSnapshot: () => remoteSettings, t: locale(zh) })
+    let card!: ReactTestRenderer
+    await act(async () => { card = create(<PlanReviewCard {...fixture as never} />) })
+    await act(async () => { chooseExecution(card) })
+    expect(approve(card, zh['plan.approve']).props.disabled).toBe(true)
+    expect(card.root.findByProps({ role: 'status' }).children.join('')).toBe(zh['settings.remoteUnavailable'])
+    expect(fixture.select).not.toHaveBeenCalled()
+    await act(async () => { card.unmount() })
+  })
+
   it('keeps a localized Plan picker diagnostic mounted and retries the failed subtree', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
     composerStub.crash = true

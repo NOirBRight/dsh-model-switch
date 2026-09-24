@@ -45,6 +45,7 @@ const UNLOCKED_LOCK = { provider: null, failed: false } as const
 const FAILED_UNBOUND_LOCK = { provider: null, failed: true } as const
 const EMPTY_ORDER: readonly string[] = []
 const PLAIN_PHASE = { phase: 'plain' }
+const MAIN_SETTINGS = { status: 'ready', mode: 'host', writable: true, value: { provider: 'codex', model: 'm' }, revision: 1 } as const
 
 function propsFor(provider: string, roleOf?: (key: string) => string | undefined) {
   const selection = { provider, model: 'm' }
@@ -60,6 +61,8 @@ function propsFor(provider: string, roleOf?: (key: string) => string | undefined
     useProviderOrder: (selector: (value: readonly string[]) => unknown) => selector(EMPTY_ORDER),
     useInput: (selector: (value: typeof PLAIN_PHASE) => unknown) => selector(PLAIN_PHASE),
     useSession: (selector: (value: { blank: boolean }) => unknown) => selector({ blank: false }),
+    subscribeMainDefaults: () => () => undefined,
+    getMainDefaultsSnapshot: () => MAIN_SETTINGS,
     providerLockStore: { subscribe: () => () => undefined, getSnapshot: () => UNLOCKED_LOCK },
     refreshProviderLock: vi.fn(() => undefined),
     getDirectorySnapshot: () => snapshot,
