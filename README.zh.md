@@ -97,7 +97,7 @@ Plan Review 拥有独立于 Main 的执行模型草稿。**确认执行**会先�
 
 ```sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.12.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-codex/releases/latest/download/dsh-llm-codex-0.3.23.tgz
 dsh plugin --profile web add --force \
@@ -147,7 +147,7 @@ Latest 安装命令（资产文件名必须与当前 latest Release 一致）：
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.12.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.16.tgz
 ~~~
@@ -156,7 +156,7 @@ dsh plugin --profile web add --force \
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.12/dsh-llm-providers-ui-0.2.12.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.14/dsh-llm-providers-ui-0.2.14.tgz
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.16/dsh-model-switch-0.4.16.tgz
 ~~~
@@ -166,18 +166,17 @@ dsh plugin --profile web add --force \
 ~~~sh
 # 更新到最新 Release
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.12.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.16.tgz
 # 验证加载与版本
 dsh plugin --profile web list
-dsh plugin --profile web doctor
 # 只卸载本插件
 dsh plugin --profile web remove dsh-model-switch
 ~~~
 
 配置入口：Web 使用「设置」中的本插件页面；Host-only 插件使用 profile 的 dsh.profile.bundles 配置。先复制本 README 的最小 YAML/JSON 示例，再填写凭据或后端地址。
 
-回滚：重新安装不可变的 v0.4.15 归档并恢复已记录的 profile；不需要降级 Host。失败时查看 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor，不要将源码 checkout 链入生产 profile。
+回滚：重新安装不可变的 v0.4.15 归档并恢复已记录的 profile；不需要降级 Host。失败时查看 journalctl --user -u dsh-web.service，不要将源码 checkout 链入生产 profile。
 
 Release 与完整性：[v0.4.16](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.16) · [SHA256](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.16/dsh-model-switch-0.4.16.tgz.sha256)。

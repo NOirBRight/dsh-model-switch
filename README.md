@@ -99,7 +99,7 @@ Install Model Switch and only the provider adapters you use. This release was ch
 
 ```sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.12.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-codex/releases/latest/download/dsh-llm-codex-0.3.23.tgz
 dsh plugin --profile web add --force \
@@ -149,7 +149,7 @@ Latest installation (the asset filename must match the current latest release):
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.12.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.16.tgz
 ~~~
@@ -158,7 +158,7 @@ Fixed-version installation:
 
 ~~~sh
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.12/dsh-llm-providers-ui-0.2.12.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.14/dsh-llm-providers-ui-0.2.14.tgz
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.16/dsh-model-switch-0.4.16.tgz
 ~~~
@@ -168,18 +168,17 @@ Update, uninstall, and verify:
 ~~~sh
 # Update to the latest Release
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.12.tgz
+  https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.14.tgz
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.16.tgz
 # Verify the loaded version
 dsh plugin --profile web list
-dsh plugin --profile web doctor
 # Uninstall only this plugin
 dsh plugin --profile web remove dsh-model-switch
 ~~~
 
 Configuration: use the plugin section in Settings for Web UI plugins, or the profile dsh.profile.bundles entry for Host-only plugins. Start with this README's minimal YAML/JSON example and provide credentials/backend addresses explicitly.
 
-Rollback: reinstall the immutable v0.4.15 archive and restore the recorded profile; no Host downgrade is required. Inspect journalctl --user -u dsh-web.service and dsh plugin --profile web doctor; never link a checkout into production.
+Rollback: reinstall the immutable v0.4.15 archive and restore the recorded profile; no Host downgrade is required. Inspect journalctl --user -u dsh-web.service; never link a checkout into production.
 
 Release and integrity: [v0.4.16](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.16) · [SHA256](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.16/dsh-model-switch-0.4.16.tgz.sha256).
