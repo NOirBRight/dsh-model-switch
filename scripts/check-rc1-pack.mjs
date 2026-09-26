@@ -23,6 +23,7 @@ try {
   assert.equal(packed.name, source.name)
   assert.equal(packed.version, source.version)
   assert.equal(packed.dsh?.compatibility?.dshReleases?.['0.1.7-rc.1'], 'compatible')
+  assert.equal(packed.dsh?.compatibility?.dshReleases?.['0.1.7-rc.2'], 'compatible')
 
   for (const section of ['dependencies', 'optionalDependencies', 'peerDependencies', 'devDependencies']) {
     for (const [name, range] of Object.entries(packed[section] ?? {})) {

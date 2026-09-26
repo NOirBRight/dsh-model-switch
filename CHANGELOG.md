@@ -1,3 +1,9 @@
+## v0.4.16
+
+- Apply the official menu backdrop material and preserve picker focus through model selection, pane changes, and search dismissal.
+- Keep search autofocus and return focus to the trigger when Escape closes the summary.
+- Verify official DSH 0.1.7-rc.2 with open-ended Host dependency ranges.
+
 ## v0.4.15
 
 Accept DSH releases from 0.1.7-alpha.2 onward through open-ended peer and development ranges. Rebuild and verify against official 0.1.7-rc.1 without changing model routing behavior.

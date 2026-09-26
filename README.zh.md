@@ -93,7 +93,7 @@ Plan Review 拥有独立于 Main 的执行模型草稿。**确认执行**会先�
 
 ## 安装
 
-安装 Model Switch，以及实际使用的 Provider Adapter。此版本已在官方 DeepSeek Harness `0.1.7-rc.1` 上检查：
+安装 Model Switch，以及实际使用的 Provider Adapter。此版本已在官方 DeepSeek Harness `0.1.7-rc.2` 上检查：
 
 ```sh
 dsh plugin --profile web add --force \
@@ -103,7 +103,7 @@ dsh plugin --profile web add --force \
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-grok/releases/latest/download/dsh-llm-grok-0.3.19.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.15.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.16.tgz
 ```
 
 ### 搜索供应商统一接入（0.4.7）
@@ -124,7 +124,7 @@ DeepSeek 薄适配器调用官方公开 `DeepSeekSearchProvider`，复用用户�
 
 ## 兼容性
 
-DSH Host peer 和开发依赖接受 `>=0.1.7-alpha.2`，包括 rc.1 和后续版本。开发锁文件解析到 rc.1。Cordis 接受 `>=4.0.4 <5.0.0`。
+DSH Host peer 和开发依赖接受 `>=0.1.7-alpha.2`，包括 rc.1 和后续版本。开发锁文件解析到 rc.2。Cordis 接受 `>=4.0.4 <5.0.0`。
 
 `package.json#dsh.compatibility.dshReleases` 中的已验证版本是证据，不是允许列表。新增验证声明前要审查公开 API 变化并测试新 Host 版本。
 
@@ -141,7 +141,7 @@ pnpm run check
 
 ## 正式版安装（Latest）
 
-本版在官方 DeepSeek Harness `0.1.7-rc.1` 上验证了 Main、子代理、Composer 与能力路由；发布包只包含构建后的 Host/Client 产物，不包含兄弟仓库源码或本机路径。
+本版在官方 DeepSeek Harness `0.1.7-rc.2` 上验证了 Main、子代理、Composer 与能力路由；发布包只包含构建后的 Host/Client 产物，不包含兄弟仓库源码或本机路径。
 
 Latest 安装命令（资产文件名必须与当前 latest Release 一致）：
 
@@ -149,7 +149,7 @@ Latest 安装命令（资产文件名必须与当前 latest Release 一致）：
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.12.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.15.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.16.tgz
 ~~~
 
 固定版本安装命令：
@@ -158,7 +158,7 @@ dsh plugin --profile web add --force \
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/download/v0.2.12/dsh-llm-providers-ui-0.2.12.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.15/dsh-model-switch-0.4.15.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.16/dsh-model-switch-0.4.16.tgz
 ~~~
 
 更新、卸载与验证：
@@ -168,7 +168,7 @@ dsh plugin --profile web add --force \
 dsh plugin --profile web add --force \
   https://github.com/NOirBRight/dsh-llm-providers-ui/releases/latest/download/dsh-llm-providers-ui-0.2.12.tgz
 dsh plugin --profile web add --force \
-  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.15.tgz
+  https://github.com/NOirBRight/dsh-model-switch/releases/latest/download/dsh-model-switch-0.4.16.tgz
 # 验证加载与版本
 dsh plugin --profile web list
 dsh plugin --profile web doctor
@@ -178,6 +178,6 @@ dsh plugin --profile web remove dsh-model-switch
 
 配置入口：Web 使用「设置」中的本插件页面；Host-only 插件使用 profile 的 dsh.profile.bundles 配置。先复制本 README 的最小 YAML/JSON 示例，再填写凭据或后端地址。
 
-回滚：一并恢复此前官方 Host 与配套 profile；旧版 Model Switch 不兼容此 Alpha.2 Host。失败时查看 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor，不要将源码 checkout 链入生产 profile。
+回滚：重新安装不可变的 v0.4.15 归档并恢复已记录的 profile；不需要降级 Host。失败时查看 journalctl --user -u dsh-web.service 与 dsh plugin --profile web doctor，不要将源码 checkout 链入生产 profile。
 
-Release 与完整性：[v0.4.15](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.15) · [SHA256](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.15/dsh-model-switch-0.4.15.tgz.sha256)。
+Release 与完整性：[v0.4.16](https://github.com/NOirBRight/dsh-model-switch/releases/tag/v0.4.16) · [SHA256](https://github.com/NOirBRight/dsh-model-switch/releases/download/v0.4.16/dsh-model-switch-0.4.16.tgz.sha256)。
