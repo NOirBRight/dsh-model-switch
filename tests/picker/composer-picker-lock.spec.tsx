@@ -322,7 +322,9 @@ describe('ComposerPicker Plan transaction lock', () => {
       picker = create(<ComposerPicker {...props(false) as never} />, {
         createNodeMock: element => element.props['aria-haspopup'] === 'menu'
           ? { getBoundingClientRect: () => ({ top: 700, right: 370 }) }
-          : {},
+          : element.props.role === 'menu'
+            ? { contains: () => false, focus: vi.fn() }
+            : {},
       })
     })
     await act(async () => { picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.onClick() })
@@ -339,7 +341,9 @@ describe('ComposerPicker Plan transaction lock', () => {
       picker = create(<ComposerPicker {...props(false) as never} />, {
         createNodeMock: element => element.props['aria-haspopup'] === 'menu'
           ? { getBoundingClientRect: () => ({ top: 700, right: 250 }) }
-          : {},
+          : element.props.role === 'menu'
+            ? { contains: () => false, focus: vi.fn() }
+            : {},
       })
     })
     await act(async () => { picker.root.findByProps({ 'aria-haspopup': 'menu' }).props.onClick() })

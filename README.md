@@ -6,6 +6,8 @@ Choose one explicit route for Main, Subagents, Web Search, image generation, the
 
 <p align="center"><img src="docs/screenshots/composer-picker.png" alt="Composer Picker with Model, Effort, Context, and Fast controls" width="314"></p>
 
+The picker retains keyboard focus when changing panes or closing search, without overriding search autofocus. Escape from the summary closes the picker and returns focus to its trigger.
+
 ## Routes
 
 | Route | Behavior |

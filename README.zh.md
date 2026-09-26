@@ -6,6 +6,8 @@
 
 <p align="center"><img src="docs/screenshots/composer-picker.png" alt="包含 Model、Effort、Context 和 Fast 的 Composer Picker" width="314"></p>
 
+Picker 在切换页面或关闭搜索时保留键盘焦点，不覆盖搜索框的自动聚焦。从摘要页按 Escape 会关闭 Picker，并将焦点还给触发按钮。
+
 ## 路由
 
 | 路由 | 行为 |
