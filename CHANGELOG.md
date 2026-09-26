@@ -1,5 +1,6 @@
 ## v0.4.16
 
+- Bundle shared Provider UI helpers from the published v0.2.14 release.
 - Apply the official menu backdrop material and preserve picker focus through model selection, pane changes, and search dismissal.
 - Keep search autofocus and return focus to the trigger when Escape closes the summary.
 - Verify official DSH 0.1.7-rc.2 with open-ended Host dependency ranges.
