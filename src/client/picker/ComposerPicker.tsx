@@ -3,7 +3,7 @@
  */
 
 import {
-  useEffect, useMemo, useRef, useState,
+  useEffect, useLayoutEffect, useMemo, useRef, useState,
   type KeyboardEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
@@ -249,6 +249,12 @@ export function ComposerPicker({
     setAcceptedSelection(undefined)
   }, [locked])
 
+  useLayoutEffect(() => {
+    if (!open) return
+    const menu = menuRef.current
+    if (menu !== null && !menu.contains(document.activeElement)) menu.focus()
+  }, [open, pane, searching])
+
   if (!available) return null
 
   const returnToRoot = (): void => {
@@ -361,6 +367,7 @@ export function ComposerPicker({
       className={css.menu}
       style={menuStyle}
       role="menu"
+      tabIndex={-1}
       aria-label={t('menu.aria')}
       aria-busy={state.status === 'loading' || busy}
       onPointerDown={event => { event.stopPropagation() }}
